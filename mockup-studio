@@ -1,0 +1,21 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=8070
+
+# Kill any existing server on this port
+lsof -ti:$PORT 2>/dev/null | xargs kill -9 2>/dev/null
+
+# Start local server in background
+cd "$DIR"
+python3 -m http.server $PORT --bind 127.0.0.1 &>/dev/null &
+SERVER_PID=$!
+
+# Wait for server to start
+sleep 0.5
+
+# Open in Chrome
+open -a "Google Chrome" "http://localhost:$PORT/mockup-player.html"
+
+echo "Mockup Studio running at http://localhost:$PORT"
+echo "Server PID: $SERVER_PID"
+echo "To stop: kill $SERVER_PID"

@@ -1,0 +1,14 @@
+{
+  "frame_width": 960,
+  "frame_height": 1970,
+  "screen_left": 45,
+  "screen_top": 45,
+  "screen_right": 905,
+  "screen_bottom": 1925,
+  "screen_width": 860,
+  "screen_height": 1880,
+  "corner_radius": 100,
+  "original_width": 192,
+  "original_height": 394,
+  "scale_factor": 5
+}
