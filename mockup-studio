@@ -1,21 +1,116 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Mockup Studio — Cross-platform launcher
+# Starts a local server and opens the app in a browser.
+#
+# Usage:
+#   ./mockup-studio              Start on default port (8070)
+#   ./mockup-studio --port 9000  Start on custom port
+#   ./mockup-studio --no-browser Start server without opening browser
+
+set -euo pipefail
+
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT=8070
+OPEN_BROWSER=1
 
-# Kill any existing server on this port
-lsof -ti:$PORT 2>/dev/null | xargs kill -9 2>/dev/null
+# ---- Parse arguments ----
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --port)
+      PORT="$2"
+      shift 2
+      ;;
+    --no-browser)
+      OPEN_BROWSER=0
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: ./mockup-studio [--port PORT] [--no-browser]"
+      echo "  --port PORT    Set server port (default: 8070)"
+      echo "  --no-browser   Start server without opening a browser"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: ./mockup-studio [--port PORT] [--no-browser]"
+      exit 1
+      ;;
+  esac
+done
 
-# Start local server in background
+URL="http://localhost:$PORT/mockup-player.html"
+
+# ---- Detect OS ----
+detect_os() {
+  case "$(uname -s)" in
+    Darwin*)  echo "macos" ;;
+    Linux*)   echo "linux" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+    *)
+      # Check for WSL
+      if grep -qi microsoft /proc/version 2>/dev/null; then
+        echo "wsl"
+      else
+        echo "unknown"
+      fi
+      ;;
+  esac
+}
+
+OS="$(detect_os)"
+
+# ---- Kill any existing server on this port ----
+if command -v lsof &>/dev/null; then
+  lsof -ti:"$PORT" 2>/dev/null | xargs kill -9 2>/dev/null || true
+elif command -v fuser &>/dev/null; then
+  fuser -k "$PORT/tcp" 2>/dev/null || true
+fi
+
+# ---- Start local server ----
 cd "$DIR"
-python3 -m http.server $PORT --bind 127.0.0.1 &>/dev/null &
+python3 -m http.server "$PORT" --bind 127.0.0.1 &>/dev/null &
 SERVER_PID=$!
+
+# Ensure server is killed on exit
+trap 'kill $SERVER_PID 2>/dev/null || true' EXIT INT TERM
 
 # Wait for server to start
 sleep 0.5
 
-# Open in Chrome
-open -a "Google Chrome" "http://localhost:$PORT/mockup-player.html"
-
 echo "Mockup Studio running at http://localhost:$PORT"
-echo "Server PID: $SERVER_PID"
-echo "To stop: kill $SERVER_PID"
+echo "Press Ctrl+C to stop"
+
+# ---- Open browser ----
+if [ "$OPEN_BROWSER" -eq 1 ]; then
+  opened=0
+
+  case "$OS" in
+    macos)
+      open -a "Google Chrome" "$URL" 2>/dev/null && opened=1 || \
+      open "$URL" 2>/dev/null && opened=1 || true
+      ;;
+    linux)
+      xdg-open "$URL" 2>/dev/null && opened=1 || \
+      google-chrome "$URL" 2>/dev/null && opened=1 || \
+      chromium-browser "$URL" 2>/dev/null && opened=1 || \
+      firefox "$URL" 2>/dev/null && opened=1 || true
+      ;;
+    windows)
+      start "$URL" 2>/dev/null && opened=1 || \
+      cmd.exe /c start "$URL" 2>/dev/null && opened=1 || true
+      ;;
+    wsl)
+      cmd.exe /c start "$URL" 2>/dev/null && opened=1 || \
+      wslview "$URL" 2>/dev/null && opened=1 || true
+      ;;
+  esac
+
+  if [ "$opened" -eq 0 ]; then
+    echo "Could not open browser automatically."
+    echo "Open this URL manually: $URL"
+  fi
+fi
+
+# ---- Keep server running ----
+wait $SERVER_PID

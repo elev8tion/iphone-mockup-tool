@@ -1,0 +1,85 @@
+/* ---- Top Bar ---- */
+.top-bar {
+  height: 44px;
+  background: rgba(18,18,18,0.95);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.top-bar .logo {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-right: 12px;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.top-bar .sep { width: 1px; height: 20px; background: rgba(255,255,255,0.08); }
+
+.top-bar label {
+  font-size: 10px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.top-bar select, .top-bar input[type="number"] {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  color: #ccc;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-family: inherit;
+}
+.top-bar input[type="number"] { width: 52px; }
+
+.btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #ccc;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  border-color: rgba(99,102,241,0.4);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary.recording {
+  background: linear-gradient(135deg, #dc2626, #e11d48);
+  border-color: rgba(220,38,38,0.5);
+  animation: pulse 1.2s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+.undo-btn {
+  background: none; border: none; color: #555; font-size: 14px;
+  cursor: pointer; padding: 2px 5px; border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.undo-btn:hover:not(:disabled) { color: #ccc; background: rgba(255,255,255,0.06); }
+.undo-btn:disabled { color: #333; cursor: default; }
+
+.top-bar .spacer { flex: 1; }
+

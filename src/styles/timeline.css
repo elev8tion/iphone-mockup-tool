@@ -1,0 +1,124 @@
+/* ---- Timeline ---- */
+.timeline-bar {
+  height: 80px;
+  background: rgba(18,18,18,0.95);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 16px;
+  flex-shrink: 0;
+  display: none;
+}
+.timeline-bar.visible { display: flex; }
+
+.timeline-track {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  position: relative;
+  margin-bottom: 4px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.timeline-track .clip-block {
+  position: absolute; top: 4px; bottom: 4px;
+  background: rgba(96,165,250,0.2);
+  border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #60a5fa;
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  user-select: none; transition: opacity 0.15s;
+}
+.clip-block.active { border-color: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.3); }
+.clip-block.dragging { opacity: 0.5; }
+.clip-block .clip-trim-handle {
+  position: absolute; top: 0; bottom: 0; width: 6px;
+  background: rgba(255,255,255,0.15); cursor: ew-resize; z-index: 2;
+}
+.clip-block .clip-trim-handle.left { left: 0; border-radius: 3px 0 0 3px; }
+.clip-block .clip-trim-handle.right { right: 0; border-radius: 0 3px 3px 0; }
+.clip-block .clip-trim-handle:hover { background: rgba(255,255,255,0.3); }
+.clip-trans-indicator {
+  position: absolute; top: 4px; bottom: 4px; width: 4px;
+  background: rgba(168,85,247,0.6); border-radius: 2px; z-index: 2;
+  pointer-events: none;
+}
+.trim-handle {
+  position: absolute; top: 0; bottom: 0; width: 8px;
+  background: rgba(96,165,250,0.6);
+  cursor: ew-resize; z-index: 2;
+}
+.trim-handle.left { left: 0; border-radius: 3px 0 0 3px; }
+.trim-handle.right { right: 0; border-radius: 0 3px 3px 0; }
+.timeline-scrubber {
+  position: absolute; top: 0; bottom: 0; width: 2px;
+  background: #f59e0b; z-index: 3; pointer-events: none;
+}
+.keyframe-diamond {
+  position: absolute; top: -2px; width: 10px; height: 10px;
+  background: #f59e0b; transform: rotate(45deg);
+  cursor: pointer; z-index: 4;
+}
+
+/* ---- Playback Bar ---- */
+.playback-bar {
+  height: 40px;
+  background: rgba(18,18,18,0.95);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+.playback-bar.visible { transform: translateY(0); }
+
+.play-btn {
+  width: 28px; height: 28px; background: none; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.play-btn svg { width: 16px; height: 16px; fill: #e0e0e0; }
+
+.progress-track {
+  flex: 1; height: 4px; background: rgba(255,255,255,0.1);
+  border-radius: 2px; cursor: pointer; position: relative;
+  padding: 8px 0; background-clip: content-box;
+  margin: -8px 0;
+  transition: height 0.15s ease;
+}
+.progress-track:hover, .progress-track.scrubbing { height: 6px; }
+.progress-fill {
+  height: 100%; background: #60a5fa; border-radius: 2px; width: 0%;
+  pointer-events: none; position: relative;
+}
+.progress-handle {
+  position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);
+  opacity: 0; transition: opacity 0.15s;
+  pointer-events: none;
+}
+.progress-track:hover .progress-handle,
+.progress-track.scrubbing .progress-handle { opacity: 1; }
+.progress-tooltip {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: rgba(18,18,18,0.92); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #ccc;
+  white-space: nowrap; pointer-events: none;
+  display: none;
+}
+.progress-track.scrubbing .progress-tooltip { display: block; }
+
+.time-label {
+  font-size: 10px; color: #666; font-variant-numeric: tabular-nums;
+  min-width: 80px; text-align: right;
+}
+
+.speed-select {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; color: #ccc; padding: 2px 4px; font-size: 10px; font-family: inherit;
+}
+

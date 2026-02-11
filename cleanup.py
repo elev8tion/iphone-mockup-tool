@@ -186,7 +186,11 @@ def extract_frame(input_path, output_dir, scale_factor=5):
 
 
 if __name__ == '__main__':
-    input_file = sys.argv[1] if len(sys.argv) > 1 else '/Users/kcdacre8tor/Downloads/iphone-16.webp'
+    if len(sys.argv) < 2:
+        print("Usage: python3 cleanup.py <mockup-image>")
+        print("Example: python3 cleanup.py iphone-16.webp")
+        sys.exit(1)
+    input_file = sys.argv[1]
     output_dir = os.path.dirname(os.path.abspath(__file__))
     scale = 5  # 5x upscale
 
