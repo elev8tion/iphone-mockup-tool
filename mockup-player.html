@@ -111,11 +111,40 @@ body {
   overflow-y: auto;
   flex-shrink: 0;
   font-size: 11px;
+  position: relative;
+  transition: width 0.2s ease;
 }
 .panel.right-panel {
   border-right: none;
   border-left: 1px solid rgba(255,255,255,0.06);
 }
+.panel.collapsed {
+  width: 36px;
+  overflow: hidden;
+}
+.panel.collapsed .panel-section { display: none; }
+.panel-toggle {
+  position: absolute; top: 8px; z-index: 10;
+  width: 20px; height: 20px; border-radius: 4px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: #666; font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; transition: all 0.15s;
+}
+.panel-toggle:hover { background: rgba(255,255,255,0.12); color: #ccc; }
+.left-panel .panel-toggle { right: 6px; }
+.right-panel .panel-toggle { left: 6px; }
+.panel-collapsed-label {
+  display: none;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 10px; color: #555; letter-spacing: 0.5px;
+  text-transform: uppercase; font-weight: 600;
+  position: absolute; top: 36px; left: 0; right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+.panel.collapsed .panel-collapsed-label { display: block; }
 
 .panel-section {
   padding: 12px;
@@ -516,9 +545,32 @@ body {
 .progress-track {
   flex: 1; height: 4px; background: rgba(255,255,255,0.1);
   border-radius: 2px; cursor: pointer; position: relative;
+  padding: 8px 0; background-clip: content-box;
+  margin: -8px 0;
+  transition: height 0.15s ease;
 }
-.progress-track:hover { height: 6px; }
-.progress-fill { height: 100%; background: #60a5fa; border-radius: 2px; width: 0%; pointer-events: none; }
+.progress-track:hover, .progress-track.scrubbing { height: 6px; }
+.progress-fill {
+  height: 100%; background: #60a5fa; border-radius: 2px; width: 0%;
+  pointer-events: none; position: relative;
+}
+.progress-handle {
+  position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);
+  opacity: 0; transition: opacity 0.15s;
+  pointer-events: none;
+}
+.progress-track:hover .progress-handle,
+.progress-track.scrubbing .progress-handle { opacity: 1; }
+.progress-tooltip {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: rgba(18,18,18,0.92); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #ccc;
+  white-space: nowrap; pointer-events: none;
+  display: none;
+}
+.progress-track.scrubbing .progress-tooltip { display: block; }
 
 .time-label {
   font-size: 10px; color: #666; font-variant-numeric: tabular-nums;
@@ -712,6 +764,53 @@ input[type="file"] { display: none; }
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .kb-close:hover { background: rgba(255,255,255,0.13); color: #fff; }
+
+/* Export Dialog */
+.export-dialog {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+}
+.export-dialog.open { display: flex; }
+.export-dialog-panel {
+  background: rgba(18,18,18,0.96);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 24px 28px 20px;
+  width: 400px;
+  position: relative;
+}
+.export-dialog-panel h2 {
+  font-size: 14px; font-weight: 700; margin-bottom: 16px;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.ed-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px; color: #aaa;
+}
+.ed-row:last-child { border-bottom: none; }
+.ed-row label { color: #888; font-size: 11px; min-width: 90px; }
+.ed-row select, .ed-row input[type="checkbox"] {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px; color: #ccc;
+  padding: 4px 8px; font-size: 11px; font-family: inherit;
+}
+.ed-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: #60a5fa; }
+.ed-estimate {
+  margin-top: 12px; padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  font-size: 11px; color: #666; text-align: center;
+}
+.ed-actions {
+  display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;
+}
 </style>
 </head>
 <body>
@@ -770,8 +869,45 @@ input[type="file"] { display: none; }
     <div class="kb-row"><span class="kb-key"><kbd>Space</kbd></span><span class="kb-action">Play / Pause</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>←</kbd> <kbd>→</kbd></span><span class="kb-action">Seek ±5 seconds</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>Ctrl</kbd><kbd>S</kbd></span><span class="kb-action">Save Screenshot</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>[</kbd> <kbd>]</kbd></span><span class="kb-action">Toggle sidebars</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>?</kbd></span><span class="kb-action">Show this help</span></div>
     <div class="kb-tip">Tip: Press <kbd style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:9px;font-family:inherit;color:#666">?</kbd> anytime to see shortcuts</div>
+  </div>
+</div>
+
+<!-- Export Dialog -->
+<div class="export-dialog" id="exportDialog">
+  <div class="export-dialog-panel">
+    <h2>Export Settings</h2>
+    <div class="ed-row"><label>Format</label><select id="edFormat" disabled><option value="webm">WebM</option></select></div>
+    <div class="ed-row"><label>Resolution</label>
+      <select id="edResolution">
+        <option value="original">Original</option>
+        <option value="1080">1080p</option>
+        <option value="720">720p</option>
+      </select>
+    </div>
+    <div class="ed-row"><label>Quality</label>
+      <select id="edQuality">
+        <option value="5000000">Low (5 Mbps)</option>
+        <option value="10000000" selected>Medium (10 Mbps)</option>
+        <option value="20000000">High (20 Mbps)</option>
+        <option value="40000000">Max (40 Mbps)</option>
+      </select>
+    </div>
+    <div class="ed-row"><label>Framerate</label>
+      <select id="edFramerate">
+        <option value="24">24 fps</option>
+        <option value="30" selected>30 fps</option>
+        <option value="60">60 fps</option>
+      </select>
+    </div>
+    <div class="ed-row"><label>Include Audio</label><input type="checkbox" id="edAudio" checked></div>
+    <div class="ed-estimate" id="edEstimate"></div>
+    <div class="ed-actions">
+      <button class="btn" id="edCancel">Cancel</button>
+      <button class="btn btn-primary" id="edStart">Start Export</button>
+    </div>
   </div>
 </div>
 
@@ -779,7 +915,9 @@ input[type="file"] { display: none; }
 <div class="main-layout">
 
   <!-- Left Panel -->
-  <div class="panel left-panel">
+  <div class="panel left-panel" id="leftPanel">
+    <button class="panel-toggle" id="leftPanelToggle" title="Toggle left panel [">«</button>
+    <div class="panel-collapsed-label">Templates</div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Studio Templates</h3>
@@ -927,7 +1065,9 @@ input[type="file"] { display: none; }
   </div>
 
   <!-- Right Panel -->
-  <div class="panel right-panel">
+  <div class="panel right-panel" id="rightPanel">
+    <button class="panel-toggle" id="rightPanelToggle" title="Toggle right panel ]">»</button>
+    <div class="panel-collapsed-label">Effects</div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Background</h3>
@@ -1097,6 +1237,14 @@ input[type="file"] { display: none; }
         <span id="scaleVal" style="font-size:10px;color:#777;min-width:28px">45%</span>
       </div>
       <div class="prop-row">
+        <label>Fit</label>
+        <select id="videoFitMode">
+          <option value="cover">Cover</option>
+          <option value="contain">Contain</option>
+          <option value="stretch">Stretch</option>
+        </select>
+      </div>
+      <div class="prop-row">
         <label>Tilt X</label>
         <input type="range" id="tiltX" min="-30" max="30" value="0">
       </div>
@@ -1207,6 +1355,16 @@ input[type="file"] { display: none; }
       <div class="prop-row"><label>Pan X</label><input type="range" id="kfPanX" min="-200" max="200" value="0"></div>
       <div class="prop-row"><label>Pan Y</label><input type="range" id="kfPanY" min="-200" max="200" value="0"></div>
     </div>
+
+    <div class="panel-section">
+      <h3>Project</h3>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button class="btn" id="saveProjectBtn" style="flex:1">Save Project</button>
+        <button class="btn" id="loadProjectBtn" style="flex:1">Load Project</button>
+      </div>
+      <input type="file" id="projectFileInput" accept=".json,application/json" style="display:none">
+      <button class="btn" id="resetAllBtn" style="width:100%;color:#f66;border-color:rgba(255,100,100,0.2)">Reset All</button>
+    </div>
   </div>
 </div>
 
@@ -1234,7 +1392,11 @@ input[type="file"] { display: none; }
     <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
   </button>
   <div class="progress-track" id="progressTrack">
-    <div class="progress-fill" id="progressFill"></div>
+    <div class="progress-fill" id="progressFill">
+      <div class="progress-handle">
+        <div class="progress-tooltip" id="progressTooltip"></div>
+      </div>
+    </div>
   </div>
   <span class="time-label" id="timeLabel">0:00 / 0:00</span>
   <span id="videoFileName" style="font-size:10px;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
@@ -1390,6 +1552,7 @@ const PRESETS = {
 // ============================================================
 const state = {
   device: { type: 'iphone16', color: 'black', landscape: false, scale: 0.45 },
+  videoFit: 'cover',
   perspective: { x: 0, y: 0 },
   background: { color: '#0a0a0a' },
   shadow: 0.6,
@@ -2935,8 +3098,15 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       const vh = chromaFrame ? chromaFrame.height : video.videoHeight;
       const cRatio = CW / CH, vRatio = vw / vh;
       let dw, dh, dx, dy;
-      if (vRatio > cRatio) { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; dy = 0; }
-      else { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
+      if (state.videoFit === 'stretch') {
+        dx = 0; dy = 0; dw = CW; dh = CH;
+      } else if (state.videoFit === 'contain') {
+        if (vRatio > cRatio) { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
+        else { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; dy = 0; }
+      } else {
+        if (vRatio > cRatio) { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; dy = 0; }
+        else { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
+      }
       ctx.drawImage(vidSrc, dx, dy, dw, dh);
     }
     return;
@@ -2987,8 +3157,15 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     const vh = chromaFrame ? chromaFrame.height : video.videoHeight;
     const sRatio = sw/sh, vRatio = vw/vh;
     let dw, dh, dx, dy;
-    if (vRatio > sRatio) { dh = sh; dw = sh*vRatio; dx = dev.screenX*devScale+(sw-dw)/2; dy = dev.screenY*devScale; }
-    else { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
+    if (state.videoFit === 'stretch') {
+      dx = dev.screenX*devScale; dy = dev.screenY*devScale; dw = sw; dh = sh;
+    } else if (state.videoFit === 'contain') {
+      if (vRatio > sRatio) { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
+      else { dh = sh; dw = sh*vRatio; dx = dev.screenX*devScale+(sw-dw)/2; dy = dev.screenY*devScale; }
+    } else {
+      if (vRatio > sRatio) { dh = sh; dw = sh*vRatio; dx = dev.screenX*devScale+(sw-dw)/2; dy = dev.screenY*devScale; }
+      else { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
+    }
     ctx.drawImage(vidSrc, dx, dy, dw, dh);
     ctx.restore();
   } else {
@@ -3076,8 +3253,15 @@ function renderDevice2Layer(ctx, CW, CH, dc) {
     const vh2 = chromaFrame2 ? chromaFrame2.height : vid2.videoHeight;
     const sR2 = sw2/sh2, vR2 = vw2/vh2;
     let dw2, dh2, dx2, dy2;
-    if (vR2 > sR2) { dh2=sh2; dw2=sh2*vR2; dx2=dev2.screenX*d2Scale+(sw2-dw2)/2; dy2=dev2.screenY*d2Scale; }
-    else { dw2=sw2; dh2=sw2/vR2; dx2=dev2.screenX*d2Scale; dy2=dev2.screenY*d2Scale+(sh2-dh2)/2; }
+    if (state.videoFit === 'stretch') {
+      dx2 = dev2.screenX*d2Scale; dy2 = dev2.screenY*d2Scale; dw2 = sw2; dh2 = sh2;
+    } else if (state.videoFit === 'contain') {
+      if (vR2 > sR2) { dw2=sw2; dh2=sw2/vR2; dx2=dev2.screenX*d2Scale; dy2=dev2.screenY*d2Scale+(sh2-dh2)/2; }
+      else { dh2=sh2; dw2=sh2*vR2; dx2=dev2.screenX*d2Scale+(sw2-dw2)/2; dy2=dev2.screenY*d2Scale; }
+    } else {
+      if (vR2 > sR2) { dh2=sh2; dw2=sh2*vR2; dx2=dev2.screenX*d2Scale+(sw2-dw2)/2; dy2=dev2.screenY*d2Scale; }
+      else { dw2=sw2; dh2=sw2/vR2; dx2=dev2.screenX*d2Scale; dy2=dev2.screenY*d2Scale+(sh2-dh2)/2; }
+    }
     ctx.drawImage(vid2Src, dx2, dy2, dw2, dh2);
     ctx.restore();
   }
@@ -3373,6 +3557,7 @@ requestAnimationFrame(render);
 
 window.addEventListener('resize', () => { updateDisplaySize(); });
 scaleSlider.addEventListener('input', () => { state.device.scale = parseInt(scaleSlider.value) / 100; updateDisplaySize(); frameCache = {}; });
+document.getElementById('videoFitMode').addEventListener('change', e => { state.videoFit = e.target.value; scheduleSave(); });
 bgColorInput.addEventListener('input', e => { state.background.color = e.target.value; });
 shadowSlider.addEventListener('input', e => { state.shadow = parseInt(e.target.value) / 100; });
 tiltXSlider.addEventListener('input', updatePerspective);
@@ -3547,12 +3732,43 @@ video.addEventListener('timeupdate', () => {
   updateTimelineScrubber();
 });
 
-progressTrack.addEventListener('click', e => {
+function fmt(s) { return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2, '0'); }
+
+// Progress bar scrubbing
+const progressTooltip = document.getElementById('progressTooltip');
+let isScrubbing = false;
+let wasPlayingBeforeScrub = false;
+
+function scrubToX(clientX) {
   const r = progressTrack.getBoundingClientRect();
-  video.currentTime = ((e.clientX - r.left) / r.width) * video.duration;
+  const pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  const t = pct * (video.duration || 0);
+  video.currentTime = t;
+  progressTooltip.textContent = fmt(t);
+  // Position tooltip above handle via the fill width
+  progressFill.style.width = (pct * 100) + '%';
+}
+
+progressTrack.addEventListener('mousedown', e => {
+  if (!video.duration) return;
+  isScrubbing = true;
+  wasPlayingBeforeScrub = !video.paused;
+  video.pause();
+  progressTrack.classList.add('scrubbing');
+  scrubToX(e.clientX);
 });
 
-function fmt(s) { return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2, '0'); }
+document.addEventListener('mousemove', e => {
+  if (!isScrubbing) return;
+  scrubToX(e.clientX);
+});
+
+document.addEventListener('mouseup', () => {
+  if (!isScrubbing) return;
+  isScrubbing = false;
+  progressTrack.classList.remove('scrubbing');
+  if (wasPlayingBeforeScrub) video.play();
+});
 
 loopBtn.addEventListener('click', function() {
   isLooping = !isLooping;
@@ -3580,11 +3796,66 @@ kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) kbOverlay
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
+  if (e.key === 'Escape' && document.getElementById('exportDialog').classList.contains('open')) { document.getElementById('exportDialog').classList.remove('open'); return; }
   if (e.key === '?') { toggleKbHelp(); return; }
   if (e.code === 'Space') { e.preventDefault(); video.paused ? video.play() : video.pause(); }
+  if (e.key === '[') { togglePanel('left'); return; }
+  if (e.key === ']') { togglePanel('right'); return; }
   if (e.code === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
   if (e.code === 'ArrowRight') video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
 });
+
+// ============================================================
+// COLLAPSIBLE SIDEBAR PANELS
+// ============================================================
+const leftPanel = document.getElementById('leftPanel');
+const rightPanel = document.getElementById('rightPanel');
+const leftPanelToggle = document.getElementById('leftPanelToggle');
+const rightPanelToggle = document.getElementById('rightPanelToggle');
+
+function togglePanel(side) {
+  const panel = side === 'left' ? leftPanel : rightPanel;
+  const btn = side === 'left' ? leftPanelToggle : rightPanelToggle;
+  const collapsed = panel.classList.toggle('collapsed');
+  if (side === 'left') {
+    btn.textContent = collapsed ? '»' : '«';
+  } else {
+    btn.textContent = collapsed ? '«' : '»';
+  }
+  savePanelState();
+}
+
+function savePanelState() {
+  localStorage.setItem('mockupStudioPanels', JSON.stringify({
+    left: leftPanel.classList.contains('collapsed'),
+    right: rightPanel.classList.contains('collapsed'),
+  }));
+}
+
+function loadPanelState() {
+  // Auto-collapse on narrow screens
+  if (window.innerWidth < 1280) {
+    leftPanel.classList.add('collapsed');
+    rightPanel.classList.add('collapsed');
+    leftPanelToggle.textContent = '»';
+    rightPanelToggle.textContent = '«';
+  }
+  // Override with saved state if it exists
+  try {
+    const raw = localStorage.getItem('mockupStudioPanels');
+    if (raw) {
+      const s = JSON.parse(raw);
+      leftPanel.classList.toggle('collapsed', s.left);
+      rightPanel.classList.toggle('collapsed', s.right);
+      leftPanelToggle.textContent = s.left ? '»' : '«';
+      rightPanelToggle.textContent = s.right ? '«' : '»';
+    }
+  } catch (e) { /* ignore */ }
+}
+
+leftPanelToggle.addEventListener('click', () => togglePanel('left'));
+rightPanelToggle.addEventListener('click', () => togglePanel('right'));
+loadPanelState();
 
 // ============================================================
 // ENTRANCE ANIMATION
@@ -4611,9 +4882,49 @@ let audioCtx = null;
 let sourceNode = null;
 let destNode = null;
 
+const exportDialog = document.getElementById('exportDialog');
+const edResolution = document.getElementById('edResolution');
+const edQuality = document.getElementById('edQuality');
+const edFramerate = document.getElementById('edFramerate');
+const edAudio = document.getElementById('edAudio');
+const edEstimate = document.getElementById('edEstimate');
+
+function updateExportEstimate() {
+  const sz = getCanvasSize();
+  let w = sz.w, h = sz.h;
+  const res = edResolution.value;
+  if (res === '1080') { const s = 1080 / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+  else if (res === '720') { const s = 720 / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+  // Ensure even dimensions
+  w = w % 2 === 0 ? w : w + 1;
+  h = h % 2 === 0 ? h : h + 1;
+  const dur = video.duration ? ((state.timeline.trimOut - state.timeline.trimIn) * video.duration / state.timeline.speed).toFixed(1) : '?';
+  edEstimate.textContent = '~' + dur + 's of video at ' + w + '\u00d7' + h + ' · ' + edFramerate.value + ' fps';
+}
+
+function openExportDialog() {
+  updateExportEstimate();
+  exportDialog.classList.add('open');
+}
+
+function closeExportDialog() {
+  exportDialog.classList.remove('open');
+}
+
+edResolution.addEventListener('change', updateExportEstimate);
+edFramerate.addEventListener('change', updateExportEstimate);
+edQuality.addEventListener('change', updateExportEstimate);
+document.getElementById('edCancel').addEventListener('click', closeExportDialog);
+exportDialog.addEventListener('click', e => { if (e.target === exportDialog) closeExportDialog(); });
+
 exportBtn.addEventListener('click', () => {
   if (!hasVideo) return;
   if (isExporting) { stopExport(); return; }
+  openExportDialog();
+});
+
+document.getElementById('edStart').addEventListener('click', () => {
+  closeExportDialog();
   startExport();
 });
 
@@ -4625,45 +4936,58 @@ function startExport() {
   exportText.textContent = 'Preparing...';
   exportBarFill.style.width = '0%';
 
-  const sz = getCanvasSize();
+  // Read settings from dialog
+  const bitrate = parseInt(edQuality.value);
+  const fps = parseInt(edFramerate.value);
+  const includeAudio = edAudio.checked;
 
-  // Create export canvas matching render canvas
+  const origSz = getCanvasSize();
+  let expW = origSz.w, expH = origSz.h;
+  const res = edResolution.value;
+  if (res === '1080') { const s = 1080 / Math.max(expW, expH); expW = Math.round(expW * s); expH = Math.round(expH * s); }
+  else if (res === '720') { const s = 720 / Math.max(expW, expH); expW = Math.round(expW * s); expH = Math.round(expH * s); }
+  // Ensure even dimensions for codec compatibility
+  expW = expW % 2 === 0 ? expW : expW + 1;
+  expH = expH % 2 === 0 ? expH : expH + 1;
+
+  // Create export canvas at target resolution
   const exportCanvas = document.createElement('canvas');
-  exportCanvas.width = sz.w;
-  exportCanvas.height = sz.h;
+  exportCanvas.width = expW;
+  exportCanvas.height = expH;
   const eCtx = exportCanvas.getContext('2d');
 
   let exportRAF;
   function exportLoop() {
-    // Copy current render to export canvas
-    eCtx.clearRect(0, 0, sz.w, sz.h);
-    eCtx.drawImage(canvas, 0, 0, sz.w, sz.h);
+    eCtx.clearRect(0, 0, expW, expH);
+    eCtx.drawImage(canvas, 0, 0, expW, expH);
     if (isExporting) exportRAF = requestAnimationFrame(exportLoop);
   }
   exportLoop();
 
-  // Capture stream
-  const expStream = exportCanvas.captureStream(30);
+  // Capture stream at target framerate
+  const expStream = exportCanvas.captureStream(fps);
 
   // Audio
-  try {
-    if (!audioCtx) {
-      audioCtx = new AudioContext();
-      sourceNode = audioCtx.createMediaElementSource(video);
-    }
-    destNode = audioCtx.createMediaStreamDestination();
-    sourceNode.disconnect();
-    sourceNode.connect(destNode);
-    sourceNode.connect(audioCtx.destination);
-    for (const t of destNode.stream.getAudioTracks()) expStream.addTrack(t);
-  } catch (err) { console.log('Audio capture skipped:', err.message); }
+  if (includeAudio) {
+    try {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+        sourceNode = audioCtx.createMediaElementSource(video);
+      }
+      destNode = audioCtx.createMediaStreamDestination();
+      sourceNode.disconnect();
+      sourceNode.connect(destNode);
+      sourceNode.connect(audioCtx.destination);
+      for (const t of destNode.stream.getAudioTracks()) expStream.addTrack(t);
+    } catch (err) { console.log('Audio capture skipped:', err.message); }
+  }
 
   let mime = 'video/webm;codecs=vp9,opus';
   if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm;codecs=vp8,opus';
   if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
 
   const chunks = [];
-  recorder = new MediaRecorder(expStream, { mimeType: mime, videoBitsPerSecond: 10_000_000 });
+  recorder = new MediaRecorder(expStream, { mimeType: mime, videoBitsPerSecond: bitrate });
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
   recorder.onstop = () => {
@@ -5193,7 +5517,7 @@ document.getElementById('lutPresetGrid').addEventListener('click', e => {
   const preset = btn.dataset.lutPreset;
   document.querySelectorAll('#lutPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
   if (preset === 'none') {
-    state.lut = { enabled: false, data: null, size: 0, intensity: 1.0, name: '' };
+    state.lut = { enabled: false, data: null, size: 0, intensity: 1.0, name: '', _presetKey: '' };
     document.getElementById('lutInfo').textContent = '';
     document.getElementById('lutControls').style.display = 'none';
     return;
@@ -5204,6 +5528,7 @@ document.getElementById('lutPresetGrid').addEventListener('click', e => {
   state.lut.size = lut.size;
   state.lut.enabled = true;
   state.lut.name = btn.textContent;
+  state.lut._presetKey = preset;
   document.getElementById('lutInfo').innerHTML = '<span style="color:#4ade80">Active:</span> ' + btn.textContent;
   document.getElementById('lutControls').style.display = 'block';
   showToast('Color grade: ' + btn.textContent + ' applied', 'info');
@@ -5221,6 +5546,7 @@ document.getElementById('lutFileInput').addEventListener('change', e => {
     state.lut.size = lut.size;
     state.lut.enabled = true;
     state.lut.name = lut.title || file.name;
+    state.lut._presetKey = '';
     document.getElementById('lutInfo').innerHTML = '<span style="color:#4ade80">Loaded:</span> ' + state.lut.name + ' (' + lut.size + 'x' + lut.size + 'x' + lut.size + ')';
     document.getElementById('lutControls').style.display = 'block';
     showToast('Color grade: ' + state.lut.name + ' applied', 'info');
@@ -5588,6 +5914,275 @@ function showAssetToast(msg) { showToast(msg, 'success'); }
 abSearch.addEventListener('input', e => {
   abSearchTerm = e.target.value.trim();
   if (abDirHandle) renderAssetBrowser();
+});
+
+// ============================================================
+// SESSION PERSISTENCE (localStorage)
+// ============================================================
+const STORAGE_KEY = 'mockupStudioState';
+
+function getSerializableState() {
+  return {
+    device: { type: state.device.type, color: state.device.color, landscape: state.device.landscape, scale: state.device.scale },
+    videoFit: state.videoFit,
+    perspective: { x: state.perspective.x, y: state.perspective.y },
+    background: { color: state.background.color },
+    shadow: state.shadow,
+    preset: state.preset,
+    bgType: state.bgType,
+    gradient: { ...state.gradient },
+    particles: { enabled: state.particles.enabled, type: state.particles.type, count: state.particles.count, color: state.particles.color, speed: state.particles.speed },
+    orbit: { enabled: state.orbit.enabled, speed: state.orbit.speed, axis: state.orbit.axis, range: state.orbit.range },
+    motionBlur: { enabled: state.motionBlur.enabled, amount: state.motionBlur.amount },
+    entrance: { type: state.entrance.type, duration: state.entrance.duration },
+    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm },
+    scene: state.scene,
+    chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
+    lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, presetKey: state.lut._presetKey || '' },
+    waveform: { enabled: state.waveform.enabled, color: state.waveform.color, height: state.waveform.height, position: state.waveform.position, style: state.waveform.style },
+    progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
+    glassmorphism: { enabled: state.glassmorphism.enabled, text: state.glassmorphism.text, blur: state.glassmorphism.blur, opacity: state.glassmorphism.opacity },
+    hand: { enabled: state.hand.enabled, style: state.hand.style },
+    builtinOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
+    isLooping: isLooping,
+    speed: state.timeline.speed,
+  };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getSerializableState()));
+  } catch (e) { /* quota exceeded or private mode — ignore */ }
+}
+
+let _saveTimer = null;
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveState, 500);
+}
+
+function applyStateToUI(s) {
+  // Device
+  state.device.type = s.device.type;
+  state.device.color = s.device.color;
+  state.device.landscape = s.device.landscape || false;
+  state.device.scale = s.device.scale;
+  deviceGrid.querySelectorAll('.dev-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.device === s.device.type);
+  });
+  if (s.device.landscape) document.getElementById('landscapeBtn').classList.add('active');
+  updateColorSwatches();
+  frameCache = {};
+
+  // Video fit
+  state.videoFit = s.videoFit || 'cover';
+  document.getElementById('videoFitMode').value = state.videoFit;
+
+  // Perspective
+  state.perspective.x = s.perspective.x;
+  state.perspective.y = s.perspective.y;
+  document.getElementById('tiltX').value = s.perspective.x;
+  document.getElementById('tiltY').value = s.perspective.y;
+
+  // Background
+  state.background.color = s.background.color;
+  state.bgType = s.bgType;
+  document.getElementById('bgColor').value = s.background.color;
+  document.getElementById('bgType').value = s.bgType;
+  document.getElementById('bgSolidControls').style.display = s.bgType === 'solid' ? 'block' : 'none';
+  document.getElementById('bgGradientControls').style.display = s.bgType === 'gradient' ? 'block' : 'none';
+
+  // Gradient
+  Object.assign(state.gradient, s.gradient);
+  document.getElementById('gradColor1').value = s.gradient.color1;
+  document.getElementById('gradColor2').value = s.gradient.color2;
+  document.getElementById('gradColor3').value = s.gradient.color3;
+  document.getElementById('gradAngle').value = s.gradient.angle;
+  document.getElementById('gradAnimated').value = String(s.gradient.animated);
+
+  // Shadow & Scale
+  state.shadow = s.shadow;
+  state.device.scale = s.device.scale;
+  document.getElementById('shadowSlider').value = Math.round(s.shadow * 100);
+  document.getElementById('scaleSlider').value = Math.round(s.device.scale * 100);
+
+  // Preset (canvas size)
+  state.preset = s.preset;
+  document.getElementById('presetSelect').value = s.preset;
+
+  // Particles
+  Object.assign(state.particles, s.particles);
+  document.getElementById('particleType').value = s.particles.enabled ? s.particles.type : 'off';
+  document.getElementById('particleCount').value = s.particles.count;
+  document.getElementById('particleColor').value = s.particles.color;
+
+  // Orbit
+  Object.assign(state.orbit, s.orbit);
+  document.getElementById('orbitToggle').value = String(s.orbit.enabled);
+  document.getElementById('orbitSpeed').value = Math.round(s.orbit.speed * 100);
+
+  // Motion blur
+  state.motionBlur.enabled = s.motionBlur.enabled;
+  state.motionBlur.amount = s.motionBlur.amount;
+  document.getElementById('motionBlurToggle').value = String(s.motionBlur.enabled);
+
+  // Entrance
+  state.entrance.type = s.entrance.type;
+  state.entrance.duration = s.entrance.duration;
+  document.getElementById('entranceSelect').value = s.entrance.type;
+  document.getElementById('entranceDur').value = s.entrance.duration;
+  document.getElementById('entranceDurVal').textContent = (s.entrance.duration / 1000).toFixed(1) + 's';
+
+  // Animation preset
+  Object.assign(state.animPreset, s.animPreset);
+  document.querySelectorAll('#animPresetGrid .dev-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.anim === s.animPreset.type);
+  });
+  document.getElementById('animIntensity').value = Math.round(s.animPreset.intensity * 100);
+  document.getElementById('animBPM').value = s.animPreset.bpm;
+  document.getElementById('animBPMVal').textContent = s.animPreset.bpm;
+
+  // Scene
+  state.scene = s.scene;
+  document.querySelectorAll('#sceneGrid .dev-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.scene === s.scene);
+  });
+
+  // Chroma key
+  Object.assign(state.chromaKey, s.chromaKey);
+  document.getElementById('chromaToggle').value = String(s.chromaKey.enabled);
+  document.getElementById('chromaColor').value = s.chromaKey.color;
+  document.getElementById('chromaTolerance').value = s.chromaKey.tolerance;
+  document.getElementById('chromaSoftness').value = s.chromaKey.softness;
+  document.getElementById('chromaControls').style.display = s.chromaKey.enabled ? 'block' : 'none';
+
+  // LUT — restore preset if it was a built-in
+  state.lut.intensity = s.lut.intensity;
+  document.getElementById('lutIntensity').value = Math.round(s.lut.intensity * 100);
+  document.getElementById('lutIntensityVal').textContent = Math.round(s.lut.intensity * 100) + '%';
+  if (s.lut.presetKey && s.lut.presetKey !== 'none' && s.lut.presetKey !== '') {
+    const lutBtn = document.querySelector('#lutPresetGrid .dev-btn[data-lut-preset="' + s.lut.presetKey + '"]');
+    if (lutBtn) {
+      lutBtn.click(); // triggers the existing handler which sets state.lut properly
+    }
+  }
+
+  // Overlays (progress bar, waveform, glass CTA)
+  if (s.progressBar) {
+    Object.assign(state.progressBar, s.progressBar);
+    document.getElementById('progressToggle').value = String(s.progressBar.enabled);
+    document.getElementById('progressColor').value = s.progressBar.color;
+  }
+  if (s.waveform) {
+    Object.assign(state.waveform, s.waveform);
+    document.getElementById('waveformToggle').value = String(s.waveform.enabled);
+    document.getElementById('waveformColor').value = s.waveform.color;
+  }
+  if (s.glassmorphism) {
+    Object.assign(state.glassmorphism, s.glassmorphism);
+    document.getElementById('glassToggle').value = String(s.glassmorphism.enabled);
+    document.getElementById('glassControls').style.display = s.glassmorphism.enabled ? 'block' : 'none';
+    document.getElementById('glassText').value = s.glassmorphism.text;
+    document.getElementById('glassBlur').value = s.glassmorphism.blur;
+    document.getElementById('glassOpacity').value = Math.round(s.glassmorphism.opacity * 100);
+  }
+
+  // Hand
+  if (s.hand) {
+    state.hand.enabled = s.hand.enabled;
+    state.hand.style = s.hand.style;
+    document.getElementById('handStyle').value = s.hand.style;
+  }
+
+  // Builtin overlays
+  if (s.builtinOverlays && s.builtinOverlays.length) {
+    state.videoOverlays = [];
+    document.querySelectorAll('#builtinOverlayGrid .dev-btn').forEach(b => b.classList.remove('active'));
+    for (const type of s.builtinOverlays) {
+      const btn = document.querySelector('#builtinOverlayGrid .dev-btn[data-builtin="' + type + '"]');
+      if (btn) {
+        state.videoOverlays.push({ id: Date.now() + Math.random(), builtin: type, name: btn.textContent, opacity: 0.5, blendMode: 'screen' });
+        btn.classList.add('active');
+      }
+    }
+  }
+
+  // Loop & speed
+  if (typeof s.isLooping !== 'undefined') {
+    isLooping = s.isLooping;
+    video.loop = isLooping;
+    loopBtn.classList.toggle('active', isLooping);
+    loopBtn.textContent = isLooping ? 'Loop' : 'No Loop';
+  }
+  if (s.speed) {
+    state.timeline.speed = s.speed;
+    video.playbackRate = s.speed;
+    document.getElementById('speedSelect').value = s.speed;
+  }
+
+  resizeCanvas();
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s || !s.device) return;
+    applyStateToUI(s);
+  } catch (e) { /* corrupt data — ignore */ }
+}
+
+// Load saved state on startup
+loadState();
+
+// Auto-save: listen for input/change on all panels
+document.querySelectorAll('.panel, .top-bar, .playback-bar').forEach(panel => {
+  panel.addEventListener('input', scheduleSave);
+  panel.addEventListener('change', scheduleSave);
+  panel.addEventListener('click', scheduleSave);
+});
+
+// ============================================================
+// PROJECT SAVE / LOAD / RESET
+// ============================================================
+document.getElementById('saveProjectBtn').addEventListener('click', () => {
+  const data = JSON.stringify(getSerializableState(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.download = 'mockup-project-' + Date.now() + '.json';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  showToast('Project saved', 'success');
+});
+
+document.getElementById('loadProjectBtn').addEventListener('click', () => {
+  document.getElementById('projectFileInput').click();
+});
+
+document.getElementById('projectFileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const s = JSON.parse(reader.result);
+      if (!s || !s.device) { showToast('Invalid project file', 'error'); return; }
+      applyStateToUI(s);
+      saveState();
+      showToast('Project loaded: ' + file.name, 'success');
+    } catch (err) {
+      showToast('Failed to parse project file', 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('resetAllBtn').addEventListener('click', () => {
+  if (!confirm('Reset all settings to defaults? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
 });
 
 </script>
