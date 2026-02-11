@@ -626,9 +626,97 @@ input[type="file"] { display: none; }
   cursor: pointer; padding: 0 4px; font-family: inherit;
 }
 .collapse-toggle:hover { color: #aaa; }
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast-item {
+  background: rgba(18,18,18,0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #ccc;
+  white-space: nowrap;
+  border-left: 3px solid rgba(255,255,255,0.15);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+}
+.toast-item.visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+.toast-item.toast-success { border-left-color: #4ade80; }
+.toast-item.toast-info { border-left-color: #60a5fa; }
+.toast-item.toast-error { border-left-color: #f87171; }
+
+/* Keyboard Shortcuts Overlay */
+.kb-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+}
+.kb-overlay.open { display: flex; }
+.kb-panel {
+  background: rgba(18,18,18,0.96);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 28px 32px 20px;
+  min-width: 340px;
+  max-width: 400px;
+}
+.kb-panel h2 {
+  font-size: 14px; font-weight: 700; margin-bottom: 18px;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.kb-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+}
+.kb-row:last-child { border-bottom: none; }
+.kb-key {
+  display: inline-flex; gap: 4px;
+}
+.kb-key kbd {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px; font-family: inherit;
+  color: #ccc;
+}
+.kb-action { color: #888; font-size: 11px; }
+.kb-tip {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  font-size: 10px; color: #555; text-align: center;
+}
+.kb-close {
+  position: absolute; top: 12px; right: 16px;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: rgba(255,255,255,0.07); color: #aaa; font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.kb-close:hover { background: rgba(255,255,255,0.13); color: #fff; }
 </style>
 </head>
 <body>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- Top Bar -->
 <div class="top-bar">
@@ -670,7 +758,21 @@ input[type="file"] { display: none; }
   <button class="btn" id="loopBtn">Loop</button>
   <button class="btn" id="ssBtn">Screenshot</button>
   <button class="btn" id="thumbBtn">Thumbnail</button>
+  <button class="btn" id="kbHelpBtn" title="Keyboard shortcuts (?)">⌨</button>
   <button class="btn btn-primary" id="exportBtn">Export</button>
+</div>
+
+<!-- Keyboard Shortcuts Overlay -->
+<div class="kb-overlay" id="kbOverlay">
+  <div class="kb-panel" style="position:relative">
+    <button class="kb-close" id="kbClose">&times;</button>
+    <h2>Keyboard Shortcuts</h2>
+    <div class="kb-row"><span class="kb-key"><kbd>Space</kbd></span><span class="kb-action">Play / Pause</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>←</kbd> <kbd>→</kbd></span><span class="kb-action">Seek ±5 seconds</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>Ctrl</kbd><kbd>S</kbd></span><span class="kb-action">Save Screenshot</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>?</kbd></span><span class="kb-action">Show this help</span></div>
+    <div class="kb-tip">Tip: Press <kbd style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:9px;font-family:inherit;color:#666">?</kbd> anytime to see shortcuts</div>
+  </div>
 </div>
 
 <!-- Main Layout -->
@@ -1135,6 +1237,7 @@ input[type="file"] { display: none; }
     <div class="progress-fill" id="progressFill"></div>
   </div>
   <span class="time-label" id="timeLabel">0:00 / 0:00</span>
+  <span id="videoFileName" style="font-size:10px;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
   <select class="speed-select" id="speedSelect">
     <option value="0.25">0.25x</option>
     <option value="0.5">0.5x</option>
@@ -1183,6 +1286,29 @@ input[type="file"] { display: none; }
 <video id="bgVideo" style="display:none" playsinline loop muted></video>
 
 <script>
+// ============================================================
+// TOAST NOTIFICATIONS
+// ============================================================
+const toastContainer = document.getElementById('toastContainer');
+function showToast(message, type) {
+  type = type || 'info';
+  const el = document.createElement('div');
+  el.className = 'toast-item toast-' + type;
+  el.textContent = message;
+  // Enforce max 3 toasts
+  while (toastContainer.children.length >= 3) {
+    toastContainer.firstChild.remove();
+  }
+  toastContainer.appendChild(el);
+  // Trigger slide-in
+  requestAnimationFrame(() => { requestAnimationFrame(() => { el.classList.add('visible'); }); });
+  // Auto-dismiss after 3s
+  setTimeout(() => {
+    el.classList.remove('visible');
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
 // ============================================================
 // DEVICE REGISTRY
 // ============================================================
@@ -3304,6 +3430,8 @@ document.getElementById('fullPresetGrid').addEventListener('click', e => {
   if (!card) return;
   const key = card.dataset.fp;
   applyFullPreset(key);
+  const name = card.querySelector('.pc-name');
+  showToast('Preset: ' + (name ? name.textContent : key) + ' applied', 'info');
 });
 
 document.getElementById('resetFullPresetBtn').addEventListener('click', () => {
@@ -3360,6 +3488,9 @@ function loadVideo(file) {
   playbackBar.classList.add('visible');
   timelineBar.classList.add('visible');
   playbackStartTime = performance.now();
+  const fnEl = document.getElementById('videoFileName');
+  fnEl.textContent = file.name.length > 30 ? file.name.slice(0, 27) + '...' : file.name;
+  fnEl.title = file.name;
   state.timeline.trimIn = 0;
   state.timeline.trimOut = 1;
   // Add clip to timeline
@@ -3368,6 +3499,7 @@ function loadVideo(file) {
     state.timeline.clips[0].duration = video.duration;
     rebuildTimeline();
   }, { once: true });
+  showToast('Video loaded: ' + file.name, 'success');
 }
 
 loadBtn.addEventListener('click', () => fileInput.click());
@@ -3427,6 +3559,7 @@ loopBtn.addEventListener('click', function() {
   video.loop = isLooping;
   this.classList.toggle('active', isLooping);
   this.textContent = isLooping ? 'Loop' : 'No Loop';
+  showToast('Loop: ' + (isLooping ? 'ON' : 'OFF'), 'info');
 });
 loopBtn.classList.add('active');
 
@@ -3437,8 +3570,17 @@ speedSelect.addEventListener('change', e => {
 });
 
 // Keyboard shortcuts
+const kbOverlay = document.getElementById('kbOverlay');
+function toggleKbHelp() { kbOverlay.classList.toggle('open'); }
+
+document.getElementById('kbHelpBtn').addEventListener('click', toggleKbHelp);
+document.getElementById('kbClose').addEventListener('click', () => kbOverlay.classList.remove('open'));
+kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) kbOverlay.classList.remove('open'); });
+
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
+  if (e.key === '?') { toggleKbHelp(); return; }
   if (e.code === 'Space') { e.preventDefault(); video.paused ? video.play() : video.pause(); }
   if (e.code === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
   if (e.code === 'ArrowRight') video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
@@ -4438,6 +4580,7 @@ ssBtn.addEventListener('click', () => {
   a.download = 'mockup-' + Date.now() + '.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
+  showToast('Screenshot saved', 'success');
 });
 
 // ============================================================
@@ -4457,6 +4600,7 @@ thumbBtn.addEventListener('click', () => {
   a.download = 'thumbnail-' + Date.now() + '.png';
   a.href = thumbCanvas.toDataURL('image/png');
   a.click();
+  showToast('Thumbnail saved', 'success');
 });
 
 // ============================================================
@@ -4533,6 +4677,7 @@ function startExport() {
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
     if (exportRAF) cancelAnimationFrame(exportRAF);
+    showToast('Export complete — WebM downloaded', 'success');
   };
 
   // Play from trim start
@@ -4542,6 +4687,7 @@ function startExport() {
   video.play();
   recorder.start(100);
   exportText.textContent = 'Recording...';
+  showToast('Recording started...', 'info');
 
   const poll = setInterval(() => {
     if (!isExporting) { clearInterval(poll); return; }
@@ -4674,6 +4820,7 @@ document.getElementById('sceneGrid').addEventListener('click', e => {
   document.querySelectorAll('#sceneGrid .dev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyScene(scene);
+  showToast('Scene: ' + btn.textContent.trim() + ' applied', 'info');
 });
 
 // ============================================================
@@ -5059,6 +5206,7 @@ document.getElementById('lutPresetGrid').addEventListener('click', e => {
   state.lut.name = btn.textContent;
   document.getElementById('lutInfo').innerHTML = '<span style="color:#4ade80">Active:</span> ' + btn.textContent;
   document.getElementById('lutControls').style.display = 'block';
+  showToast('Color grade: ' + btn.textContent + ' applied', 'info');
 });
 
 document.getElementById('loadLutBtn').addEventListener('click', () => document.getElementById('lutFileInput').click());
@@ -5075,6 +5223,7 @@ document.getElementById('lutFileInput').addEventListener('change', e => {
     state.lut.name = lut.title || file.name;
     document.getElementById('lutInfo').innerHTML = '<span style="color:#4ade80">Loaded:</span> ' + state.lut.name + ' (' + lut.size + 'x' + lut.size + 'x' + lut.size + ')';
     document.getElementById('lutControls').style.display = 'block';
+    showToast('Color grade: ' + state.lut.name + ' applied', 'info');
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -5433,13 +5582,7 @@ async function loadAssetItem(item) {
   }
 }
 
-function showAssetToast(msg) {
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(18,18,18,0.95);border:1px solid rgba(99,102,241,0.3);color:#ccc;padding:8px 16px;border-radius:8px;font-size:11px;z-index:400;pointer-events:none;transition:opacity 0.3s';
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
-}
+function showAssetToast(msg) { showToast(msg, 'success'); }
 
 // Search
 abSearch.addEventListener('input', e => {
