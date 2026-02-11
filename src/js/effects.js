@@ -133,16 +133,51 @@ function getOrbitAngle() {
 }
 
 // ============================================================
+// SHARED AUDIO CONTEXT (singleton — used by analyser, export, beat detector)
+// ============================================================
+let sharedAudioCtx = null;
+let sharedSourceNode = null;
+
+function getSharedAudioContext() {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return sharedAudioCtx;
+}
+
+function getSharedSourceNode() {
+  if (!sharedSourceNode) {
+    var ctx = getSharedAudioContext();
+    sharedSourceNode = ctx.createMediaElementSource(document.getElementById('srcVideo'));
+  }
+  return sharedSourceNode;
+}
+
+function reconnectAudioGraph() {
+  if (!sharedSourceNode) return;
+  try {
+    sharedSourceNode.disconnect();
+    if (audioAnalyser) {
+      sharedSourceNode.connect(audioAnalyser);
+    } else if (sharedAudioCtx) {
+      sharedSourceNode.connect(sharedAudioCtx.destination);
+    }
+  } catch(e) {}
+}
+
+// ============================================================
 // WAVEFORM VISUALIZER
 // ============================================================
 let audioAnalyser = null, analyserData = null;
 function setupAudioAnalyser() {
   if (audioAnalyser) return;
   try {
-    const actx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = actx.createMediaElementSource(document.getElementById('srcVideo'));
-    audioAnalyser = actx.createAnalyser(); audioAnalyser.fftSize = 128;
-    source.connect(audioAnalyser); audioAnalyser.connect(actx.destination);
+    var ctx = getSharedAudioContext();
+    var source = getSharedSourceNode();
+    audioAnalyser = ctx.createAnalyser();
+    audioAnalyser.fftSize = 512;
+    source.connect(audioAnalyser);
+    audioAnalyser.connect(ctx.destination);
     analyserData = new Uint8Array(audioAnalyser.frequencyBinCount);
   } catch(e) {}
 }
@@ -198,26 +233,44 @@ function drawGlassmorphism(c, CW, CH) {
 }
 
 // ============================================================
-// ANIMATION PRESETS (CapCut-style)
+// ANIMATION PRESETS (CapCut-style) — with real beat detection support
 // ============================================================
+let _lastGlitchTriggerTime = -1;
+
 function getAnimPresetTransform(time) {
   const preset = state.animPreset;
   if (preset.type === 'none') return { zoom: 1, panX: 0, panY: 0, rotation: 0 };
 
   const intensity = preset.intensity;
-  const beatInterval = 60 / preset.bpm; // seconds per beat
   const t = time || 0;
-  const beatPhase = (t % beatInterval) / beatInterval; // 0-1 within each beat
-  const halfBeat = (t % (beatInterval/2)) / (beatInterval/2);
+
+  // Determine BPM: auto-detected or manual (fall back to manual if no beats for 2s)
+  const useAuto = preset.autoBPM && beatDetector.timeSinceLastBeat < 2;
+  const bpm = useAuto ? beatDetector.estimatedBPM : preset.bpm;
+  const beatInterval = 60 / bpm;
+
+  // Beat phase: auto uses real beat detection, manual uses fixed metronome
+  let beatPhase, halfBeat;
+  if (useAuto) {
+    beatPhase = Math.min(1, beatDetector.timeSinceLastBeat / beatInterval);
+    halfBeat = beatPhase * 2 % 1;
+  } else {
+    beatPhase = (t % beatInterval) / beatInterval;
+    halfBeat = (t % (beatInterval/2)) / (beatInterval/2);
+  }
 
   switch (preset.type) {
     case 'zoomBeat': {
-      // Zoom in on each beat, snap back
       const zoomPulse = Math.sin(beatPhase * Math.PI) * 0.12 * intensity;
-      return { zoom: 1 + zoomPulse, panX: 0, panY: 0, rotation: 0 };
+      const amp = useAuto ? Math.max(0.3, beatDetector.beatIntensity) : 1;
+      return { zoom: 1 + zoomPulse * amp, panX: 0, panY: 0, rotation: 0 };
     }
     case 'velocityEdit': {
-      // Speed ramp feel: alternating zoom + subtle rotation
+      if (useAuto) {
+        const zv = Math.exp(-beatPhase * 4) * 0.08 * intensity * (beatDetector.kickBeat ? 1.5 : 1);
+        const rv = Math.sin(t * 1.5) * 1.5 * intensity;
+        return { zoom: 1 + zv, panX: 0, panY: 0, rotation: rv };
+      }
       const cycle = (t % (beatInterval * 4)) / (beatInterval * 4);
       const slowPhase = cycle < 0.3;
       const zv = slowPhase
@@ -227,21 +280,24 @@ function getAnimPresetTransform(time) {
       return { zoom: 1 + zv, panX: 0, panY: 0, rotation: rv };
     }
     case 'smoothSlide': {
-      // Smooth horizontal pan, oscillating
       const cycle = (t % (beatInterval * 8)) / (beatInterval * 8);
       const px = Math.sin(cycle * Math.PI * 2) * 60 * intensity;
       const py = Math.cos(cycle * Math.PI * 2) * 20 * intensity;
       return { zoom: 1.02, panX: px, panY: py, rotation: 0 };
     }
     case 'bounceIn': {
-      // Elastic bounce on each beat
       const decay = Math.exp(-beatPhase * 6);
       const bounce = Math.sin(beatPhase * Math.PI * 4) * decay;
       return { zoom: 1 + bounce * 0.15 * intensity, panX: 0, panY: bounce * -30 * intensity, rotation: 0 };
     }
     case 'glitch': {
-      // Glitch: random jitter on half-beats
-      const isGlitchFrame = halfBeat < 0.15;
+      let isGlitchFrame;
+      if (useAuto) {
+        if (beatDetector.snareBeat || beatDetector.hihatBeat) _lastGlitchTriggerTime = t;
+        isGlitchFrame = (t - _lastGlitchTriggerTime) < 0.06;
+      } else {
+        isGlitchFrame = halfBeat < 0.15;
+      }
       if (isGlitchFrame) {
         const seed = Math.floor(t * 30);
         const rx = ((seed * 9301 + 49297) % 233280) / 233280 - 0.5;
@@ -251,7 +307,6 @@ function getAnimPresetTransform(time) {
       return { zoom: 1, panX: 0, panY: 0, rotation: 0 };
     }
     case 'cinematicPan': {
-      // Slow dramatic zoom + pan
       const longCycle = (t % 10) / 10;
       const zoom = 1 + longCycle * 0.15 * intensity;
       const px = Math.sin(longCycle * Math.PI) * 40 * intensity;
@@ -259,15 +314,14 @@ function getAnimPresetTransform(time) {
       return { zoom, panX: px, panY: py, rotation: Math.sin(longCycle * Math.PI) * 0.8 * intensity };
     }
     case 'shake': {
-      // Camera shake - fast random displacement
       const freq = 20;
-      const px = Math.sin(t * freq * 2.3) * 8 * intensity + Math.sin(t * freq * 3.7) * 4 * intensity;
-      const py = Math.cos(t * freq * 1.9) * 6 * intensity + Math.cos(t * freq * 4.1) * 3 * intensity;
-      const rr = Math.sin(t * freq * 1.5) * 0.8 * intensity;
+      const energyScale = useAuto ? (0.3 + beatDetector.energy * 0.7) : 1;
+      const px = (Math.sin(t * freq * 2.3) * 8 * intensity + Math.sin(t * freq * 3.7) * 4 * intensity) * energyScale;
+      const py = (Math.cos(t * freq * 1.9) * 6 * intensity + Math.cos(t * freq * 4.1) * 3 * intensity) * energyScale;
+      const rr = Math.sin(t * freq * 1.5) * 0.8 * intensity * energyScale;
       return { zoom: 1, panX: px, panY: py, rotation: rr };
     }
     case 'capcut_imported': {
-      // Imported keyframes - interpolate
       return interpolateImportedKeyframes(t);
     }
     default:
@@ -275,26 +329,32 @@ function getAnimPresetTransform(time) {
   }
 }
 
-// Glitch post-processing (RGB split)
+// Glitch post-processing (RGB split) — beat-reactive when autoBPM is ON
 function drawGlitchEffect(c, CW, CH, time) {
   if (state.animPreset.type !== 'glitch') return;
-  const beatInterval = 60 / state.animPreset.bpm;
-  const halfBeat = (time % (beatInterval/2)) / (beatInterval/2);
-  if (halfBeat > 0.15) return;
+
+  const useAuto = state.animPreset.autoBPM && beatDetector.timeSinceLastBeat < 2;
+  let shouldGlitch;
+  if (useAuto) {
+    if (beatDetector.snareBeat || beatDetector.hihatBeat) _lastGlitchTriggerTime = time;
+    shouldGlitch = (time - _lastGlitchTriggerTime) < 0.06;
+  } else {
+    const beatInterval = 60 / state.animPreset.bpm;
+    const halfBeat = (time % (beatInterval/2)) / (beatInterval/2);
+    shouldGlitch = halfBeat < 0.15;
+  }
+  if (!shouldGlitch) return;
 
   const intensity = state.animPreset.intensity;
   const shift = Math.round(3 + intensity * 5);
   c.save();
   c.globalCompositeOperation = 'screen';
   c.globalAlpha = 0.6;
-  // Red channel shift
   c.drawImage(canvas, shift, 0, CW - shift, CH, 0, 0, CW - shift, CH);
-  // Blue channel shift
   c.globalAlpha = 0.4;
   c.drawImage(canvas, 0, 0, CW - shift, CH, shift, 0, CW - shift, CH);
   c.restore();
 
-  // Scanlines
   c.save();
   c.globalAlpha = 0.08;
   c.fillStyle = '#000';

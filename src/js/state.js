@@ -26,7 +26,7 @@ const state = {
   lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '' },
   bgVideo: { enabled: false, opacity: 1.0, fit: 'cover' },
   bgType: 'solid',
-  animPreset: { type: 'none', intensity: 1.0, bpm: 120 },
+  animPreset: { type: 'none', intensity: 1.0, bpm: 120, autoBPM: false },
   scene: 'custom',
   selectedLayer: -1,
   nextLayerId: 1,
@@ -64,7 +64,7 @@ function getUndoSnapshot() {
     orbit: { enabled: state.orbit.enabled, speed: state.orbit.speed, axis: state.orbit.axis, range: state.orbit.range },
     motionBlur: { enabled: state.motionBlur.enabled, amount: state.motionBlur.amount },
     entrance: { type: state.entrance.type, duration: state.entrance.duration },
-    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm },
+    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm, autoBPM: state.animPreset.autoBPM },
     scene: state.scene,
     chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
     lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, _presetKey: state.lut._presetKey || '' },
@@ -224,6 +224,10 @@ function updateUndoUI() {
   document.getElementById('animIntensity').value = Math.round(state.animPreset.intensity * 100);
   document.getElementById('animBPM').value = state.animPreset.bpm;
   document.getElementById('animBPMVal').textContent = state.animPreset.bpm;
+  document.getElementById('animBPM').disabled = state.animPreset.autoBPM;
+  document.getElementById('autoBPMBtn').classList.toggle('active', state.animPreset.autoBPM);
+  document.getElementById('autoBPMBtn').textContent = state.animPreset.autoBPM ? 'On' : 'Off';
+  document.getElementById('autoBPMStatus').textContent = state.animPreset.autoBPM ? 'Listening...' : '';
 
   // Scene
   document.querySelectorAll('#sceneGrid .dev-btn').forEach(b => b.classList.toggle('active', b.dataset.scene === state.scene));
@@ -291,7 +295,7 @@ function getSerializableState() {
     orbit: { enabled: state.orbit.enabled, speed: state.orbit.speed, axis: state.orbit.axis, range: state.orbit.range },
     motionBlur: { enabled: state.motionBlur.enabled, amount: state.motionBlur.amount },
     entrance: { type: state.entrance.type, duration: state.entrance.duration },
-    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm },
+    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm, autoBPM: state.animPreset.autoBPM },
     scene: state.scene,
     chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
     lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, presetKey: state.lut._presetKey || '' },
@@ -397,6 +401,17 @@ function applyStateToUI(s) {
   document.getElementById('animIntensity').value = Math.round(s.animPreset.intensity * 100);
   document.getElementById('animBPM').value = s.animPreset.bpm;
   document.getElementById('animBPMVal').textContent = s.animPreset.bpm;
+  if (s.animPreset.autoBPM) {
+    document.getElementById('animBPM').disabled = true;
+    document.getElementById('autoBPMBtn').classList.add('active');
+    document.getElementById('autoBPMBtn').textContent = 'On';
+    document.getElementById('autoBPMStatus').textContent = 'Listening...';
+  } else {
+    document.getElementById('animBPM').disabled = false;
+    document.getElementById('autoBPMBtn').classList.remove('active');
+    document.getElementById('autoBPMBtn').textContent = 'Off';
+    document.getElementById('autoBPMStatus').textContent = '';
+  }
 
   // Scene
   state.scene = s.scene;

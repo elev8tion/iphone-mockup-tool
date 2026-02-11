@@ -29,7 +29,8 @@ CSS_FILES=(
 # state.js        — state object, undo/redo (function decls, safe early)
 # timeline.js     — virtual timeline engine (let vtTime etc., before render)
 # render.js       — DOM refs, render scale, render layers, main render loop
-# effects.js      — hand overlay, gradients, particles, LUT, chroma, templates
+# effects.js      — hand overlay, gradients, particles, LUT, chroma, templates, shared AudioContext
+# beat-detector.js — real-time audio beat detection (uses audioAnalyser from effects.js)
 # devices-draw.js — drawIPhone16 etc., frame cache
 # layers.js       — unified layers panel, text, logo, canvas dragging
 # annotations.js  — annotation tools, timing controls
@@ -44,6 +45,7 @@ JS_FILES=(
   "$SRC/js/timeline.js"
   "$SRC/js/render.js"
   "$SRC/js/effects.js"
+  "$SRC/js/beat-detector.js"
   "$SRC/js/devices-draw.js"
   "$SRC/js/layers.js"
   "$SRC/js/annotations.js"

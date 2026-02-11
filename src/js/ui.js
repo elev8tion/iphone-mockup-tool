@@ -916,6 +916,8 @@ document.getElementById('animPresetGrid').addEventListener('click', e => {
   state.animPreset.type = anim;
   document.querySelectorAll('#animPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  // Auto-setup audio analyser when selecting a preset that needs it
+  if (anim !== 'none' && hasVideo && !audioAnalyser) setupAudioAnalyser();
 });
 
 document.getElementById('clearAnimPresetBtn').addEventListener('click', () => {
@@ -931,6 +933,16 @@ document.getElementById('animIntensity').addEventListener('input', e => {
 document.getElementById('animBPM').addEventListener('input', e => {
   state.animPreset.bpm = parseInt(e.target.value);
   document.getElementById('animBPMVal').textContent = e.target.value;
+});
+
+document.getElementById('autoBPMBtn').addEventListener('click', function() {
+  pushUndoState();
+  state.animPreset.autoBPM = !state.animPreset.autoBPM;
+  this.classList.toggle('active', state.animPreset.autoBPM);
+  this.textContent = state.animPreset.autoBPM ? 'On' : 'Off';
+  document.getElementById('animBPM').disabled = state.animPreset.autoBPM;
+  document.getElementById('autoBPMStatus').textContent = state.animPreset.autoBPM ? 'Listening...' : '';
+  if (state.animPreset.autoBPM && hasVideo) setupAudioAnalyser();
 });
 
 // CapCut Draft Import

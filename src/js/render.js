@@ -597,6 +597,18 @@ let _renderStopped = false;
 function render() {
   try {
     vtTick();
+
+    // Auto-setup audio analyser when an animation preset is active and video is loaded
+    if (state.animPreset.type !== 'none' && hasVideo && !audioAnalyser) setupAudioAnalyser();
+
+    // Update beat detector every frame
+    beatDetector.update(hasVideo ? vtTime : performance.now() * 0.001);
+
+    // Update displayed BPM when auto BPM is active
+    if (state.animPreset.autoBPM && beatDetector.estimatedBPM > 0) {
+      document.getElementById('animBPMVal').textContent = beatDetector.estimatedBPM;
+    }
+
     const sz = getCanvasSize();
     const CW = sz.w, CH = sz.h;
     ctx.clearRect(0, 0, CW, CH);

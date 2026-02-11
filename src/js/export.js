@@ -32,8 +32,6 @@ thumbBtn.addEventListener('click', () => {
 // VIDEO EXPORT
 // ============================================================
 let recorder = null;
-let audioCtx = null;
-let sourceNode = null;
 let destNode = null;
 
 const exportDialog = document.getElementById('exportDialog');
@@ -157,17 +155,16 @@ function startExport() {
   // Capture stream at target framerate
   const expStream = exportCanvas.captureStream(fps);
 
-  // Audio
+  // Audio (uses shared AudioContext singleton)
   if (includeAudio) {
     try {
-      if (!audioCtx) {
-        audioCtx = new AudioContext();
-        sourceNode = audioCtx.createMediaElementSource(video);
-      }
-      destNode = audioCtx.createMediaStreamDestination();
-      sourceNode.disconnect();
-      sourceNode.connect(destNode);
-      sourceNode.connect(audioCtx.destination);
+      var _actx = getSharedAudioContext();
+      var _srcNode = getSharedSourceNode();
+      destNode = _actx.createMediaStreamDestination();
+      _srcNode.disconnect();
+      _srcNode.connect(destNode);
+      _srcNode.connect(_actx.destination);
+      if (audioAnalyser) _srcNode.connect(audioAnalyser);
       for (const t of destNode.stream.getAudioTracks()) expStream.addTrack(t);
     } catch (err) { console.log('Audio capture skipped:', err.message); }
   }
@@ -191,6 +188,7 @@ function startExport() {
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
     if (exportRAF) cancelAnimationFrame(exportRAF);
+    reconnectAudioGraph();
     showToast('Export complete — WebM downloaded', 'success');
   };
 
@@ -251,7 +249,8 @@ async function startMp4Export() {
   exportCanvas.height = expH;
   const eCtx = exportCanvas.getContext('2d');
 
-  // Configure mp4-muxer
+  // Configure mp4-muxer (uses shared AudioContext singleton)
+  var mp4AudioCtx = null;
   const muxerOpts = {
     target: new Mp4Muxer.ArrayBufferTarget(),
     video: { codec: 'avc', width: expW, height: expH },
@@ -265,8 +264,8 @@ async function startMp4Export() {
 
   if (includeAudio) {
     try {
-      if (!audioCtx) audioCtx = new AudioContext();
-      muxerOpts.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: audioCtx.sampleRate };
+      mp4AudioCtx = getSharedAudioContext();
+      muxerOpts.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: mp4AudioCtx.sampleRate };
     } catch (err) {
       console.log('MP4 audio context skipped:', err.message);
     }
@@ -297,23 +296,19 @@ async function startMp4Export() {
       audioEncoder.configure({
         codec: 'mp4a.40.2',
         numberOfChannels: 2,
-        sampleRate: audioCtx.sampleRate,
+        sampleRate: mp4AudioCtx.sampleRate,
         bitrate: 128000
       });
 
-      scriptProcessor = audioCtx.createScriptProcessor(4096, 2, 2);
+      scriptProcessor = mp4AudioCtx.createScriptProcessor(4096, 2, 2);
 
-      // Connect audio source
-      const activeVid = vtGetActiveVideo();
-      if (activeVid) {
-        if (!sourceNode) {
-          sourceNode = audioCtx.createMediaElementSource(activeVid);
-        }
-        sourceNode.disconnect();
-        sourceNode.connect(scriptProcessor);
-        sourceNode.connect(audioCtx.destination);
-      }
-      scriptProcessor.connect(audioCtx.destination);
+      // Connect audio source (shared singleton)
+      var mp4SrcNode = getSharedSourceNode();
+      mp4SrcNode.disconnect();
+      mp4SrcNode.connect(scriptProcessor);
+      mp4SrcNode.connect(mp4AudioCtx.destination);
+      if (audioAnalyser) mp4SrcNode.connect(audioAnalyser);
+      scriptProcessor.connect(mp4AudioCtx.destination);
 
       audioTimestamp = 0;
       scriptProcessor.onaudioprocess = (e) => {
@@ -335,7 +330,7 @@ async function startMp4Export() {
           });
           audioEncoder.encode(audioData);
           audioData.close();
-          audioTimestamp += (nf / audioCtx.sampleRate) * 1_000_000;
+          audioTimestamp += (nf / mp4AudioCtx.sampleRate) * 1_000_000;
         } catch (err) { /* skip frame */ }
       };
     } catch (err) {
@@ -411,6 +406,7 @@ async function startMp4Export() {
         scriptProcessor.disconnect();
         scriptProcessor.onaudioprocess = null;
       }
+      reconnectAudioGraph();
       muxer.finalize();
 
       const buffer = muxer.target.buffer;
