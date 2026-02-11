@@ -93,6 +93,14 @@ body {
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
+.undo-btn {
+  background: none; border: none; color: #555; font-size: 14px;
+  cursor: pointer; padding: 2px 5px; border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.undo-btn:hover:not(:disabled) { color: #ccc; background: rgba(255,255,255,0.06); }
+.undo-btn:disabled { color: #333; cursor: default; }
+
 .top-bar .spacer { flex: 1; }
 
 /* ---- Main Layout ---- */
@@ -852,6 +860,10 @@ input[type="file"] { display: none; }
 
   <div class="spacer"></div>
 
+  <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled>↩</button>
+  <button class="undo-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" disabled>↪</button>
+  <div class="sep"></div>
+
   <button class="btn" id="assetBrowserBtn" style="background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.2));border-color:rgba(139,92,246,0.3)">📂 Assets</button>
   <button class="btn" id="loadBtn">Load Video</button>
   <button class="btn" id="loopBtn">Loop</button>
@@ -869,6 +881,8 @@ input[type="file"] { display: none; }
     <div class="kb-row"><span class="kb-key"><kbd>Space</kbd></span><span class="kb-action">Play / Pause</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>←</kbd> <kbd>→</kbd></span><span class="kb-action">Seek ±5 seconds</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>Ctrl</kbd><kbd>S</kbd></span><span class="kb-action">Save Screenshot</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>Ctrl</kbd><kbd>Z</kbd></span><span class="kb-action">Undo</span></div>
+    <div class="kb-row"><span class="kb-key"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>Z</kbd></span><span class="kb-action">Redo</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>[</kbd> <kbd>]</kbd></span><span class="kb-action">Toggle sidebars</span></div>
     <div class="kb-row"><span class="kb-key"><kbd>?</kbd></span><span class="kb-action">Show this help</span></div>
     <div class="kb-tip">Tip: Press <kbd style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:1px 5px;font-size:9px;font-family:inherit;color:#666">?</kbd> anytime to see shortcuts</div>
@@ -1592,6 +1606,235 @@ const state = {
   ],
   _particles: [], // runtime particle positions
 };
+
+// ============================================================
+// UNDO / REDO
+// ============================================================
+const UNDO_MAX = 30;
+const undoStack = [];
+const redoStack = [];
+
+function getUndoSnapshot() {
+  return {
+    device: { type: state.device.type, color: state.device.color, landscape: state.device.landscape, scale: state.device.scale },
+    videoFit: state.videoFit,
+    perspective: { x: state.perspective.x, y: state.perspective.y },
+    background: { color: state.background.color },
+    shadow: state.shadow,
+    preset: state.preset,
+    bgType: state.bgType,
+    gradient: { ...state.gradient },
+    particles: { enabled: state.particles.enabled, type: state.particles.type, count: state.particles.count, color: state.particles.color, speed: state.particles.speed },
+    orbit: { enabled: state.orbit.enabled, speed: state.orbit.speed, axis: state.orbit.axis, range: state.orbit.range },
+    motionBlur: { enabled: state.motionBlur.enabled, amount: state.motionBlur.amount },
+    entrance: { type: state.entrance.type, duration: state.entrance.duration },
+    animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm },
+    scene: state.scene,
+    chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
+    lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, _presetKey: state.lut._presetKey || '' },
+    waveform: { enabled: state.waveform.enabled, color: state.waveform.color, height: state.waveform.height, position: state.waveform.position, style: state.waveform.style },
+    progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
+    glassmorphism: { enabled: state.glassmorphism.enabled, text: state.glassmorphism.text, blur: state.glassmorphism.blur, opacity: state.glassmorphism.opacity },
+    hand: { enabled: state.hand.enabled, style: state.hand.style },
+    layers: state.layers.map(l => {
+      const copy = { ...l };
+      delete copy.img; // non-serializable
+      if (l.type === 'annotation') copy.points = [...l.points];
+      return copy;
+    }),
+    annotation: { tool: state.annotation.tool, color: state.annotation.color, width: state.annotation.width },
+    videoOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
+    selectedLayer: state.selectedLayer,
+  };
+}
+
+function applyUndoSnapshot(snap) {
+  // Device
+  state.device.type = snap.device.type;
+  state.device.color = snap.device.color;
+  state.device.landscape = snap.device.landscape;
+  state.device.scale = snap.device.scale;
+  frameCache = {};
+
+  state.videoFit = snap.videoFit;
+  state.perspective.x = snap.perspective.x;
+  state.perspective.y = snap.perspective.y;
+  state.background.color = snap.background.color;
+  state.shadow = snap.shadow;
+  state.preset = snap.preset;
+  state.bgType = snap.bgType;
+  Object.assign(state.gradient, snap.gradient);
+  Object.assign(state.particles, snap.particles);
+  Object.assign(state.orbit, snap.orbit);
+  state.motionBlur.enabled = snap.motionBlur.enabled;
+  state.motionBlur.amount = snap.motionBlur.amount;
+  state.entrance.type = snap.entrance.type;
+  state.entrance.duration = snap.entrance.duration;
+  Object.assign(state.animPreset, snap.animPreset);
+  state.scene = snap.scene;
+  Object.assign(state.chromaKey, snap.chromaKey);
+  state.lut.enabled = snap.lut.enabled;
+  state.lut.intensity = snap.lut.intensity;
+  state.lut.name = snap.lut.name;
+  state.lut._presetKey = snap.lut._presetKey;
+  if (snap.lut.enabled && snap.lut._presetKey) {
+    const lut = generateLUTPreset(snap.lut._presetKey);
+    state.lut.data = lut; state.lut.size = lut.size;
+  } else if (!snap.lut.enabled) {
+    state.lut.data = null; state.lut.size = 0;
+  }
+  Object.assign(state.waveform, snap.waveform);
+  Object.assign(state.progressBar, snap.progressBar);
+  Object.assign(state.glassmorphism, snap.glassmorphism);
+  state.hand.enabled = snap.hand.enabled;
+  state.hand.style = snap.hand.style;
+  state.annotation.color = snap.annotation.color;
+  state.annotation.width = snap.annotation.width;
+
+  // Restore layers (rebuild non-serializable refs)
+  state.layers = snap.layers.map(l => {
+    const copy = { ...l };
+    if (l.type === 'annotation') copy.points = [...l.points];
+    return copy;
+  });
+  state.selectedLayer = snap.selectedLayer;
+
+  // Restore builtin overlays
+  state.videoOverlays = state.videoOverlays.filter(ov => !ov.builtin);
+  for (const type of snap.videoOverlays) {
+    state.videoOverlays.push({ id: Date.now() + Math.random(), builtin: type, name: type, opacity: 0.5, blendMode: 'screen' });
+  }
+}
+
+function pushUndoState() {
+  undoStack.push(getUndoSnapshot());
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoButtons();
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  redoStack.push(getUndoSnapshot());
+  const snap = undoStack.pop();
+  applyUndoSnapshot(snap);
+  updateUndoUI();
+  updateUndoButtons();
+  scheduleSave();
+}
+
+function redo() {
+  if (redoStack.length === 0) return;
+  undoStack.push(getUndoSnapshot());
+  const snap = redoStack.pop();
+  applyUndoSnapshot(snap);
+  updateUndoUI();
+  updateUndoButtons();
+  scheduleSave();
+}
+
+function updateUndoButtons() {
+  document.getElementById('undoBtn').disabled = undoStack.length === 0;
+  document.getElementById('redoBtn').disabled = redoStack.length === 0;
+}
+
+function updateUndoUI() {
+  // Device grid
+  document.querySelectorAll('#deviceGrid .dev-btn').forEach(b => b.classList.toggle('active', b.dataset.device === state.device.type));
+  if (typeof updateColorSwatches === 'function') updateColorSwatches();
+  document.getElementById('landscapeBtn').classList.toggle('active', state.device.landscape);
+  const toggles = document.getElementById('deviceToggles');
+  if (toggles) toggles.style.display = state.device.type === 'none' ? 'none' : 'flex';
+
+  // Transform controls
+  document.getElementById('scaleSlider').value = Math.round(state.device.scale * 100);
+  document.getElementById('videoFitMode').value = state.videoFit;
+  document.getElementById('tiltX').value = state.perspective.x;
+  document.getElementById('tiltY').value = state.perspective.y;
+  document.getElementById('shadowSlider').value = Math.round(state.shadow * 100);
+
+  // Background
+  document.getElementById('bgColor').value = state.background.color;
+  document.getElementById('bgType').value = state.bgType;
+  document.getElementById('bgSolidControls').style.display = state.bgType === 'solid' ? 'block' : 'none';
+  document.getElementById('bgGradientControls').style.display = state.bgType === 'gradient' ? 'block' : 'none';
+  document.getElementById('gradColor1').value = state.gradient.color1;
+  document.getElementById('gradColor2').value = state.gradient.color2;
+  document.getElementById('gradColor3').value = state.gradient.color3;
+  document.getElementById('gradAngle').value = state.gradient.angle;
+  document.getElementById('gradAnimated').value = String(state.gradient.animated);
+
+  // Preset
+  document.getElementById('presetSelect').value = state.preset;
+  resizeCanvas();
+
+  // Particles
+  document.getElementById('particleType').value = state.particles.enabled ? state.particles.type : 'off';
+  document.getElementById('particleCount').value = state.particles.count;
+  document.getElementById('particleColor').value = state.particles.color;
+
+  // Orbit + motion blur
+  document.getElementById('orbitToggle').value = String(state.orbit.enabled);
+  document.getElementById('orbitSpeed').value = Math.round(state.orbit.speed * 100);
+  document.getElementById('motionBlurToggle').value = String(state.motionBlur.enabled);
+
+  // Entrance
+  document.getElementById('entranceSelect').value = state.entrance.type;
+  document.getElementById('entranceDur').value = state.entrance.duration;
+  document.getElementById('entranceDurVal').textContent = (state.entrance.duration / 1000).toFixed(1) + 's';
+
+  // Animation preset
+  document.querySelectorAll('#animPresetGrid .dev-btn').forEach(b => b.classList.toggle('active', b.dataset.anim === state.animPreset.type));
+  document.getElementById('animIntensity').value = Math.round(state.animPreset.intensity * 100);
+  document.getElementById('animBPM').value = state.animPreset.bpm;
+  document.getElementById('animBPMVal').textContent = state.animPreset.bpm;
+
+  // Scene
+  document.querySelectorAll('#sceneGrid .dev-btn').forEach(b => b.classList.toggle('active', b.dataset.scene === state.scene));
+
+  // Chroma key
+  document.getElementById('chromaToggle').value = String(state.chromaKey.enabled);
+  document.getElementById('chromaControls').style.display = state.chromaKey.enabled ? 'block' : 'none';
+
+  // LUT
+  document.querySelectorAll('#lutPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
+  if (state.lut._presetKey) {
+    const lb = document.querySelector('#lutPresetGrid .dev-btn[data-lut-preset="' + state.lut._presetKey + '"]');
+    if (lb) lb.classList.add('active');
+  }
+  document.getElementById('lutControls').style.display = state.lut.enabled ? 'block' : 'none';
+
+  // Overlays UI
+  document.getElementById('progressToggle').value = String(state.progressBar.enabled);
+  document.getElementById('waveformToggle').value = String(state.waveform.enabled);
+  document.getElementById('glassToggle').value = String(state.glassmorphism.enabled);
+  document.getElementById('glassControls').style.display = state.glassmorphism.enabled ? 'block' : 'none';
+
+  // Hand
+  const handBtn = document.getElementById('handBtn');
+  handBtn.classList.toggle('active', state.hand.enabled);
+  handBtn.textContent = state.hand.enabled ? 'Disable Hand' : 'Enable Hand';
+  document.getElementById('resetHandBtn').style.display = state.hand.enabled ? 'inline-block' : 'none';
+  document.getElementById('handStyle').value = state.hand.style;
+
+  // Builtin overlays
+  document.querySelectorAll('#builtinOverlayGrid .dev-btn').forEach(b => b.classList.remove('active'));
+  state.videoOverlays.filter(ov => ov.builtin).forEach(ov => {
+    const ob = document.querySelector('#builtinOverlayGrid .dev-btn[data-builtin="' + ov.builtin + '"]');
+    if (ob) ob.classList.add('active');
+  });
+
+  // Full preset grid
+  document.querySelectorAll('#fullPresetGrid .preset-card').forEach(b => b.classList.remove('active'));
+
+  // Layers
+  if (typeof rebuildLayerList === 'function') rebuildLayerList();
+  if (typeof rebuildUnifiedLayers === 'function') rebuildUnifiedLayers();
+  if (typeof rebuildOverlayList === 'function') rebuildOverlayList();
+
+  updatePerspective();
+  updateDisplaySize();
+}
 
 // ============================================================
 // RENDER SCALE + CANVAS
@@ -3578,6 +3821,7 @@ function updateColorSwatches() {
     s.title = pal.label;
     s.dataset.color = key;
     s.addEventListener('click', () => {
+      pushUndoState();
       state.device.color = key;
       frameCache = {};
       document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('active'));
@@ -3590,6 +3834,7 @@ function updateColorSwatches() {
 deviceGrid.addEventListener('click', e => {
   const btn = e.target.closest('.dev-btn');
   if (!btn) return;
+  pushUndoState();
   const devId = btn.dataset.device;
   state.device.type = devId;
   state.device.color = DEVICES[devId].defaultColor;
@@ -3613,6 +3858,7 @@ updateColorSwatches();
 document.getElementById('fullPresetGrid').addEventListener('click', e => {
   const card = e.target.closest('.preset-card');
   if (!card) return;
+  pushUndoState();
   const key = card.dataset.fp;
   applyFullPreset(key);
   const name = card.querySelector('.pc-name');
@@ -3794,6 +4040,10 @@ document.getElementById('kbClose').addEventListener('click', () => kbOverlay.cla
 kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) kbOverlay.classList.remove('open'); });
 
 document.addEventListener('keydown', e => {
+  // Undo/redo works everywhere (including inputs)
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Z') { e.preventDefault(); redo(); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
   if (e.key === 'Escape' && document.getElementById('exportDialog').classList.contains('open')) { document.getElementById('exportDialog').classList.remove('open'); return; }
@@ -3804,6 +4054,13 @@ document.addEventListener('keydown', e => {
   if (e.code === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
   if (e.code === 'ArrowRight') video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
 });
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
+
+// Capture undo state when slider drag or color picker begins (before value changes)
+document.addEventListener('mousedown', e => {
+  if (e.target.type === 'range' || e.target.type === 'color') pushUndoState();
+}, true);
 
 // ============================================================
 // COLLAPSIBLE SIDEBAR PANELS
@@ -3973,6 +4230,7 @@ clipInput.addEventListener('change', e => {
 // LAYERS: TEXT
 // ============================================================
 document.getElementById('addTextBtn').addEventListener('click', () => {
+  pushUndoState();
   const sz = getCanvasSize();
   const layer = {
     id: state.nextLayerId++,
@@ -4031,6 +4289,7 @@ document.getElementById('addLogoBtn').addEventListener('click', () => logoInput.
 logoInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
+  pushUndoState();
   const img = new Image();
   img.onload = () => {
     const sz = getCanvasSize();
@@ -4312,6 +4571,7 @@ function rebuildUnifiedLayers() {
       delBtn.title = 'Remove';
       delBtn.addEventListener('click', e => {
         e.stopPropagation();
+        pushUndoState();
         if (item.kind === 'content') {
           state.layers.splice(item.layerIdx, 1);
           state.selectedLayer = Math.min(state.selectedLayer, state.layers.length - 1);
@@ -4590,6 +4850,7 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mouseup', e => {
   if (!annoDrawing || !state.annotation.tool) return;
   annoDrawing = false;
+  pushUndoState();
 
   const currentTime = hasVideo ? video.currentTime : 0;
   const layer = {
@@ -4740,6 +5001,7 @@ document.addEventListener('mouseup', () => { draggingFacecam = false; }, true);
 // HAND OVERLAY
 // ============================================================
 document.getElementById('handBtn').addEventListener('click', function() {
+  pushUndoState();
   state.hand.enabled = !state.hand.enabled;
   this.classList.toggle('active', state.hand.enabled);
   this.textContent = state.hand.enabled ? 'Disable Hand' : 'Enable Hand';
@@ -5048,6 +5310,7 @@ function stopExport() {
 // BACKGROUND TYPE + GRADIENT CONTROLS
 // ============================================================
 document.getElementById('bgType').addEventListener('change', e => {
+  pushUndoState();
   const val = e.target.value;
   state.bgType = val;
   if (val === 'gradient') {
@@ -5077,6 +5340,7 @@ document.getElementById('gradAnimated').addEventListener('change', e => { state.
 // PARTICLE CONTROLS
 // ============================================================
 document.getElementById('particleType').addEventListener('change', e => {
+  pushUndoState();
   if (e.target.value === 'off') { state.particles.enabled = false; }
   else { state.particles.enabled = true; state.particles.type = e.target.value; state._particles = []; }
 });
@@ -5087,23 +5351,26 @@ document.getElementById('particleColor').addEventListener('input', e => { state.
 // ORBIT + MOTION BLUR CONTROLS
 // ============================================================
 document.getElementById('orbitToggle').addEventListener('change', e => {
+  pushUndoState();
   state.orbit.enabled = e.target.value === 'true';
   if (!state.orbit.enabled) updatePerspective();
 });
 document.getElementById('orbitSpeed').addEventListener('input', e => { state.orbit.speed = parseInt(e.target.value) / 100; });
-document.getElementById('motionBlurToggle').addEventListener('change', e => { state.motionBlur.enabled = e.target.value === 'true'; });
+document.getElementById('motionBlurToggle').addEventListener('change', e => { pushUndoState(); state.motionBlur.enabled = e.target.value === 'true'; });
 
 // ============================================================
 // OVERLAY CONTROLS (Progress, Waveform, Glass)
 // ============================================================
-document.getElementById('progressToggle').addEventListener('change', e => { state.progressBar.enabled = e.target.value === 'true'; });
+document.getElementById('progressToggle').addEventListener('change', e => { pushUndoState(); state.progressBar.enabled = e.target.value === 'true'; });
 document.getElementById('progressColor').addEventListener('input', e => { state.progressBar.color = e.target.value; });
 document.getElementById('waveformToggle').addEventListener('change', e => {
+  pushUndoState();
   state.waveform.enabled = e.target.value === 'true';
   if (state.waveform.enabled) setupAudioAnalyser();
 });
 document.getElementById('waveformColor').addEventListener('input', e => { state.waveform.color = e.target.value; });
 document.getElementById('glassToggle').addEventListener('change', e => {
+  pushUndoState();
   state.glassmorphism.enabled = e.target.value === 'true';
   document.getElementById('glassControls').style.display = state.glassmorphism.enabled ? 'block' : 'none';
   state.glassmorphism.x = -1; state.glassmorphism.y = -1;
@@ -5140,6 +5407,7 @@ document.addEventListener('mouseup', () => { draggingGlass = false; }, true);
 document.getElementById('sceneGrid').addEventListener('click', e => {
   const btn = e.target.closest('.dev-btn');
   if (!btn) return;
+  pushUndoState();
   const scene = btn.dataset.scene;
   document.querySelectorAll('#sceneGrid .dev-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -5151,6 +5419,7 @@ document.getElementById('sceneGrid').addEventListener('click', e => {
 // CHROMA KEY CONTROLS
 // ============================================================
 document.getElementById('chromaToggle').addEventListener('change', e => {
+  pushUndoState();
   state.chromaKey.enabled = e.target.value === 'true';
   document.getElementById('chromaControls').style.display = state.chromaKey.enabled ? 'block' : 'none';
 });
@@ -5326,6 +5595,7 @@ document.getElementById('resetTransformBtn').addEventListener('click', () => {
 document.getElementById('builtinOverlayGrid').addEventListener('click', e => {
   const btn = e.target.closest('.dev-btn');
   if (!btn) return;
+  pushUndoState();
   const type = btn.dataset.builtin;
   // Toggle — if already active, remove it
   const existing = state.videoOverlays.findIndex(ov => ov.builtin === type);
@@ -5514,6 +5784,7 @@ function generateLUTPreset(type) {
 document.getElementById('lutPresetGrid').addEventListener('click', e => {
   const btn = e.target.closest('.dev-btn');
   if (!btn) return;
+  pushUndoState();
   const preset = btn.dataset.lutPreset;
   document.querySelectorAll('#lutPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
   if (preset === 'none') {
@@ -5538,6 +5809,7 @@ document.getElementById('loadLutBtn').addEventListener('click', () => document.g
 document.getElementById('lutFileInput').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
+  pushUndoState();
   const reader = new FileReader();
   reader.onload = () => {
     const lut = parseCubeLUT(reader.result);
@@ -5555,6 +5827,7 @@ document.getElementById('lutFileInput').addEventListener('change', e => {
   e.target.value = '';
 });
 document.getElementById('clearLutBtn').addEventListener('click', () => {
+  pushUndoState();
   state.lut = { enabled: false, data: null, size: 0, intensity: 1.0, name: '' };
   document.getElementById('lutInfo').textContent = '';
   document.getElementById('lutControls').style.display = 'none';
@@ -5571,6 +5844,7 @@ document.getElementById('lutIntensity').addEventListener('input', e => {
 document.getElementById('animPresetGrid').addEventListener('click', e => {
   const btn = e.target.closest('.dev-btn');
   if (!btn) return;
+  pushUndoState();
   const anim = btn.dataset.anim;
   state.animPreset.type = anim;
   document.querySelectorAll('#animPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
