@@ -1,4 +1,5 @@
 .DS_Store
 assets/
+assets-manifest.json
 luts/
 overlays/

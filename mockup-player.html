@@ -511,6 +511,22 @@ body {
   border-radius: 3px;
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; color: #60a5fa;
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  user-select: none; transition: opacity 0.15s;
+}
+.clip-block.active { border-color: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.3); }
+.clip-block.dragging { opacity: 0.5; }
+.clip-block .clip-trim-handle {
+  position: absolute; top: 0; bottom: 0; width: 6px;
+  background: rgba(255,255,255,0.15); cursor: ew-resize; z-index: 2;
+}
+.clip-block .clip-trim-handle.left { left: 0; border-radius: 3px 0 0 3px; }
+.clip-block .clip-trim-handle.right { right: 0; border-radius: 0 3px 3px 0; }
+.clip-block .clip-trim-handle:hover { background: rgba(255,255,255,0.3); }
+.clip-trans-indicator {
+  position: absolute; top: 4px; bottom: 4px; width: 4px;
+  background: rgba(168,85,247,0.6); border-radius: 2px; z-index: 2;
+  pointer-events: none;
 }
 .trim-handle {
   position: absolute; top: 0; bottom: 0; width: 8px;
@@ -820,6 +836,7 @@ input[type="file"] { display: none; }
   display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.min.js"></script>
 </head>
 <body>
 
@@ -893,7 +910,8 @@ input[type="file"] { display: none; }
 <div class="export-dialog" id="exportDialog">
   <div class="export-dialog-panel">
     <h2>Export Settings</h2>
-    <div class="ed-row"><label>Format</label><select id="edFormat" disabled><option value="webm">WebM</option></select></div>
+    <div class="ed-row"><label>Format</label><select id="edFormat"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select></div>
+    <div id="edFormatNote" style="font-size:9px;color:#666;padding:0 4px 4px;display:none"></div>
     <div class="ed-row"><label>Resolution</label>
       <select id="edResolution">
         <option value="original">Original</option>
@@ -1320,6 +1338,13 @@ input[type="file"] { display: none; }
       </div>
       <div class="prop-row"><label>Color</label><input type="color" id="annoColor" value="#ff4444"></div>
       <div class="prop-row"><label>Width</label><input type="range" id="annoWidth" min="1" max="10" value="3"></div>
+      <div id="annoTimingControls" style="display:none;margin-top:6px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:9px;color:#666;margin-bottom:4px">Timing (selected annotation)</div>
+        <div class="prop-row"><label>Start (s)</label><input type="number" id="annoStartTime" min="0" step="0.1" style="width:70px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#ccc;padding:3px 6px;font-size:11px"></div>
+        <div class="prop-row"><label>End (s)</label><input type="number" id="annoEndTime" min="0" step="0.1" style="width:70px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#ccc;padding:3px 6px;font-size:11px"></div>
+        <div class="prop-row"><label>Duration</label><span id="annoDuration" style="font-size:10px;color:#888">5.0s</span></div>
+        <div class="prop-row"><label>Full video</label><input type="checkbox" id="annoFullVideo"></div>
+      </div>
     </div>
 
     <div class="panel-section">
@@ -1432,6 +1457,7 @@ input[type="file"] { display: none; }
     <h2>Asset Library</h2>
     <input type="text" class="ab-search" id="abSearch" placeholder="Search assets...">
     <div style="flex:1"></div>
+    <span id="abStatus" style="font-size:9px;color:#555;white-space:nowrap"></span>
     <button class="ab-close" id="abClose">&times;</button>
   </div>
   <div class="asset-browser-body">
@@ -1834,6 +1860,174 @@ function updateUndoUI() {
 
   updatePerspective();
   updateDisplaySize();
+}
+
+// ============================================================
+// VIRTUAL TIMELINE ENGINE
+// ============================================================
+const TRANSITION_DURATION = 0.5; // seconds
+let vtTime = 0;         // current position in virtual timeline (seconds)
+let vtPlaying = false;
+let vtLastTick = 0;
+let vtActiveClipIdx = 0;
+
+function vtGetTotalDuration() {
+  const clips = state.timeline.clips;
+  if (clips.length === 0) return video.duration || 0;
+  return clips.reduce((s, c) => s + c.duration * ((c.trimOut || 1) - (c.trimIn || 0)), 0);
+}
+
+function vtGetClipAt(t) {
+  const clips = state.timeline.clips;
+  if (clips.length === 0) return null;
+  let offset = 0;
+  for (let i = 0; i < clips.length; i++) {
+    const c = clips[i];
+    const clipDur = c.duration * ((c.trimOut || 1) - (c.trimIn || 0));
+    if (t < offset + clipDur + 0.001) {
+      const localTime = c.duration * (c.trimIn || 0) + (t - offset);
+      return { index: i, clip: c, localTime, offset, clipDur };
+    }
+    offset += clipDur;
+  }
+  const last = clips[clips.length - 1];
+  const lastDur = last.duration * ((last.trimOut || 1) - (last.trimIn || 0));
+  return { index: clips.length - 1, clip: last, localTime: last.duration * (last.trimOut || 1), offset: offset - lastDur, clipDur: lastDur };
+}
+
+function vtGetTransition() {
+  const clips = state.timeline.clips;
+  const transType = document.getElementById('transitionSelect').value;
+  if (transType === 'cut' || clips.length <= 1) return null;
+  let offset = 0;
+  for (let i = 0; i < clips.length - 1; i++) {
+    const c = clips[i];
+    const clipDur = c.duration * ((c.trimOut || 1) - (c.trimIn || 0));
+    const transStart = offset + clipDur - TRANSITION_DURATION;
+    if (vtTime >= transStart && vtTime < offset + clipDur) {
+      const progress = (vtTime - transStart) / TRANSITION_DURATION;
+      const next = clips[i + 1];
+      return {
+        type: transType,
+        progress: Math.max(0, Math.min(1, progress)),
+        outClip: c,
+        inClip: next,
+        outLocalTime: c.duration * (c.trimIn || 0) + (vtTime - offset),
+        inLocalTime: next.duration * (next.trimIn || 0) + (vtTime - offset - clipDur) // will be near 0
+      };
+    }
+    offset += clipDur;
+  }
+  return null;
+}
+
+function vtGetActiveVideo() {
+  const clips = state.timeline.clips;
+  if (clips.length === 0) return video;
+  const info = vtGetClipAt(vtTime);
+  return info ? info.clip.video : video;
+}
+
+function vtSeek(t) {
+  const totalDur = vtGetTotalDuration();
+  vtTime = Math.max(0, Math.min(t, totalDur));
+  const clips = state.timeline.clips;
+  if (clips.length === 0) {
+    video.currentTime = vtTime;
+    return;
+  }
+  // Pause all clips
+  clips.forEach(c => { if (c.video !== video) c.video.pause(); });
+  const info = vtGetClipAt(vtTime);
+  if (info) {
+    vtActiveClipIdx = info.index;
+    info.clip.video.currentTime = info.localTime;
+    if (vtPlaying) info.clip.video.play();
+  }
+}
+
+function vtPlay() {
+  if (vtPlaying) return;
+  vtPlaying = true;
+  vtLastTick = performance.now();
+  const clips = state.timeline.clips;
+  if (clips.length === 0) {
+    video.play();
+  } else {
+    const info = vtGetClipAt(vtTime);
+    if (info) {
+      vtActiveClipIdx = info.index;
+      info.clip.video.currentTime = info.localTime;
+      info.clip.video.playbackRate = state.timeline.speed;
+      info.clip.video.play();
+    }
+  }
+  iconPlay.style.display = 'none'; iconPause.style.display = 'block';
+  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.play(); });
+  if (state.bgVideo.enabled) document.getElementById('bgVideo').play();
+}
+
+function vtPause() {
+  vtPlaying = false;
+  const clips = state.timeline.clips;
+  if (clips.length === 0) {
+    video.pause();
+  } else {
+    clips.forEach(c => c.video.pause());
+  }
+  iconPlay.style.display = 'block'; iconPause.style.display = 'none';
+  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.pause(); });
+  if (state.bgVideo.enabled) document.getElementById('bgVideo').pause();
+}
+
+function vtToggle() {
+  if (vtPlaying) vtPause(); else vtPlay();
+}
+
+function vtTick() {
+  if (!vtPlaying) return;
+  const now = performance.now();
+  const delta = (now - vtLastTick) / 1000;
+  vtLastTick = now;
+  vtTime += delta * state.timeline.speed;
+
+  const totalDur = vtGetTotalDuration();
+  if (vtTime >= totalDur) {
+    if (isLooping) {
+      vtTime = 0;
+      vtSeek(0);
+      vtPlay();
+    } else {
+      vtTime = totalDur;
+      vtPause();
+    }
+    return;
+  }
+
+  const clips = state.timeline.clips;
+  if (clips.length > 0) {
+    const info = vtGetClipAt(vtTime);
+    if (info && info.index !== vtActiveClipIdx) {
+      // Switch clips
+      clips[vtActiveClipIdx].video.pause();
+      vtActiveClipIdx = info.index;
+      info.clip.video.currentTime = info.localTime;
+      info.clip.video.playbackRate = state.timeline.speed;
+      info.clip.video.play();
+    }
+    // Handle transition — keep both clips playing during overlap
+    const trans = vtGetTransition();
+    if (trans && trans.inClip.video.paused) {
+      trans.inClip.video.currentTime = trans.inClip.duration * (trans.inClip.trimIn || 0);
+      trans.inClip.video.playbackRate = state.timeline.speed;
+      trans.inClip.video.play();
+    }
+  }
+
+  // Update progress UI
+  progressFill.style.width = (vtTime / totalDur * 100) + '%';
+  timeLabel.textContent = fmt(vtTime) + ' / ' + fmt(totalDur);
+  updateTimelineScrubber();
 }
 
 // ============================================================
@@ -2354,9 +2548,9 @@ function drawWaveform(c, CW, CH) {
 // PROGRESS BAR OVERLAY
 // ============================================================
 function drawProgressBar(c, CW, CH) {
-  const vid = document.getElementById('srcVideo');
-  if (!vid || !vid.duration) return;
-  const pct = vid.currentTime / vid.duration;
+  const totalDur = vtGetTotalDuration();
+  if (!totalDur) return;
+  const pct = vtTime / totalDur;
   const h = state.progressBar.height;
   const y = state.progressBar.position === 'top' ? 0 : CH - h;
   c.save();
@@ -3283,10 +3477,11 @@ function calcDevicePosition(CW, CH) {
 }
 
 function calcSceneTransform() {
-  const elapsed = hasVideo ? (video.currentTime * 1000) : 0;
+  const t = hasVideo ? vtTime : 0;
+  const elapsed = t * 1000;
   const ent = getEntranceTransform(elapsed);
-  const kf = getKeyframeValues(hasVideo ? video.currentTime : 0);
-  const animT = getAnimPresetTransform(hasVideo ? video.currentTime : performance.now() * 0.001);
+  const kf = getKeyframeValues(t);
+  const animT = getAnimPresetTransform(hasVideo ? t : performance.now() * 0.001);
   return { ent, kf, animT };
 }
 
@@ -3332,13 +3527,14 @@ function renderParticlesLayer(ctx, CW, CH) {
 }
 
 function renderDeviceLayer(ctx, CW, CH, dc) {
+  const _activeVid = vtGetActiveVideo();
   // No-device mode: render video full-bleed
   if (state.device.type === 'none') {
-    if (hasVideo && video.readyState >= 2) {
-      const chromaFrame = getChromaKeyFrame(video);
-      const vidSrc = chromaFrame || video;
-      const vw = chromaFrame ? chromaFrame.width : video.videoWidth;
-      const vh = chromaFrame ? chromaFrame.height : video.videoHeight;
+    if (hasVideo && _activeVid.readyState >= 2) {
+      const chromaFrame = getChromaKeyFrame(_activeVid);
+      const vidSrc = chromaFrame || _activeVid;
+      const vw = chromaFrame ? chromaFrame.width : _activeVid.videoWidth;
+      const vh = chromaFrame ? chromaFrame.height : _activeVid.videoHeight;
       const cRatio = CW / CH, vRatio = vw / vh;
       let dw, dh, dx, dy;
       if (state.videoFit === 'stretch') {
@@ -3351,6 +3547,19 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
         else { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
       }
       ctx.drawImage(vidSrc, dx, dy, dw, dh);
+      // Transition overlay for no-device mode
+      const _transNd = vtGetTransition();
+      if (_transNd && _transNd.inClip.video.readyState >= 2) {
+        const tVid = _transNd.inClip.video;
+        const tSrc2 = getChromaKeyFrame(tVid) || tVid;
+        if (_transNd.type === 'crossfade') {
+          ctx.globalAlpha = _transNd.progress;
+          ctx.drawImage(tSrc2, dx, dy, dw, dh);
+          ctx.globalAlpha = 1;
+        } else if (_transNd.type === 'slide') {
+          ctx.drawImage(tSrc2, dx + CW * (1 - _transNd.progress), dy, dw, dh);
+        }
+      }
     }
     return;
   }
@@ -3389,15 +3598,15 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     ctx.translate(-dev.baseW*devScale/2, -dev.baseH*devScale/2);
   }
 
-  if (hasVideo && video.readyState >= 2) {
+  if (hasVideo && _activeVid.readyState >= 2) {
     ctx.save();
     rrPath(ctx, dev.screenX*devScale, dev.screenY*devScale, dev.screenW*devScale, dev.screenH*devScale, dev.screenR*devScale);
     ctx.clip();
     const sw = dev.screenW * devScale, sh = dev.screenH * devScale;
-    const chromaFrame = getChromaKeyFrame(video);
-    const vidSrc = chromaFrame || video;
-    const vw = chromaFrame ? chromaFrame.width : video.videoWidth;
-    const vh = chromaFrame ? chromaFrame.height : video.videoHeight;
+    const chromaFrame = getChromaKeyFrame(_activeVid);
+    const vidSrc = chromaFrame || _activeVid;
+    const vw = chromaFrame ? chromaFrame.width : _activeVid.videoWidth;
+    const vh = chromaFrame ? chromaFrame.height : _activeVid.videoHeight;
     const sRatio = sw/sh, vRatio = vw/vh;
     let dw, dh, dx, dy;
     if (state.videoFit === 'stretch') {
@@ -3410,6 +3619,34 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       else { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
     }
     ctx.drawImage(vidSrc, dx, dy, dw, dh);
+
+    // Transition overlay (incoming clip)
+    const _trans = vtGetTransition();
+    if (_trans && _trans.inClip.video.readyState >= 2) {
+      const tVid = _trans.inClip.video;
+      const tChroma = getChromaKeyFrame(tVid);
+      const tSrc = tChroma || tVid;
+      const tvw = tChroma ? tChroma.width : tVid.videoWidth;
+      const tvh = tChroma ? tChroma.height : tVid.videoHeight;
+      const tRatio = tvw/tvh;
+      let tdw, tdh, tdx, tdy;
+      if (state.videoFit === 'stretch') { tdx = dev.screenX*devScale; tdy = dev.screenY*devScale; tdw = sw; tdh = sh; }
+      else if (state.videoFit === 'contain') {
+        if (tRatio > sRatio) { tdw=sw; tdh=sw/tRatio; tdx=dev.screenX*devScale; tdy=dev.screenY*devScale+(sh-tdh)/2; }
+        else { tdh=sh; tdw=sh*tRatio; tdx=dev.screenX*devScale+(sw-tdw)/2; tdy=dev.screenY*devScale; }
+      } else {
+        if (tRatio > sRatio) { tdh=sh; tdw=sh*tRatio; tdx=dev.screenX*devScale+(sw-tdw)/2; tdy=dev.screenY*devScale; }
+        else { tdw=sw; tdh=sw/tRatio; tdx=dev.screenX*devScale; tdy=dev.screenY*devScale+(sh-tdh)/2; }
+      }
+      if (_trans.type === 'crossfade') {
+        ctx.globalAlpha = _trans.progress;
+        ctx.drawImage(tSrc, tdx, tdy, tdw, tdh);
+        ctx.globalAlpha = 1;
+      } else if (_trans.type === 'slide') {
+        const slideOffset = sw * (1 - _trans.progress);
+        ctx.drawImage(tSrc, tdx + slideOffset, tdy, tdw, tdh);
+      }
+    }
     ctx.restore();
   } else {
     ctx.save();
@@ -3516,7 +3753,7 @@ function renderDevice2Layer(ctx, CW, CH, dc) {
 
 function renderContentLayer(ctx, CW, CH) {
   if (state.layers.length === 0) return;
-  const currentTime = hasVideo ? video.currentTime : 0;
+  const currentTime = hasVideo ? vtTime : 0;
   for (const layer of state.layers) {
     if (layer.visible === false) continue; // hidden via unified layers panel
     if (layer.type === 'text') {
@@ -3692,7 +3929,7 @@ function renderPostProcessing(ctx, CW, CH) {
     ctx.drawImage(canvas, 0, 0);
     ctx.restore();
   }
-  drawGlitchEffect(ctx, CW, CH, hasVideo ? video.currentTime : performance.now() * 0.001);
+  drawGlitchEffect(ctx, CW, CH, hasVideo ? vtTime : performance.now() * 0.001);
   if (state.lut.enabled && state.lut.data) applyLUT(canvas, state.lut, state.lut.intensity);
 }
 
@@ -3715,6 +3952,7 @@ const RENDER_MAP = {
 // MAIN RENDER (stack-based)
 // ============================================================
 function render() {
+  vtTick();
   const sz = getCanvasSize();
   const CW = sz.w, CH = sz.h;
   ctx.clearRect(0, 0, CW, CH);
@@ -3910,10 +4148,8 @@ customH.addEventListener('change', () => { PRESETS.custom.h = parseInt(customH.v
 function loadVideo(file) {
   const url = URL.createObjectURL(file);
   video.src = url;
-  video.loop = isLooping;
   video.muted = false;
   video.load();
-  video.play().catch(() => { video.muted = true; video.play(); });
   hasVideo = true;
   promptEl.classList.remove('visible');
   playbackBar.classList.add('visible');
@@ -3924,11 +4160,18 @@ function loadVideo(file) {
   fnEl.title = file.name;
   state.timeline.trimIn = 0;
   state.timeline.trimOut = 1;
+  // Reset virtual timeline
+  vtTime = 0;
+  vtActiveClipIdx = 0;
   // Add clip to timeline
-  state.timeline.clips = [{ video: video, name: file.name, start: 0, duration: 0 }];
+  state.timeline.clips = [{ video: video, name: file.name, start: 0, duration: 0, trimIn: 0, trimOut: 1 }];
   video.addEventListener('loadedmetadata', () => {
     state.timeline.clips[0].duration = video.duration;
     rebuildTimeline();
+    vtPlay();
+  }, { once: true });
+  video.addEventListener('canplay', () => {
+    if (!vtPlaying && state.timeline.clips.length === 1) vtPlay();
   }, { once: true });
   showToast('Video loaded: ' + file.name, 'success');
 }
@@ -3951,32 +4194,7 @@ document.addEventListener('drop', e => {
 // ============================================================
 // PLAYBACK
 // ============================================================
-playBtn.addEventListener('click', () => { video.paused ? video.play() : video.pause(); });
-video.addEventListener('play', () => {
-  iconPlay.style.display = 'none'; iconPause.style.display = 'block';
-  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.play(); });
-  if (state.bgVideo.enabled) document.getElementById('bgVideo').play();
-});
-video.addEventListener('pause', () => {
-  iconPlay.style.display = 'block'; iconPause.style.display = 'none';
-  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.pause(); });
-  if (state.bgVideo.enabled) document.getElementById('bgVideo').pause();
-});
-
-video.addEventListener('timeupdate', () => {
-  if (!video.duration) return;
-  const trimIn = state.timeline.trimIn * video.duration;
-  const trimOut = state.timeline.trimOut * video.duration;
-  // Enforce trim bounds
-  if (video.currentTime < trimIn) video.currentTime = trimIn;
-  if (video.currentTime > trimOut) {
-    if (isLooping) video.currentTime = trimIn;
-    else video.pause();
-  }
-  progressFill.style.width = (video.currentTime / video.duration * 100) + '%';
-  timeLabel.textContent = fmt(video.currentTime) + ' / ' + fmt(video.duration);
-  updateTimelineScrubber();
-});
+playBtn.addEventListener('click', () => { vtToggle(); });
 
 function fmt(s) { return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2, '0'); }
 
@@ -3988,18 +4206,18 @@ let wasPlayingBeforeScrub = false;
 function scrubToX(clientX) {
   const r = progressTrack.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
-  const t = pct * (video.duration || 0);
-  video.currentTime = t;
+  const totalDur = vtGetTotalDuration() || 1;
+  const t = pct * totalDur;
+  vtSeek(t);
   progressTooltip.textContent = fmt(t);
-  // Position tooltip above handle via the fill width
   progressFill.style.width = (pct * 100) + '%';
 }
 
 progressTrack.addEventListener('mousedown', e => {
-  if (!video.duration) return;
+  if (!hasVideo) return;
   isScrubbing = true;
-  wasPlayingBeforeScrub = !video.paused;
-  video.pause();
+  wasPlayingBeforeScrub = vtPlaying;
+  vtPause();
   progressTrack.classList.add('scrubbing');
   scrubToX(e.clientX);
 });
@@ -4013,12 +4231,11 @@ document.addEventListener('mouseup', () => {
   if (!isScrubbing) return;
   isScrubbing = false;
   progressTrack.classList.remove('scrubbing');
-  if (wasPlayingBeforeScrub) video.play();
+  if (wasPlayingBeforeScrub) vtPlay();
 });
 
 loopBtn.addEventListener('click', function() {
   isLooping = !isLooping;
-  video.loop = isLooping;
   this.classList.toggle('active', isLooping);
   this.textContent = isLooping ? 'Loop' : 'No Loop';
   showToast('Loop: ' + (isLooping ? 'ON' : 'OFF'), 'info');
@@ -4028,7 +4245,7 @@ loopBtn.classList.add('active');
 // Speed control
 speedSelect.addEventListener('change', e => {
   state.timeline.speed = parseFloat(e.target.value);
-  video.playbackRate = state.timeline.speed;
+  state.timeline.clips.forEach(c => { c.video.playbackRate = state.timeline.speed; });
 });
 
 // Keyboard shortcuts
@@ -4048,11 +4265,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
   if (e.key === 'Escape' && document.getElementById('exportDialog').classList.contains('open')) { document.getElementById('exportDialog').classList.remove('open'); return; }
   if (e.key === '?') { toggleKbHelp(); return; }
-  if (e.code === 'Space') { e.preventDefault(); video.paused ? video.play() : video.pause(); }
+  if (e.code === 'Space') { e.preventDefault(); vtToggle(); }
   if (e.key === '[') { togglePanel('left'); return; }
   if (e.key === ']') { togglePanel('right'); return; }
-  if (e.code === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
-  if (e.code === 'ArrowRight') video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
+  if (e.code === 'ArrowLeft') vtSeek(vtTime - 5);
+  if (e.code === 'ArrowRight') vtSeek(vtTime + 5);
 });
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('redoBtn').addEventListener('click', redo);
@@ -4128,38 +4345,84 @@ entranceDur.addEventListener('input', e => {
 // ============================================================
 function rebuildTimeline() {
   const track = timelineTrack;
-  // Remove old clip blocks
-  track.querySelectorAll('.clip-block, .trim-handle, .keyframe-diamond').forEach(el => el.remove());
+  track.querySelectorAll('.clip-block, .trim-handle, .keyframe-diamond, .clip-trans-indicator, .anno-marker').forEach(el => el.remove());
 
-  const totalDuration = state.timeline.clips.reduce((s, c) => s + c.duration, 0) || 1;
+  const totalDuration = vtGetTotalDuration() || 1;
+  const transType = document.getElementById('transitionSelect').value;
 
   let offset = 0;
   state.timeline.clips.forEach((clip, i) => {
+    const clipDur = clip.duration * ((clip.trimOut || 1) - (clip.trimIn || 0));
     const block = document.createElement('div');
     block.className = 'clip-block';
+    if (i === vtActiveClipIdx) block.classList.add('active');
     block.style.left = (offset / totalDuration * 100) + '%';
-    block.style.width = (clip.duration / totalDuration * 100) + '%';
-    block.textContent = clip.name || 'Clip ' + (i+1);
+    block.style.width = (clipDur / totalDuration * 100) + '%';
+    block.dataset.clipIdx = i;
+
+    // Clip label
+    const label = document.createElement('span');
+    label.textContent = clip.name || 'Clip ' + (i+1);
+    label.style.pointerEvents = 'none';
+    block.appendChild(label);
+
     block.style.background = `rgba(${96 + i*50},${165 - i*30},${250 - i*40},0.2)`;
     block.style.borderColor = `rgba(${96 + i*50},${165 - i*30},${250 - i*40},0.4)`;
 
-    // Trim handles for first clip
-    if (i === 0) {
-      const leftH = document.createElement('div');
-      leftH.className = 'trim-handle left';
-      leftH.style.left = (state.timeline.trimIn * 100) + '%';
-      block.appendChild(leftH);
-      makeTrimDraggable(leftH, 'left');
+    // Per-clip trim handles
+    const leftH = document.createElement('div');
+    leftH.className = 'clip-trim-handle left';
+    block.appendChild(leftH);
+    makeClipTrimDraggable(leftH, i, 'left');
 
-      const rightH = document.createElement('div');
-      rightH.className = 'trim-handle right';
-      rightH.style.right = ((1 - state.timeline.trimOut) * 100) + '%';
-      block.appendChild(rightH);
-      makeTrimDraggable(rightH, 'right');
-    }
+    const rightH = document.createElement('div');
+    rightH.className = 'clip-trim-handle right';
+    block.appendChild(rightH);
+    makeClipTrimDraggable(rightH, i, 'right');
+
+    // Click to seek to clip start
+    block.addEventListener('click', e => {
+      if (e.target.classList.contains('clip-trim-handle')) return;
+      let seekT = 0;
+      for (let j = 0; j < i; j++) {
+        const cj = state.timeline.clips[j];
+        seekT += cj.duration * ((cj.trimOut || 1) - (cj.trimIn || 0));
+      }
+      vtSeek(seekT);
+    });
+
+    // Drag reordering
+    block.draggable = true;
+    block.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', String(i));
+      block.classList.add('dragging');
+    });
+    block.addEventListener('dragend', () => { block.classList.remove('dragging'); });
+    block.addEventListener('dragover', e => { e.preventDefault(); });
+    block.addEventListener('drop', e => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = i;
+      if (fromIdx === toIdx) return;
+      pushUndoState();
+      const [moved] = state.timeline.clips.splice(fromIdx, 1);
+      state.timeline.clips.splice(toIdx, 0, moved);
+      rebuildTimeline();
+    });
 
     track.appendChild(block);
-    offset += clip.duration;
+
+    // Transition indicator between clips
+    if (transType !== 'cut' && i < state.timeline.clips.length - 1) {
+      const indicator = document.createElement('div');
+      indicator.className = 'clip-trans-indicator';
+      indicator.style.left = ((offset + clipDur) / totalDuration * 100) + '%';
+      indicator.style.transform = 'translateX(-2px)';
+      indicator.title = transType;
+      track.appendChild(indicator);
+    }
+
+    offset += clipDur;
   });
 
   // Keyframe diamonds
@@ -4175,41 +4438,69 @@ function rebuildTimeline() {
     });
     track.appendChild(diamond);
   });
+
+  // Annotation time range markers
+  state.layers.forEach(layer => {
+    if (layer.type !== 'annotation') return;
+    if (layer.startTime === undefined) return;
+    const endT = layer.endTime === Infinity ? totalDuration : layer.endTime;
+    const leftPct = Math.max(0, layer.startTime / totalDuration * 100);
+    const widthPct = Math.min(100 - leftPct, (endT - layer.startTime) / totalDuration * 100);
+    const marker = document.createElement('div');
+    marker.className = 'anno-marker';
+    marker.style.cssText = 'position:absolute;bottom:0;height:3px;border-radius:1px;opacity:0.7;pointer-events:none;background:' + (layer.color || '#ff4444');
+    marker.style.left = leftPct + '%';
+    marker.style.width = widthPct + '%';
+    marker.title = (layer.annoType || 'Annotation') + ': ' + layer.startTime.toFixed(1) + 's\u2013' + (layer.endTime === Infinity ? 'end' : layer.endTime.toFixed(1) + 's');
+    track.appendChild(marker);
+  });
 }
 
-function makeTrimDraggable(handle, side) {
+function makeClipTrimDraggable(handle, clipIdx, side) {
   let dragging = false;
-  handle.addEventListener('mousedown', e => { e.stopPropagation(); dragging = true; });
+  handle.addEventListener('mousedown', e => { e.stopPropagation(); e.preventDefault(); dragging = true; });
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
-    const rect = timelineTrack.getBoundingClientRect();
+    const clip = state.timeline.clips[clipIdx];
+    if (!clip) return;
+    const block = handle.parentElement;
+    const rect = block.getBoundingClientRect();
     let pct = (e.clientX - rect.left) / rect.width;
     pct = Math.max(0, Math.min(1, pct));
     if (side === 'left') {
-      state.timeline.trimIn = Math.min(pct, state.timeline.trimOut - 0.01);
-      handle.style.left = (state.timeline.trimIn * 100) + '%';
+      clip.trimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
     } else {
-      state.timeline.trimOut = Math.max(pct, state.timeline.trimIn + 0.01);
-      handle.parentElement.querySelector('.trim-handle.right').style.right = ((1 - state.timeline.trimOut) * 100) + '%';
+      clip.trimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
     }
+    rebuildTimeline();
   });
-  document.addEventListener('mouseup', () => { dragging = false; });
+  document.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; }
+  });
 }
 
 function updateTimelineScrubber() {
-  if (!video.duration) return;
-  const totalDuration = state.timeline.clips.reduce((s, c) => s + c.duration, 0) || video.duration;
-  const pct = video.currentTime / totalDuration * 100;
-  timelineScrubber.style.left = pct + '%';
+  const totalDuration = vtGetTotalDuration();
+  if (!totalDuration) return;
+  const pct = vtTime / totalDuration * 100;
+  timelineScrubber.style.left = Math.min(100, pct) + '%';
+  // Update active clip highlight
+  const info = vtGetClipAt(vtTime);
+  if (info) {
+    timelineTrack.querySelectorAll('.clip-block').forEach((b, i) => {
+      b.classList.toggle('active', i === info.index);
+    });
+  }
 }
 
-// Timeline click to seek
+// Timeline click to seek (on empty track area, not clip blocks)
 timelineTrack.addEventListener('click', e => {
-  if (!video.duration) return;
+  if (e.target.closest('.clip-block')) return; // handled by clip block click
+  if (!hasVideo) return;
   const rect = timelineTrack.getBoundingClientRect();
   const pct = (e.clientX - rect.left) / rect.width;
-  const totalDuration = state.timeline.clips.reduce((s, c) => s + c.duration, 0) || video.duration;
-  video.currentTime = pct * totalDuration;
+  const totalDuration = vtGetTotalDuration() || 1;
+  vtSeek(pct * totalDuration);
 });
 
 // Add clip
@@ -4217,13 +4508,20 @@ document.getElementById('addClipBtn').addEventListener('click', () => clipInput.
 clipInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
+  pushUndoState();
   const v = document.createElement('video');
   v.src = URL.createObjectURL(file);
-  v.preload = 'metadata';
+  v.preload = 'auto';
+  v.muted = true;
+  v.playsInline = true;
+  v.style.display = 'none';
+  document.body.appendChild(v);
   v.addEventListener('loadedmetadata', () => {
-    state.timeline.clips.push({ video: v, name: file.name, start: 0, duration: v.duration });
+    state.timeline.clips.push({ video: v, name: file.name, start: 0, duration: v.duration, trimIn: 0, trimOut: 1 });
     rebuildTimeline();
+    showToast('Clip added: ' + file.name, 'success');
   });
+  e.target.value = '';
 });
 
 // ============================================================
@@ -4603,6 +4901,7 @@ function rebuildUnifiedLayers() {
         layerDetailEl.style.display = 'none';
         document.getElementById('textProps').style.display = 'none';
         document.getElementById('logoProps').style.display = 'none';
+        document.getElementById('annoTimingControls').style.display = 'none';
         rebuildUnifiedLayers();
       }
     });
@@ -4642,6 +4941,9 @@ function showLayerDetail(idx) {
       layer.fontSize = v;
     });
   }
+
+  // Show/hide annotation timing controls
+  updateAnnoTimingControls(layer);
 }
 
 // ---- Advanced Render Order panel ----
@@ -4763,7 +5065,7 @@ canvas.addEventListener('mousedown', e => {
   }
   // If no layer hit and has video, toggle playback
   if (hasVideo && !state.annotation.tool) {
-    video.paused ? video.play() : video.pause();
+    vtToggle();
   }
 });
 
@@ -4852,7 +5154,10 @@ canvas.addEventListener('mouseup', e => {
   annoDrawing = false;
   pushUndoState();
 
-  const currentTime = hasVideo ? video.currentTime : 0;
+  const currentTime = hasVideo ? vtTime : 0;
+  const totalDur = vtGetTotalDuration() || Infinity;
+  const remaining = totalDur - currentTime;
+  const defaultEnd = remaining < 5 ? totalDur : currentTime + 5;
   const layer = {
     id: state.nextLayerId++,
     type: 'annotation',
@@ -4862,12 +5167,71 @@ canvas.addEventListener('mouseup', e => {
     lineWidth: state.annotation.width,
     content: state.annotation.tool === 'callout' ? 'Note' : '',
     startTime: currentTime,
-    endTime: currentTime + 5,
+    endTime: defaultEnd,
   };
   state.layers.push(layer);
   rebuildLayerList();
   annoPoints = [];
 }, true);
+
+// ---- Annotation timing controls ----
+const annoTimingEl = document.getElementById('annoTimingControls');
+const annoStartInput = document.getElementById('annoStartTime');
+const annoEndInput = document.getElementById('annoEndTime');
+const annoDurationEl = document.getElementById('annoDuration');
+const annoFullVideoCb = document.getElementById('annoFullVideo');
+let annoTimingLayer = null;
+
+function updateAnnoTimingControls(layer) {
+  if (!layer || layer.type !== 'annotation') {
+    annoTimingEl.style.display = 'none';
+    annoTimingLayer = null;
+    return;
+  }
+  annoTimingLayer = layer;
+  annoTimingEl.style.display = 'block';
+  const isFullVideo = layer.startTime === 0 && layer.endTime === Infinity;
+  annoFullVideoCb.checked = isFullVideo;
+  annoStartInput.value = isFullVideo ? 0 : layer.startTime.toFixed(1);
+  annoEndInput.value = isFullVideo ? '' : (layer.endTime === Infinity ? '' : layer.endTime.toFixed(1));
+  annoStartInput.disabled = isFullVideo;
+  annoEndInput.disabled = isFullVideo;
+  const dur = layer.endTime === Infinity ? 'Full' : (layer.endTime - layer.startTime).toFixed(1) + 's';
+  annoDurationEl.textContent = dur;
+}
+
+annoStartInput.addEventListener('change', () => {
+  if (!annoTimingLayer) return;
+  pushUndoState();
+  annoTimingLayer.startTime = Math.max(0, parseFloat(annoStartInput.value) || 0);
+  const dur = annoTimingLayer.endTime === Infinity ? 'Full' : (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
+  annoDurationEl.textContent = dur;
+  rebuildTimeline();
+});
+
+annoEndInput.addEventListener('change', () => {
+  if (!annoTimingLayer) return;
+  pushUndoState();
+  annoTimingLayer.endTime = Math.max(annoTimingLayer.startTime + 0.1, parseFloat(annoEndInput.value) || 0);
+  const dur = (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
+  annoDurationEl.textContent = dur;
+  rebuildTimeline();
+});
+
+annoFullVideoCb.addEventListener('change', () => {
+  if (!annoTimingLayer) return;
+  pushUndoState();
+  if (annoFullVideoCb.checked) {
+    annoTimingLayer.startTime = 0;
+    annoTimingLayer.endTime = Infinity;
+  } else {
+    const currentTime = hasVideo ? vtTime : 0;
+    annoTimingLayer.startTime = currentTime;
+    annoTimingLayer.endTime = currentTime + 5;
+  }
+  updateAnnoTimingControls(annoTimingLayer);
+  rebuildTimeline();
+});
 
 // ============================================================
 // FACECAM
@@ -5095,7 +5459,7 @@ document.getElementById('video2Input').addEventListener('change', e => {
 document.getElementById('addKeyframeBtn').addEventListener('click', () => {
   if (!hasVideo) return;
   const kf = {
-    time: video.currentTime,
+    time: vtTime,
     zoom: parseInt(document.getElementById('kfZoom').value) / 100,
     panX: parseInt(document.getElementById('kfPanX').value),
     panY: parseInt(document.getElementById('kfPanY').value),
@@ -5121,7 +5485,7 @@ ssBtn.addEventListener('click', () => {
 // ============================================================
 thumbBtn.addEventListener('click', () => {
   if (!hasVideo) return;
-  video.pause();
+  vtPause();
   // Render at preset size
   const sz = getCanvasSize();
   const thumbCanvas = document.createElement('canvas');
@@ -5150,6 +5514,8 @@ const edQuality = document.getElementById('edQuality');
 const edFramerate = document.getElementById('edFramerate');
 const edAudio = document.getElementById('edAudio');
 const edEstimate = document.getElementById('edEstimate');
+const edFormat = document.getElementById('edFormat');
+const edFormatNote = document.getElementById('edFormatNote');
 
 function updateExportEstimate() {
   const sz = getCanvasSize();
@@ -5160,12 +5526,28 @@ function updateExportEstimate() {
   // Ensure even dimensions
   w = w % 2 === 0 ? w : w + 1;
   h = h % 2 === 0 ? h : h + 1;
-  const dur = video.duration ? ((state.timeline.trimOut - state.timeline.trimIn) * video.duration / state.timeline.speed).toFixed(1) : '?';
+  const totalDur = vtGetTotalDuration();
+  const dur = totalDur ? (totalDur / state.timeline.speed).toFixed(1) : '?';
   edEstimate.textContent = '~' + dur + 's of video at ' + w + '\u00d7' + h + ' · ' + edFramerate.value + ' fps';
 }
 
 function openExportDialog() {
   updateExportEstimate();
+  const mp4Option = edFormat.querySelector('option[value="mp4"]');
+  if (typeof VideoEncoder === 'undefined') {
+    mp4Option.disabled = true;
+    mp4Option.textContent = 'MP4 (not supported)';
+  } else {
+    mp4Option.disabled = false;
+    mp4Option.textContent = 'MP4 (H.264) \u2605 Recommended';
+  }
+  if (edFormat.value === 'mp4' && typeof VideoEncoder !== 'undefined') {
+    edFormatNote.textContent = 'H.264 via WebCodecs \u2014 best compatibility for sharing.';
+    edFormatNote.style.color = '#888';
+    edFormatNote.style.display = 'block';
+  } else {
+    edFormatNote.style.display = 'none';
+  }
   exportDialog.classList.add('open');
 }
 
@@ -5176,6 +5558,23 @@ function closeExportDialog() {
 edResolution.addEventListener('change', updateExportEstimate);
 edFramerate.addEventListener('change', updateExportEstimate);
 edQuality.addEventListener('change', updateExportEstimate);
+edFormat.addEventListener('change', () => {
+  if (edFormat.value === 'mp4') {
+    if (typeof VideoEncoder === 'undefined') {
+      edFormatNote.textContent = '\u26a0 MP4 export requires WebCodecs API (Chrome 94+). Use WebM instead.';
+      edFormatNote.style.color = '#e55';
+      edFormatNote.style.display = 'block';
+      edFormat.value = 'webm';
+    } else {
+      edFormatNote.textContent = 'H.264 via WebCodecs \u2014 best compatibility for sharing.';
+      edFormatNote.style.color = '#888';
+      edFormatNote.style.display = 'block';
+    }
+  } else {
+    edFormatNote.style.display = 'none';
+  }
+  updateExportEstimate();
+});
 document.getElementById('edCancel').addEventListener('click', closeExportDialog);
 exportDialog.addEventListener('click', e => { if (e.target === exportDialog) closeExportDialog(); });
 
@@ -5191,6 +5590,7 @@ document.getElementById('edStart').addEventListener('click', () => {
 });
 
 function startExport() {
+  if (edFormat.value === 'mp4') { startMp4Export(); return; }
   isExporting = true;
   exportBtn.textContent = 'Stop';
   exportBtn.classList.add('recording');
@@ -5266,44 +5666,243 @@ function startExport() {
     showToast('Export complete — WebM downloaded', 'success');
   };
 
-  // Play from trim start
-  video.loop = false;
-  video.currentTime = state.timeline.trimIn * video.duration;
-  video.playbackRate = state.timeline.speed;
-  video.play();
+  // Play from start of virtual timeline
+  vtSeek(0);
+  vtPlay();
   recorder.start(100);
   exportText.textContent = 'Recording...';
   showToast('Recording started...', 'info');
 
+  const exportTotalDur = vtGetTotalDuration();
   const poll = setInterval(() => {
     if (!isExporting) { clearInterval(poll); return; }
-    if (video.duration) {
-      const trimDur = (state.timeline.trimOut - state.timeline.trimIn) * video.duration;
-      const elapsed = video.currentTime - state.timeline.trimIn * video.duration;
-      const p = Math.min(100, elapsed / trimDur * 100);
-      exportBarFill.style.width = p + '%';
-      exportText.textContent = 'Exporting... ' + Math.round(p) + '%';
-    }
-  }, 250);
-
-  video.addEventListener('timeupdate', function checkEnd() {
-    if (video.currentTime >= state.timeline.trimOut * video.duration) {
-      video.removeEventListener('timeupdate', checkEnd);
+    const p = Math.min(100, vtTime / exportTotalDur * 100);
+    exportBarFill.style.width = p + '%';
+    exportText.textContent = 'Exporting... ' + Math.round(p) + '%';
+    // Check if timeline finished
+    if (vtTime >= exportTotalDur - 0.05 && !vtPlaying) {
+      clearInterval(poll);
       setTimeout(() => stopExport(), 400);
     }
-  });
-
-  video.addEventListener('ended', function onEnd() {
-    video.removeEventListener('ended', onEnd);
-    setTimeout(() => stopExport(), 400);
-  });
+  }, 250);
 }
 
 function stopExport() {
   if (recorder && recorder.state !== 'inactive') recorder.stop();
-  video.loop = isLooping;
-  video.playbackRate = state.timeline.speed;
+  vtPause();
   isExporting = false;
+}
+
+async function startMp4Export() {
+  if (typeof VideoEncoder === 'undefined') {
+    showToast('MP4 export requires WebCodecs API (Chrome 94+)', 'error');
+    return;
+  }
+
+  isExporting = true;
+  exportBtn.textContent = 'Stop';
+  exportBtn.classList.add('recording');
+  exportStatus.classList.add('visible');
+  exportText.textContent = 'Preparing MP4...';
+  exportBarFill.style.width = '0%';
+
+  const bitrate = parseInt(edQuality.value);
+  const fps = parseInt(edFramerate.value);
+  const includeAudio = edAudio.checked;
+
+  const origSz = getCanvasSize();
+  let expW = origSz.w, expH = origSz.h;
+  const res = edResolution.value;
+  if (res === '1080') { const s = 1080 / Math.max(expW, expH); expW = Math.round(expW * s); expH = Math.round(expH * s); }
+  else if (res === '720') { const s = 720 / Math.max(expW, expH); expW = Math.round(expW * s); expH = Math.round(expH * s); }
+  expW = expW % 2 === 0 ? expW : expW + 1;
+  expH = expH % 2 === 0 ? expH : expH + 1;
+
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = expW;
+  exportCanvas.height = expH;
+  const eCtx = exportCanvas.getContext('2d');
+
+  // Configure mp4-muxer
+  const muxerOpts = {
+    target: new Mp4Muxer.ArrayBufferTarget(),
+    video: { codec: 'avc', width: expW, height: expH },
+    fastStart: 'in-memory'
+  };
+
+  // Audio setup
+  let audioEncoder = null;
+  let scriptProcessor = null;
+  let audioTimestamp = 0;
+
+  if (includeAudio) {
+    try {
+      if (!audioCtx) audioCtx = new AudioContext();
+      muxerOpts.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: audioCtx.sampleRate };
+    } catch (err) {
+      console.log('MP4 audio context skipped:', err.message);
+    }
+  }
+
+  const muxer = new Mp4Muxer.Muxer(muxerOpts);
+
+  // Video encoder
+  const videoEncoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+    error: (e) => console.error('VideoEncoder error:', e)
+  });
+  videoEncoder.configure({
+    codec: 'avc1.42001f',
+    width: expW,
+    height: expH,
+    bitrate: bitrate,
+    framerate: fps
+  });
+
+  // Audio encoder
+  if (muxerOpts.audio) {
+    try {
+      audioEncoder = new AudioEncoder({
+        output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+        error: (e) => console.error('AudioEncoder error:', e)
+      });
+      audioEncoder.configure({
+        codec: 'mp4a.40.2',
+        numberOfChannels: 2,
+        sampleRate: audioCtx.sampleRate,
+        bitrate: 128000
+      });
+
+      scriptProcessor = audioCtx.createScriptProcessor(4096, 2, 2);
+
+      // Connect audio source
+      const activeVid = vtGetActiveVideo();
+      if (activeVid) {
+        if (!sourceNode) {
+          sourceNode = audioCtx.createMediaElementSource(activeVid);
+        }
+        sourceNode.disconnect();
+        sourceNode.connect(scriptProcessor);
+        sourceNode.connect(audioCtx.destination);
+      }
+      scriptProcessor.connect(audioCtx.destination);
+
+      audioTimestamp = 0;
+      scriptProcessor.onaudioprocess = (e) => {
+        if (!isExporting || !audioEncoder) return;
+        const nf = e.inputBuffer.length;
+        const ch0 = e.inputBuffer.getChannelData(0);
+        const ch1 = e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : ch0;
+        const data = new Float32Array(nf * 2);
+        data.set(ch0, 0);
+        data.set(ch1, nf);
+        try {
+          const audioData = new AudioData({
+            format: 'f32-planar',
+            sampleRate: audioCtx.sampleRate,
+            numberOfFrames: nf,
+            numberOfChannels: 2,
+            timestamp: audioTimestamp,
+            data: data
+          });
+          audioEncoder.encode(audioData);
+          audioData.close();
+          audioTimestamp += (nf / audioCtx.sampleRate) * 1_000_000;
+        } catch (err) { /* skip frame */ }
+      };
+    } catch (err) {
+      console.log('MP4 audio encoder skipped:', err.message);
+      audioEncoder = null;
+    }
+  }
+
+  // Play timeline from start
+  vtSeek(0);
+  vtPlay();
+
+  const totalDur = vtGetTotalDuration();
+  const exportStart = performance.now();
+  let frameCount = 0;
+  let lastCaptureTime = -1;
+  const frameInterval = 1 / fps;
+  let finalized = false;
+
+  exportText.textContent = 'Encoding MP4...';
+  showToast('MP4 export started...', 'info');
+
+  function captureLoop() {
+    if (!isExporting || finalized) {
+      if (!finalized) finalize();
+      return;
+    }
+
+    // Capture at target fps intervals
+    if (vtTime - lastCaptureTime >= frameInterval || lastCaptureTime < 0) {
+      eCtx.clearRect(0, 0, expW, expH);
+      eCtx.drawImage(canvas, 0, 0, expW, expH);
+
+      const timestamp = frameCount * (1_000_000 / fps);
+      const frame = new VideoFrame(exportCanvas, { timestamp });
+      videoEncoder.encode(frame, { keyFrame: frameCount % (fps * 2) === 0 });
+      frame.close();
+      frameCount++;
+      lastCaptureTime = vtTime;
+
+      // Progress with elapsed time, frames, estimated size
+      const p = Math.min(100, vtTime / totalDur * 100);
+      const elapsed = ((performance.now() - exportStart) / 1000).toFixed(1);
+      const estSize = (frameCount * bitrate / fps / 8 / 1024 / 1024).toFixed(1);
+      exportBarFill.style.width = p + '%';
+      exportText.textContent = 'MP4: ' + Math.round(p) + '% \u00b7 ' + frameCount + ' frames \u00b7 ' + elapsed + 's \u00b7 ~' + estSize + 'MB';
+    }
+
+    // Check if timeline finished
+    if (vtTime >= totalDur - 0.05 && !vtPlaying) {
+      finalize();
+      return;
+    }
+
+    requestAnimationFrame(captureLoop);
+  }
+
+  requestAnimationFrame(captureLoop);
+
+  async function finalize() {
+    if (finalized) return;
+    finalized = true;
+    exportText.textContent = 'Finalizing MP4...';
+
+    try {
+      await videoEncoder.flush();
+      videoEncoder.close();
+      if (audioEncoder) {
+        await audioEncoder.flush();
+        audioEncoder.close();
+      }
+      if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor.onaudioprocess = null;
+      }
+      muxer.finalize();
+
+      const buffer = muxer.target.buffer;
+      const blob = new Blob([buffer], { type: 'video/mp4' });
+      const a = document.createElement('a');
+      a.download = 'mockup-' + Date.now() + '.mp4';
+      a.href = URL.createObjectURL(blob);
+      a.click();
+      showToast('Export complete \u2014 MP4 downloaded', 'success');
+    } catch (err) {
+      console.error('MP4 finalize error:', err);
+      showToast('MP4 export failed: ' + err.message, 'error');
+    }
+
+    isExporting = false;
+    exportBtn.textContent = 'Export';
+    exportBtn.classList.remove('recording');
+    exportStatus.classList.remove('visible');
+    vtPause();
+  }
 }
 
 // ============================================================
@@ -5531,7 +6130,7 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
     document.getElementById('removeBgVideoBtn').style.display = '';
     document.getElementById('loadBgVideoBtn').style.display = 'none';
     // Auto-play synced with main video
-    if (hasVideo && !video.paused) bgVid.play();
+    if (hasVideo && vtPlaying) bgVid.play();
     else bgVid.play(); // play anyway for preview
   });
   e.target.value = '';
@@ -5693,8 +6292,8 @@ function rebuildOverlayList() {
 function syncOverlays() {
   if (!hasVideo) return;
   for (const ov of state.videoOverlays) {
-    if (video.paused && !ov.video.paused) ov.video.pause();
-    else if (!video.paused && ov.video.paused) ov.video.play();
+    if (!vtPlaying && !ov.video.paused) ov.video.pause();
+    else if (vtPlaying && ov.video.paused) ov.video.play();
   }
 }
 
@@ -5925,14 +6524,18 @@ const abEmpty = document.getElementById('abEmpty');
 const abSearch = document.getElementById('abSearch');
 
 let abDirHandle = null;
-let abIndex = []; // { path, name, type, ext, handle, parentPath }
+let abIndex = []; // { path, name, type, ext, handle, parentPath, url }
 let abFolders = []; // { path, name, count, icon }
 let abCurrentFolder = '';
 let abSearchTerm = '';
+let abSource = ''; // 'server', 'folder', or ''
+const abStatus = document.getElementById('abStatus');
 
-document.getElementById('assetBrowserBtn').addEventListener('click', () => {
+document.getElementById('assetBrowserBtn').addEventListener('click', async () => {
   assetBrowser.classList.add('open');
-  if (abDirHandle) renderAssetBrowser();
+  if (abIndex.length > 0) { renderAssetBrowser(); return; }
+  // Try auto-detect: manifest first, then stored handle
+  await abAutoDetect();
 });
 document.getElementById('abClose').addEventListener('click', () => assetBrowser.classList.remove('open'));
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && assetBrowser.classList.contains('open')) assetBrowser.classList.remove('open'); });
@@ -5944,10 +6547,13 @@ async function pickAssetFolder() {
     abDirHandle = await window.showDirectoryPicker({ mode: 'read' });
     abIndex = [];
     abFolders = [];
+    abSource = 'folder';
     abContent.innerHTML = '<div class="ab-loading">Scanning folder...</div>';
     abSidebar.innerHTML = '';
     await scanDirectory(abDirHandle, '');
     buildFolderTree();
+    abUpdateStatus();
+    abStoreHandle(abDirHandle);
     renderAssetBrowser();
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Folder pick error:', e);
@@ -6090,13 +6696,17 @@ function renderAssetBrowser() {
     el.addEventListener('click', () => { abCurrentFolder = el.dataset.abNav || ''; renderAssetBrowser(); });
   });
 
-  // Item clicks
+  // Item clicks — use URL loader for server mode, handle loader for folder mode
   abContent.querySelectorAll('.ab-item').forEach(el => {
     el.addEventListener('click', async () => {
       const idx = parseInt(el.dataset.abIdx);
       const item = abIndex[idx];
       if (!item) return;
-      await loadAssetItem(item);
+      if (item.url && !item.handle) {
+        await loadAssetItemFromURL(item);
+      } else {
+        await loadAssetItem(item);
+      }
     });
   });
 
@@ -6104,8 +6714,13 @@ function renderAssetBrowser() {
   const imageItems = items.filter(f => f.type === 'image');
   imageItems.slice(0, 50).forEach(async (f) => {
     try {
-      const file = await f.handle.getFile();
-      const url = URL.createObjectURL(file);
+      let url;
+      if (f.url && !f.handle) {
+        url = f.url;
+      } else {
+        const file = await f.handle.getFile();
+        url = URL.createObjectURL(file);
+      }
       const idx = abIndex.indexOf(f);
       const previewEl = abContent.querySelector(`[data-ab-idx="${idx}"] .ab-item-preview`);
       if (previewEl) previewEl.innerHTML = `<img src="${url}"><span class="ab-badge ${badgeClass[f.type] || ''}">${badgeLabel[f.type]}</span>`;
@@ -6141,7 +6756,7 @@ async function loadAssetItem(item) {
       vid.playsInline = true;
       vid.play();
       // Sync with main video if playing
-      if (hasVideo && video.paused) vid.pause();
+      if (hasVideo && !vtPlaying) vid.pause();
       const ov = { id: Date.now() + Math.random(), video: vid, name: item.name, opacity: 0.5, blendMode: 'screen' };
       state.videoOverlays.push(ov);
       rebuildOverlayList();
@@ -6187,8 +6802,185 @@ function showAssetToast(msg) { showToast(msg, 'success'); }
 // Search
 abSearch.addEventListener('input', e => {
   abSearchTerm = e.target.value.trim();
-  if (abDirHandle) renderAssetBrowser();
+  if (abIndex.length > 0) renderAssetBrowser();
 });
+
+// ---- Status indicator ----
+function abUpdateStatus() {
+  if (abSource === 'server') {
+    abStatus.textContent = 'Connected: Local Server';
+    abStatus.style.color = '#4ade80';
+  } else if (abSource === 'folder' && abDirHandle) {
+    abStatus.textContent = 'Connected: ' + abDirHandle.name;
+    abStatus.style.color = '#60a5fa';
+  } else {
+    abStatus.textContent = 'Not connected';
+    abStatus.style.color = '#555';
+  }
+}
+
+// ---- IndexedDB for directory handle persistence ----
+function abOpenDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('MockupStudioAssets', 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore('handles'); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function abStoreHandle(handle) {
+  try {
+    const db = await abOpenDB();
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(handle, 'assetDir');
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+    db.close();
+  } catch (e) { console.log('IndexedDB store failed:', e.message); }
+}
+
+async function abLoadStoredHandle() {
+  try {
+    const db = await abOpenDB();
+    const tx = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get('assetDir');
+    const handle = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = rej; });
+    db.close();
+    return handle || null;
+  } catch (e) { return null; }
+}
+
+// ---- Manifest-based asset loading (local server) ----
+async function abLoadManifest() {
+  try {
+    const resp = await fetch('/assets-manifest.json');
+    if (!resp.ok) return false;
+    const manifest = await resp.json();
+    if (!manifest.generated || !manifest.files) return false;
+
+    abIndex = [];
+    abFolders = [];
+    const assetRoot = manifest.assetRoot || 'assets/';
+
+    for (const f of manifest.files) {
+      abIndex.push({
+        path: f.path,
+        name: f.name,
+        type: f.type,
+        ext: f.ext,
+        handle: null,
+        parentPath: f.parentPath,
+        url: assetRoot + f.path,
+        size: f.size
+      });
+    }
+
+    abSource = 'server';
+    buildFolderTree();
+    abUpdateStatus();
+    renderAssetBrowser();
+    return true;
+  } catch (e) { return false; }
+}
+
+// ---- Load asset from URL (server mode) or handle (folder mode) ----
+async function loadAssetItemFromURL(item) {
+  try {
+    if (item.type === 'lut') {
+      const resp = await fetch(item.url);
+      const text = await resp.text();
+      const lut = parseCubeLUT(text);
+      if (!lut) { alert('Invalid .CUBE LUT file'); return; }
+      state.lut.data = lut;
+      state.lut.size = lut.size;
+      state.lut.enabled = true;
+      state.lut.name = lut.title || item.name;
+      document.getElementById('lutInfo').innerHTML = '<span style="color:#4ade80">Loaded:</span> ' + state.lut.name + ' (' + lut.size + '\u00b3)';
+      document.getElementById('lutControls').style.display = 'block';
+      document.querySelectorAll('#lutPresetGrid .dev-btn').forEach(b => b.classList.remove('active'));
+      showAssetToast('LUT loaded: ' + item.name);
+
+    } else if (item.type === 'video') {
+      const vid = document.createElement('video');
+      vid.src = item.url;
+      vid.crossOrigin = 'anonymous';
+      vid.loop = true;
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.play();
+      if (hasVideo && !vtPlaying) vid.pause();
+      const ov = { id: Date.now() + Math.random(), video: vid, name: item.name, opacity: 0.5, blendMode: 'screen' };
+      state.videoOverlays.push(ov);
+      rebuildOverlayList();
+      showAssetToast('Overlay loaded: ' + item.name);
+
+    } else if (item.type === 'image') {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = item.url;
+      img.onload = () => {
+        const layer = {
+          id: state.nextLayerId++,
+          type: 'logo', img: img, name: item.name,
+          x: 100, y: 100, width: 200, opacity: 0.8
+        };
+        state.layers.push(layer);
+        state.selectedLayer = state.layers.length - 1;
+        showAssetToast('Image overlay loaded: ' + item.name);
+      };
+
+    } else if (item.type === 'audio') {
+      const audio = new Audio(item.url);
+      audio.loop = true;
+      audio.volume = 0.5;
+      audio.play();
+      showAssetToast('Audio playing: ' + item.name);
+    }
+
+    assetBrowser.classList.remove('open');
+  } catch (e) {
+    console.error('Error loading asset from URL:', e);
+    alert('Could not load: ' + item.name);
+  }
+}
+
+// ---- Auto-detect: manifest → stored handle → show picker prompt ----
+async function abAutoDetect() {
+  abContent.innerHTML = '<div class="ab-loading">Detecting assets...</div>';
+  abSidebar.innerHTML = '';
+  abUpdateStatus();
+
+  // 1. Try server manifest
+  if (window.location.protocol !== 'file:') {
+    const loaded = await abLoadManifest();
+    if (loaded) return;
+  }
+
+  // 2. Try stored directory handle from IndexedDB
+  const storedHandle = await abLoadStoredHandle();
+  if (storedHandle) {
+    try {
+      const perm = await storedHandle.requestPermission({ mode: 'read' });
+      if (perm === 'granted') {
+        abDirHandle = storedHandle;
+        abIndex = [];
+        abFolders = [];
+        abSource = 'folder';
+        abContent.innerHTML = '<div class="ab-loading">Scanning folder...</div>';
+        await scanDirectory(abDirHandle, '');
+        buildFolderTree();
+        abUpdateStatus();
+        renderAssetBrowser();
+        return;
+      }
+    } catch (e) { console.log('Stored handle permission denied:', e.message); }
+  }
+
+  // 3. Fall back to manual picker prompt
+  abContent.innerHTML = '';
+  abContent.appendChild(abEmpty);
+  abUpdateStatus();
+}
 
 // ============================================================
 // SESSION PERSISTENCE (localStorage)
