@@ -92,6 +92,16 @@ function calcDevicePosition(CW, CH) {
   const dev = DEVICES[state.device.type];
   let devW = dev.baseW, devH = dev.baseH;
   if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
+
+  // Get keyframe values if animating
+  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+
+  // Use keyframe values if available, otherwise use state values
+  const deviceX = kf ? kf.x : state.device.x;
+  const deviceY = kf ? kf.y : state.device.y;
+  const deviceScale = kf ? kf.scale : state.device.scale;
+  const rotation = kf ? kf.rotation : 0;
+
   const preset = PRESETS[state.preset];
   let devScale, devX, devY;
   const isComparing = state.comparison.enabled && state.comparison.device2;
@@ -104,7 +114,7 @@ function calcDevicePosition(CW, CH) {
     const availW = areaW * (1 - padFrac*2);
     const availH = CH * (1 - padFrac*2);
     const fitScale = Math.min(availW / devW, availH / devH);
-    devScale = fitScale * state.device.scale;
+    devScale = fitScale * deviceScale;
     if (isComparing) {
       devX = CW * 0.25 - (devW * devScale) / 2;
     } else {
@@ -113,9 +123,9 @@ function calcDevicePosition(CW, CH) {
     devY = (CH - devH * devScale) / 2;
   }
   // Apply user position offset
-  devX += state.device.x;
-  devY += state.device.y;
-  return { dev, devW, devH, devScale, devX, devY, isComparing };
+  devX += deviceX;
+  devY += deviceY;
+  return { dev, devW, devH, devScale, devX, devY, rotation, isComparing };
 }
 
 function calcSceneTransform() {
@@ -206,7 +216,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     return;
   }
 
-  const { dev, devW, devH, devScale, devX, devY } = dc;
+  const { dev, devW, devH, devScale, devX, devY, rotation } = dc;
 
   // Hand overlay (behind device)
   if (state.hand.enabled) {
@@ -220,6 +230,12 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     ctx.shadowBlur = 70 * (devScale/RENDER_SCALE) * state.shadow;
     ctx.shadowOffsetY = 18 * (devScale/RENDER_SCALE) * state.shadow;
     ctx.translate(devX, devY);
+    // Apply keyframe rotation
+    if (rotation) {
+      ctx.translate(devW*devScale/2, devH*devScale/2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.translate(-devW*devScale/2, -devH*devScale/2);
+    }
     if (state.device.landscape) {
       ctx.translate(devW*devScale/2, devH*devScale/2);
       ctx.rotate(-Math.PI/2);
@@ -234,6 +250,12 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
   // Draw video into screen
   ctx.save();
   ctx.translate(devX, devY);
+  // Apply keyframe rotation
+  if (rotation) {
+    ctx.translate(devW*devScale/2, devH*devScale/2);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.translate(-devW*devScale/2, -devH*devScale/2);
+  }
   if (state.device.landscape) {
     ctx.translate(devW*devScale/2, devH*devScale/2);
     ctx.rotate(-Math.PI/2);
@@ -241,6 +263,30 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
   }
 
   if (hasVideo && _activeVid.readyState >= 2) {
+    // Handle standstill modes
+    if (state.standstill?.mode === 'freezeBoth') {
+      // Freeze both device and content at specific time
+      const freezeTime = state.standstill.freezeTime || 0;
+      if (_activeVid.currentTime !== freezeTime) {
+        _activeVid.currentTime = freezeTime;
+      }
+      if (vtPlaying) {
+        _activeVid.pause();
+      }
+    } else if (state.standstill?.mode === 'freezeDevice') {
+      // Device frozen by keyframe, but content loops
+      if (state.standstill.contentLoop?.enabled) {
+        const loop = state.standstill.contentLoop;
+        const duration = _activeVid.duration;
+        const loopStart = loop.start * duration;
+        const loopEnd = loop.end * duration;
+
+        if (_activeVid.currentTime >= loopEnd) {
+          _activeVid.currentTime = loopStart;
+        }
+      }
+    }
+
     ctx.save();
     rrPath(ctx, dev.screenX*devScale, dev.screenY*devScale, dev.screenW*devScale, dev.screenH*devScale, dev.screenR*devScale);
     ctx.clip();
@@ -714,8 +760,10 @@ function updateDisplaySize() {
 // 3D PERSPECTIVE
 // ============================================================
 function updatePerspective() {
-  const rx = parseInt(tiltXSlider.value);
-  const ry = parseInt(tiltYSlider.value);
+  // Get keyframe values if animating, otherwise use sliders
+  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+  const rx = kf ? kf.perspectiveX : parseInt(tiltXSlider.value);
+  const ry = kf ? kf.perspectiveY : parseInt(tiltYSlider.value);
   const orbitY = getOrbitAngle();
   const totalRx = rx;
   const totalRy = ry + orbitY;
@@ -724,8 +772,11 @@ function updatePerspective() {
   } else {
     canvasWrap.style.transform = `perspective(1200px) rotateX(${totalRx}deg) rotateY(${totalRy}deg)`;
   }
-  state.perspective.x = rx;
-  state.perspective.y = ry;
+  // Only update state from sliders if not using keyframes
+  if (!kf) {
+    state.perspective.x = rx;
+    state.perspective.y = ry;
+  }
 }
 // Orbit animation loop
 function orbitLoop() {

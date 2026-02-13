@@ -16,22 +16,343 @@ let bgAudioSynced = true;
 let bgAudioSpeed = 1;
 let bgAudioVolume = 1;
 
+// ============================================================
+// BACKGROUND VIDEO ACTIONS
+// ============================================================
+const BG_VIDEO_ACTIONS = {
+  fadeIn: {
+    name: 'Fade In (0→100%)',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialOpacity = state.bgVideo.opacity;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        state.bgVideo.opacity = initialOpacity + (1 - initialOpacity) * progress;
+        document.getElementById('bgVideoOpacity').value = state.bgVideo.opacity * 100;
+        document.getElementById('bgVideoOpacityVal').textContent = Math.round(state.bgVideo.opacity * 100) + '%';
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else scheduleSave();
+      }
+      animate();
+      showToast('Fade in started', 'info');
+    }
+  },
+  fadeOut: {
+    name: 'Fade Out (100→0%)',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialOpacity = state.bgVideo.opacity;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        state.bgVideo.opacity = initialOpacity * (1 - progress);
+        document.getElementById('bgVideoOpacity').value = state.bgVideo.opacity * 100;
+        document.getElementById('bgVideoOpacityVal').textContent = Math.round(state.bgVideo.opacity * 100) + '%';
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else scheduleSave();
+      }
+      animate();
+      showToast('Fade out started', 'info');
+    }
+  },
+  overlayMode: {
+    name: 'Overlay Mode',
+    apply: () => {
+      pushUndoState();
+      state.bgVideo.opacity = 0.5;
+      state.bgVideo.fit = 'cover';
+      document.getElementById('bgVideoOpacity').value = 50;
+      document.getElementById('bgVideoOpacityVal').textContent = '50%';
+      document.getElementById('bgVideoFit').value = 'cover';
+      scheduleSave();
+      showToast('Overlay mode applied', 'info');
+    }
+  },
+  syncPerfect: {
+    name: 'Sync Perfect',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideoSynced = true;
+      document.getElementById('bgSyncBtn')?.classList.add('synced');
+      bgVideo.currentTime = vtTime;
+      showToast('Background synced to main', 'success');
+    }
+  },
+  speedSlow: {
+    name: 'Slow Motion (0.5x)',
+    apply: () => {
+      pushUndoState();
+      bgVideoSpeed = 0.5;
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) bgVideo.playbackRate = 0.5;
+      document.getElementById('bgSpeedSelect').value = '0.5';
+      scheduleSave();
+      showToast('Background speed: 0.5×', 'info');
+    }
+  },
+  speedFast: {
+    name: 'Fast Forward (2x)',
+    apply: () => {
+      pushUndoState();
+      bgVideoSpeed = 2;
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) bgVideo.playbackRate = 2;
+      document.getElementById('bgSpeedSelect').value = '2';
+      scheduleSave();
+      showToast('Background speed: 2×', 'info');
+    }
+  },
+  enableLoop: {
+    name: 'Enable Loop',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideoLoop = true;
+      bgVideo.loop = true;
+      document.getElementById('bgLoopBtn')?.classList.add('active');
+      showToast('Background loop enabled', 'success');
+    }
+  },
+  resetToStart: {
+    name: 'Reset to Start',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideo.currentTime = 0;
+      updateBgVideoDisplay();
+      showToast('Background reset to start', 'info');
+    }
+  },
+  blurBackground: {
+    name: 'Blur Background',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = 'blur(10px)';
+      }
+      showToast('Background blurred', 'info');
+    }
+  },
+  blackAndWhite: {
+    name: 'Black & White',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = 'grayscale(100%)';
+      }
+      showToast('Grayscale applied', 'info');
+    }
+  },
+  splitScreen: {
+    name: 'Split Screen (50/50)',
+    apply: () => {
+      pushUndoState();
+      state.bgVideo.fit = 'contain';
+      scheduleSave();
+      showToast('Split screen layout', 'info');
+    }
+  },
+  resetFilters: {
+    name: 'Reset Filters',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = '';
+      }
+      showToast('Filters reset', 'info');
+    }
+  },
+};
+
+function applyBgVideoAction(key, ...params) {
+  const action = BG_VIDEO_ACTIONS[key];
+  if (!action || !state.bgVideo.enabled) return;
+  action.apply(...params);
+}
+
+// ============================================================
+// BACKGROUND AUDIO ACTIONS
+// ============================================================
+const BG_AUDIO_ACTIONS = {
+  fadeInAudio: {
+    name: 'Fade In Audio',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialVolume = bgAudioVolume;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        bgAudioVolume = initialVolume + (1 - initialVolume) * progress;
+        const bgAudio = document.getElementById('bgAudio');
+        if (bgAudio) bgAudio.volume = bgAudioVolume;
+        document.getElementById('audioVolumeSlider').value = bgAudioVolume * 100;
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else { state.bgAudio.volume = bgAudioVolume; scheduleSave(); }
+      }
+      animate();
+      showToast('Audio fade in started', 'info');
+    }
+  },
+  fadeOutAudio: {
+    name: 'Fade Out Audio',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialVolume = bgAudioVolume;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        bgAudioVolume = initialVolume * (1 - progress);
+        const bgAudio = document.getElementById('bgAudio');
+        if (bgAudio) bgAudio.volume = bgAudioVolume;
+        document.getElementById('audioVolumeSlider').value = bgAudioVolume * 100;
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else { state.bgAudio.volume = bgAudioVolume; scheduleSave(); }
+      }
+      animate();
+      showToast('Audio fade out started', 'info');
+    }
+  },
+  ducking: {
+    name: 'Ducking (30%)',
+    apply: () => {
+      pushUndoState();
+      bgAudioVolume = 0.3;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.volume = 0.3;
+      document.getElementById('audioVolumeSlider').value = 30;
+      state.bgAudio.volume = 0.3;
+      scheduleSave();
+      showToast('Audio ducking: 30% volume', 'info');
+    }
+  },
+  loopBeat: {
+    name: 'Loop Beat',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudioLoop = true;
+      bgAudio.loop = true;
+      state.bgAudio.loop = true;
+      document.getElementById('audioLoopBtn')?.classList.add('active');
+      scheduleSave();
+      showToast('Audio loop enabled', 'success');
+    }
+  },
+  speedMatch: {
+    name: 'Speed Match',
+    apply: () => {
+      pushUndoState();
+      bgAudioSpeed = state.timeline.speed;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.playbackRate = bgAudioSpeed;
+      document.getElementById('audioSpeedSelect').value = bgAudioSpeed.toString();
+      state.bgAudio.speed = bgAudioSpeed;
+      scheduleSave();
+      showToast(`Audio speed matched: ${bgAudioSpeed}×`, 'info');
+    }
+  },
+  volumeBoost: {
+    name: 'Volume Boost (100%)',
+    apply: () => {
+      pushUndoState();
+      bgAudioVolume = 1.0;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.volume = 1.0;
+      document.getElementById('audioVolumeSlider').value = 100;
+      state.bgAudio.volume = 1.0;
+      scheduleSave();
+      showToast('Audio volume: 100%', 'info');
+    }
+  },
+  syncAudio: {
+    name: 'Sync to Main',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudioSynced = true;
+      document.getElementById('audioSyncBtn')?.classList.add('synced');
+      bgAudio.currentTime = vtTime % bgAudio.duration;
+      showToast('Audio synced to main', 'success');
+    }
+  },
+  resetAudio: {
+    name: 'Reset Audio',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudio.currentTime = 0;
+      updateAudioDisplay();
+      showToast('Audio reset to start', 'info');
+    }
+  },
+  fadeInSlow: {
+    name: 'Fade In (5s)',
+    apply: () => {
+      applyBgAudioAction('fadeInAudio', 5000);
+    }
+  },
+  fadeOutSlow: {
+    name: 'Fade Out (5s)',
+    apply: () => {
+      applyBgAudioAction('fadeOutAudio', 5000);
+    }
+  },
+  bassBoost: {
+    name: 'Bass Boost',
+    apply: () => {
+      pushUndoState();
+      showToast('Bass boost applied (placeholder)', 'info');
+    }
+  },
+  reverb: {
+    name: 'Add Reverb',
+    apply: () => {
+      pushUndoState();
+      showToast('Reverb applied (placeholder)', 'info');
+    }
+  },
+};
+
+function applyBgAudioAction(key, ...params) {
+  const action = BG_AUDIO_ACTIONS[key];
+  if (!action || !state.bgAudio.enabled) return;
+  action.apply(...params);
+}
+
 // Initialize enhanced timeline
 function initEnhancedTimeline() {
   const timelineSystem = document.getElementById('timelineSystem');
   const bgVideoTrack = document.getElementById('bgVideoTrack');
   const bgVideo = document.getElementById('bgVideo');
+  const bgAudio = document.getElementById('bgAudio');
 
   if (!timelineSystem) return;
 
-  // Show timeline system when video is loaded
-  if (hasVideo) {
+  // Show timeline system when ANY media is loaded
+  const hasBgVideo = state.bgVideo.enabled && bgVideo && bgVideo.src;
+  const hasBgAudio = state.bgAudio.enabled && bgAudio && bgAudio.src;
+  const shouldShowTimeline = hasVideo || hasBgVideo || hasBgAudio;
+
+  if (shouldShowTimeline) {
     timelineSystem.classList.add('visible');
   }
 
-  // Show background video track when background video is loaded
+  // Mark background video track as loaded when media is loaded
   if (state.bgVideo.enabled && bgVideo && bgVideo.src) {
-    bgVideoTrack.classList.add('active');
+    bgVideoTrack.classList.add('loaded');
   }
 }
 
@@ -244,32 +565,29 @@ function updateTimelineVisibility() {
 
   if (!timelineSystem) return;
 
-  // Show/hide entire timeline system
-  if (hasVideo) {
+  // Timeline always visible once ANY media is loaded
+  const hasBgVideo = state.bgVideo.enabled && bgVideo?.src;
+  const hasBgAudio = state.bgAudio.enabled && bgAudio?.src;
+  const shouldShowTimeline = hasVideo || hasBgVideo || hasBgAudio;
+
+  if (shouldShowTimeline) {
     timelineSystem.classList.add('visible');
-  } else {
-    timelineSystem.classList.remove('visible');
   }
 
-  // Show/hide background video track
-  if (state.bgVideo.enabled && bgVideo && bgVideo.src) {
-    setTimeout(() => bgVideoTrack?.classList.add('active'), 50);
+  // Mark tracks as loaded (for opacity change, not visibility)
+  if (hasBgVideo) {
+    bgVideoTrack?.classList.add('loaded');
   } else {
-    bgVideoTrack?.classList.remove('active');
+    bgVideoTrack?.classList.remove('loaded');
   }
 
-  // Show/hide background audio track
-  if (state.bgAudio.enabled && bgAudio && bgAudio.src) {
-    setTimeout(() => {
-      bgAudioTrack?.classList.add('active');
-      updateStageSpacing();
-    }, 50);
+  if (hasBgAudio) {
+    bgAudioTrack?.classList.add('loaded');
   } else {
-    bgAudioTrack?.classList.remove('active');
+    bgAudioTrack?.classList.remove('loaded');
   }
 
-  // Update stage spacing
-  setTimeout(() => updateStageSpacing(), 100);
+  updateStageSpacing();
 }
 
 // ============================================================
@@ -293,7 +611,139 @@ function updateEnhancedTimelineDisplays() {
   if (bgAudioSynced) {
     syncAudioWithMain();
   }
+
+  // Check loops
+  checkLoops();
 }
+
+// ============================================================
+// LOOP SYSTEM
+// ============================================================
+
+function checkLoops() {
+  // Main video loop
+  if (state.loops?.main?.enabled && hasVideo) {
+    const loop = state.loops.main;
+    const duration = vtGetTotalDuration();
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (vtTime >= loopEnd) {
+      seekTo(loopStart);
+    }
+  }
+
+  // Background video loop
+  if (state.loops?.bgVideo?.enabled && state.bgVideo.enabled) {
+    const bgVideo = document.getElementById('bgVideo');
+    if (!bgVideo) return;
+
+    const loop = state.loops.bgVideo;
+    const duration = bgVideo.duration;
+    if (!duration || isNaN(duration)) return;
+
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (bgVideo.currentTime >= loopEnd) {
+      bgVideo.currentTime = loopStart;
+    }
+  }
+
+  // Background audio loop
+  if (state.loops?.bgAudio?.enabled && state.bgAudio.enabled) {
+    const bgAudio = document.getElementById('bgAudio');
+    if (!bgAudio) return;
+
+    const loop = state.loops.bgAudio;
+    const duration = bgAudio.duration;
+    if (!duration || isNaN(duration)) return;
+
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (bgAudio.currentTime >= loopEnd) {
+      bgAudio.currentTime = loopStart;
+    }
+  }
+}
+
+// Toggle audio loop
+function toggleAudioLoop() {
+  const start = parseFloat(document.getElementById('audioLoopStart').value);
+  const end = parseFloat(document.getElementById('audioLoopEnd').value);
+
+  if (!state.loops) state.loops = { main: { enabled: false, start: 0, end: 1 }, bgVideo: { enabled: false, start: 0, end: 1 }, bgAudio: { enabled: false, start: 0, end: 1 } };
+  if (!state.loops.bgAudio) state.loops.bgAudio = { enabled: false, start: 0, end: 1 };
+
+  state.loops.bgAudio.enabled = !state.loops.bgAudio.enabled;
+  state.loops.bgAudio.start = start;
+  state.loops.bgAudio.end = end;
+
+  document.getElementById('audioLoopMarkerBtn')?.classList.toggle('active', state.loops.bgAudio.enabled);
+  showToast(state.loops.bgAudio.enabled ? 'Audio loop enabled' : 'Audio loop disabled', 'info');
+  scheduleSave();
+}
+
+// Toggle video loop
+function toggleVideoLoop() {
+  const start = parseFloat(document.getElementById('videoLoopStart').value);
+  const end = parseFloat(document.getElementById('videoLoopEnd').value);
+
+  if (!state.loops) state.loops = { main: { enabled: false, start: 0, end: 1 }, bgVideo: { enabled: false, start: 0, end: 1 }, bgAudio: { enabled: false, start: 0, end: 1 } };
+  if (!state.loops.bgVideo) state.loops.bgVideo = { enabled: false, start: 0, end: 1 };
+
+  state.loops.bgVideo.enabled = !state.loops.bgVideo.enabled;
+  state.loops.bgVideo.start = start;
+  state.loops.bgVideo.end = end;
+
+  document.getElementById('videoLoopMarkerBtn')?.classList.toggle('active', state.loops.bgVideo.enabled);
+  showToast(state.loops.bgVideo.enabled ? 'Video loop enabled' : 'Video loop disabled', 'info');
+  scheduleSave();
+}
+
+// Toggle loop controls with CSS classes
+document.getElementById('audioLoopMarkerBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const dropdown = document.getElementById('audioLoopControls');
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all dropdowns
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first input
+    setTimeout(() => {
+      dropdown.querySelector('input')?.focus();
+    }, 50);
+  }
+});
+
+document.getElementById('videoLoopMarkerBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const dropdown = document.getElementById('videoLoopControls');
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all dropdowns
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first input
+    setTimeout(() => {
+      dropdown.querySelector('input')?.focus();
+    }, 50);
+  }
+});
 
 // ============================================================
 // BACKGROUND AUDIO CONTROLS
@@ -654,8 +1104,8 @@ function updateStageSpacing() {
   if (!stage) return;
 
   // Check if any tracks are expanded
-  const hasBgVideo = bgVideoTrack?.classList.contains('active') && !bgVideoTrack?.classList.contains('collapsed');
-  const hasBgAudio = bgAudioTrack?.classList.contains('active') && !bgAudioTrack?.classList.contains('collapsed');
+  const hasBgVideo = bgVideoTrack?.classList.contains('loaded') && !bgVideoTrack?.classList.contains('collapsed');
+  const hasBgAudio = bgAudioTrack?.classList.contains('loaded') && !bgAudioTrack?.classList.contains('collapsed');
   const hasMainVideo = mainVideoTrack && !mainVideoTrack?.classList.contains('collapsed');
 
   // Count total expanded tracks to adjust spacing
@@ -692,6 +1142,131 @@ document.getElementById('bgVideoInput')?.addEventListener('change', () => {
       bgLoopBtn.classList.add('active'); // Default to loop enabled
     }
   }, 100);
+});
+
+// ============================================================
+// ACTION DROPDOWN TOGGLES
+// ============================================================
+
+// Helper function to close all dropdowns
+function closeAllDropdowns() {
+  // Close action dropdowns
+  const dropdowns = document.querySelectorAll('.track-actions-dropdown, .track-loop-controls');
+  const buttons = document.querySelectorAll('.track-action-btn, .track-loop-btn');
+
+  dropdowns.forEach(dd => dd.classList.remove('is-open'));
+  buttons.forEach(btn => {
+    btn.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+// Toggle background video actions dropdown with CSS classes
+document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const dropdown = document.getElementById('bgVideoActionsDropdown');
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all other dropdowns first
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    // Open this dropdown
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first button in dropdown
+    setTimeout(() => {
+      const firstButton = dropdown.querySelector('button:not([disabled])');
+      firstButton?.focus();
+    }, 50);
+  }
+});
+
+// Toggle background audio actions dropdown with CSS classes
+document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const dropdown = document.getElementById('bgAudioActionsDropdown');
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all other dropdowns first
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    // Open this dropdown
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first button in dropdown
+    setTimeout(() => {
+      const firstButton = dropdown.querySelector('button:not([disabled])');
+      firstButton?.focus();
+    }, 50);
+  }
+});
+
+// Close all dropdowns when clicking outside (generic class-based detection)
+document.addEventListener('click', (e) => {
+  // Check if click is inside any dropdown or its trigger button
+  const clickedDropdown = e.target.closest('.track-actions-dropdown, .track-loop-controls');
+  const clickedButton = e.target.closest('.track-action-btn, .track-loop-btn');
+
+  // If clicked outside both dropdown and button, close all
+  if (!clickedDropdown && !clickedButton) {
+    closeAllDropdowns();
+  }
+});
+
+// ============================================================
+// KEYBOARD NAVIGATION FOR TRACK ACTIONS
+// ============================================================
+
+// Close dropdowns on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const openDropdowns = document.querySelectorAll('.track-actions-dropdown.is-open, .track-loop-controls.is-open');
+    if (openDropdowns.length > 0) {
+      e.preventDefault();
+
+      // Return focus to the button that opened the dropdown
+      const activeButton = document.querySelector('.track-action-btn.is-open, .track-loop-btn.is-open');
+
+      closeAllDropdowns();
+
+      if (activeButton) {
+        activeButton.focus();
+      }
+    }
+  }
+});
+
+// Navigate dropdown items with Arrow keys
+document.addEventListener('keydown', (e) => {
+  const openDropdown = document.querySelector('.track-actions-dropdown.is-open');
+  if (!openDropdown) return;
+
+  const items = Array.from(openDropdown.querySelectorAll('button:not([disabled])'));
+  const currentIndex = items.findIndex(item => item === document.activeElement);
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const nextIndex = (currentIndex + 1) % items.length;
+    items[nextIndex]?.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prevIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+    items[prevIndex]?.focus();
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    // Space or Enter activates focused button
+    if (document.activeElement && items.includes(document.activeElement)) {
+      e.preventDefault();
+      document.activeElement.click();
+    }
+  }
 });
 
 // Update displays every frame

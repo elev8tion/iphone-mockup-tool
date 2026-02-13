@@ -200,6 +200,22 @@
           <button class="toggle-btn" id="landscapeBtn">Landscape</button>
           <button class="toggle-btn" id="comparisonBtn">Compare</button>
         </div>
+        <div class="prop-row" style="margin-top:8px">
+          <label>Quick Presets</label>
+          <select id="devicePresetSelect" style="flex:1">
+            <option value="">-- Choose Position --</option>
+            <option value="phoneLeft">📱 Phone Left</option>
+            <option value="phoneRight">📱 Phone Right</option>
+            <option value="phoneCenterZoom">🔍 Center Zoom</option>
+            <option value="dualComparison">📱📱 Dual Comparison</option>
+            <option value="tilt3D">🎨 3D Tilt</option>
+            <option value="landscapeView">🔄 Landscape</option>
+            <option value="floatingAbove">⬆️ Floating</option>
+            <option value="bottomCorner">⬇️ Corner</option>
+            <option value="laptopDesk">💻 Laptop</option>
+            <option value="tabletPresenter">📋 Tablet</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -218,6 +234,45 @@
       <button class="btn" id="loadVideo2Btn" style="width:100%;margin-top:6px">Load Video for Device 2</button>
       <input type="file" id="video2Input" accept="video/*" style="display:none">
       <p id="video2Status" style="font-size:9px;color:#555;margin-top:4px">No video loaded for Device 2</p>
+    </div>
+
+    <div class="panel-section" id="deviceKeyframesSection" style="display:none">
+      <h3>Device Animation</h3>
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <button class="btn" id="addDeviceKeyframeBtn" style="flex:1">
+          📍 Add Keyframe
+        </button>
+        <button class="btn" id="clearDeviceKeyframesBtn" style="flex:1;color:#f66">
+          Clear All
+        </button>
+      </div>
+      <div id="deviceKeyframesList" style="max-height:150px;overflow-y:auto">
+        <!-- Keyframes will be listed here -->
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.4)">
+        Keyframes: Position, Scale, Rotation, Perspective
+      </div>
+    </div>
+
+    <div class="panel-section" id="standstillSection" style="display:none">
+      <h3>Standstill Mode</h3>
+      <select id="standstillModeSelect" style="width:100%;margin-bottom:8px">
+        <option value="none">None (Normal Playback)</option>
+        <option value="freezeDevice">Freeze Device, Loop Content</option>
+        <option value="freezeBoth">Freeze Everything</option>
+        <option value="pauseAnimation">Pause Animation Only</option>
+      </select>
+      <div id="freezeTimeControl" style="display:none;margin-top:8px">
+        <label>Freeze At:</label>
+        <input type="number" id="freezeTimeInput" min="0" step="0.1" value="0" style="width:80px">
+        <button class="btn-sm" id="setFreezeTimeBtn">Use Current</button>
+      </div>
+      <div id="contentLoopControl" style="display:none;margin-top:8px">
+        <label>Content Loop:</label>
+        <input type="number" id="contentLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <span>to</span>
+        <input type="number" id="contentLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+      </div>
     </div>
 
     <div class="panel-section">
@@ -646,6 +701,31 @@
         Background Audio
       </div>
       <div style="flex: 1"></div>
+      <div class="track-actions">
+        <button class="track-action-btn" id="bgAudioActionsBtn" title="Quick Actions" aria-label="Background audio quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
+        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" role="menu" aria-labelledby="bgAudioActionsBtn" style="display:none">
+          <button onclick="applyBgAudioAction('fadeInAudio', 2000)">↗️ Fade In (2s)</button>
+          <button onclick="applyBgAudioAction('fadeOutAudio', 2000)">↘️ Fade Out (2s)</button>
+          <button onclick="applyBgAudioAction('fadeInSlow')">↗️ Fade In (5s)</button>
+          <button onclick="applyBgAudioAction('fadeOutSlow')">↘️ Fade Out (5s)</button>
+          <button onclick="applyBgAudioAction('ducking')">🔉 Ducking (30%)</button>
+          <button onclick="applyBgAudioAction('loopBeat')">🔄 Loop Beat</button>
+          <button onclick="applyBgAudioAction('speedMatch')">⚡ Speed Match</button>
+          <button onclick="applyBgAudioAction('volumeBoost')">🔊 Boost (100%)</button>
+          <button onclick="applyBgAudioAction('bassBoost')">🎸 Bass Boost</button>
+          <button onclick="applyBgAudioAction('reverb')">🎵 Add Reverb</button>
+          <button onclick="applyBgAudioAction('syncAudio')">🔗 Sync to Main</button>
+          <button onclick="applyBgAudioAction('resetAudio')">⏮️ Reset</button>
+        </div>
+      </div>
+      <button class="track-loop-btn" id="audioLoopMarkerBtn" title="Loop Region" aria-label="Configure audio loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
+      <div class="track-loop-controls" id="audioLoopControls" style="display:none">
+        <label style="font-size:10px">Loop Start:</label>
+        <input type="number" id="audioLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <label style="font-size:10px">End:</label>
+        <input type="number" id="audioLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+        <button class="btn-sm" onclick="toggleAudioLoop()">Enable</button>
+      </div>
       <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
@@ -695,6 +775,31 @@
         Background Video
       </div>
       <div style="flex: 1"></div>
+      <div class="track-actions">
+        <button class="track-action-btn" id="bgVideoActionsBtn" title="Quick Actions" aria-label="Background video quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
+        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" role="menu" aria-labelledby="bgVideoActionsBtn" style="display:none">
+          <button onclick="applyBgVideoAction('fadeIn', 2000)">↗️ Fade In (2s)</button>
+          <button onclick="applyBgVideoAction('fadeOut', 2000)">↘️ Fade Out (2s)</button>
+          <button onclick="applyBgVideoAction('overlayMode')">🎨 Overlay Mode (50%)</button>
+          <button onclick="applyBgVideoAction('blurBackground')">🌫️ Blur Background</button>
+          <button onclick="applyBgVideoAction('blackAndWhite')">⚫⚪ Black & White</button>
+          <button onclick="applyBgVideoAction('splitScreen')">📱 Split Screen</button>
+          <button onclick="applyBgVideoAction('resetFilters')">🔄 Reset Filters</button>
+          <button onclick="applyBgVideoAction('syncPerfect')">🔗 Sync to Main</button>
+          <button onclick="applyBgVideoAction('speedSlow')">🐌 Slow (0.5x)</button>
+          <button onclick="applyBgVideoAction('speedFast')">⚡ Fast (2x)</button>
+          <button onclick="applyBgVideoAction('enableLoop')">🔄 Loop</button>
+          <button onclick="applyBgVideoAction('resetToStart')">⏮️ Reset</button>
+        </div>
+      </div>
+      <button class="track-loop-btn" id="videoLoopMarkerBtn" title="Loop Region" aria-label="Configure video loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
+      <div class="track-loop-controls" id="videoLoopControls" style="display:none">
+        <label style="font-size:10px">Loop Start:</label>
+        <input type="number" id="videoLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <label style="font-size:10px">End:</label>
+        <input type="number" id="videoLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+        <button class="btn-sm" onclick="toggleVideoLoop()">Enable</button>
+      </div>
       <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>

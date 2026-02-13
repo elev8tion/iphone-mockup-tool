@@ -854,6 +854,67 @@ const FULL_PRESETS = {
   },
 };
 
+// ============================================================
+// DEVICE POSITION PRESETS
+// ============================================================
+const DEVICE_PRESETS = {
+  phoneLeft: {
+    name: 'Phone Left',
+    device: { x: -180, y: 0, scale: 0.45, landscape: false },
+    perspective: { x: 3, y: -2 },
+  },
+  phoneRight: {
+    name: 'Phone Right',
+    device: { x: 180, y: 0, scale: 0.45, landscape: false },
+    perspective: { x: -3, y: -2 },
+  },
+  phoneCenterZoom: {
+    name: 'Center Zoom',
+    device: { x: 0, y: 0, scale: 0.6, landscape: false },
+    perspective: { x: 0, y: 0 },
+  },
+  dualComparison: {
+    name: 'Dual Comparison',
+    device: { x: -100, y: 0, scale: 0.38, landscape: false },
+    perspective: { x: 2, y: 0 },
+    comparison: { enabled: true, x: 100, y: 0 },
+  },
+  tilt3D: {
+    name: '3D Tilt Showcase',
+    device: { x: 0, y: -20, scale: 0.48, landscape: false },
+    perspective: { x: 8, y: -5 },
+    shadow: 0.9,
+  },
+  landscapeView: {
+    name: 'Landscape Mode',
+    device: { x: 0, y: 0, scale: 0.55, landscape: true },
+    perspective: { x: 0, y: -2 },
+  },
+  floatingAbove: {
+    name: 'Floating Above',
+    device: { x: 0, y: -60, scale: 0.42, landscape: false },
+    perspective: { x: 0, y: -6 },
+    shadow: 1.0,
+  },
+  bottomCorner: {
+    name: 'Bottom Corner',
+    device: { x: 120, y: 80, scale: 0.35, landscape: false },
+    perspective: { x: -4, y: 2 },
+  },
+  laptopDesk: {
+    name: 'Laptop Desk View',
+    device: { x: 0, y: 20, scale: 0.58, landscape: false },
+    perspective: { x: 0, y: -8 },
+    shadow: 0.7,
+  },
+  tabletPresenter: {
+    name: 'Tablet Presenter',
+    device: { x: 0, y: -10, scale: 0.52, landscape: false },
+    perspective: { x: 0, y: -4 },
+    shadow: 0.6,
+  },
+};
+
 function applyFullPreset(key) {
   const fp = FULL_PRESETS[key];
   if (!fp) return;
@@ -1063,6 +1124,49 @@ function applyScene(name) {
   if (scene.motionBlur !== undefined) { state.motionBlur.enabled = scene.motionBlur; document.getElementById('motionBlurToggle').value = String(scene.motionBlur); }
 }
 
+function applyDevicePreset(key) {
+  const preset = DEVICE_PRESETS[key];
+  if (!preset) return;
+
+  pushUndoState();
+
+  // Apply device position and scale
+  if (preset.device) {
+    if (preset.device.x !== undefined) state.device.x = preset.device.x;
+    if (preset.device.y !== undefined) state.device.y = preset.device.y;
+    if (preset.device.scale !== undefined) state.device.scale = preset.device.scale;
+    if (preset.device.landscape !== undefined) state.device.landscape = preset.device.landscape;
+  }
+
+  // Apply perspective
+  if (preset.perspective) {
+    state.perspective.x = preset.perspective.x;
+    state.perspective.y = preset.perspective.y;
+    updatePerspective();
+  }
+
+  // Apply shadow
+  if (preset.shadow !== undefined) {
+    state.shadow = preset.shadow;
+    document.getElementById('shadowSlider').value = preset.shadow * 100;
+  }
+
+  // Apply comparison mode
+  if (preset.comparison) {
+    state.comparison.enabled = true;
+    if (preset.comparison.x !== undefined) state.comparison.x = preset.comparison.x;
+    if (preset.comparison.y !== undefined) state.comparison.y = preset.comparison.y;
+  }
+
+  // Update UI and render
+  frameCache = {};
+  resizeCanvas();
+  updateDisplaySize();
+  scheduleSave();
+
+  showToast(`Device preset: ${preset.name}`, 'info');
+}
+
 // ============================================================
 // ENTRANCE ANIMATION
 // ============================================================
@@ -1112,6 +1216,53 @@ function getKeyframeValues(time) {
     zoom: before.zoom + (after.zoom - before.zoom) * ease,
     panX: before.panX + (after.panX - before.panX) * ease,
     panY: before.panY + (after.panY - before.panY) * ease,
+  };
+}
+
+// ============================================================
+// DEVICE KEYFRAME INTERPOLATION
+// ============================================================
+function getDeviceKeyframeValues(time) {
+  const keyframes = state.deviceKeyframes || [];
+  if (keyframes.length === 0) {
+    return {
+      x: state.device.x,
+      y: state.device.y,
+      scale: state.device.scale,
+      rotation: 0,
+      perspectiveX: state.perspective.x,
+      perspectiveY: state.perspective.y
+    };
+  }
+
+  // Find surrounding keyframes
+  let prev = null, next = null;
+  for (let i = 0; i < keyframes.length; i++) {
+    if (keyframes[i].time <= time) prev = keyframes[i];
+    if (keyframes[i].time > time) { next = keyframes[i]; break; }
+  }
+
+  // Before first keyframe - use first keyframe values
+  if (!prev) return { ...keyframes[0] };
+
+  // After last keyframe - use last keyframe values
+  if (!next) return { ...prev };
+
+  // Interpolate between prev and next
+  const duration = next.time - prev.time;
+  const elapsed = time - prev.time;
+  let t = duration > 0 ? elapsed / duration : 0;
+
+  // Ease in-out quad
+  t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  return {
+    x: prev.x + (next.x - prev.x) * t,
+    y: prev.y + (next.y - prev.y) * t,
+    scale: prev.scale + (next.scale - prev.scale) * t,
+    rotation: prev.rotation + (next.rotation - prev.rotation) * t,
+    perspectiveX: prev.perspectiveX + (next.perspectiveX - prev.perspectiveX) * t,
+    perspectiveY: prev.perspectiveY + (next.perspectiveY - prev.perspectiveY) * t
   };
 }
 

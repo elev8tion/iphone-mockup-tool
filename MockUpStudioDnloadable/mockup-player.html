@@ -965,7 +965,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   min-width: 0;
-  padding-bottom: 150px; /* Account for timeline height */
+  padding-bottom: 220px; /* Account for always-visible timeline (2 tracks always showing) */
 }
 
 /* Adjust padding when timeline has more tracks */
@@ -1270,7 +1270,7 @@ body {
   border-top: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(20px);
   z-index: 200;
-  transform: translateY(100%);
+  transform: translateY(0);  /* Always visible */
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1358,20 +1358,23 @@ body {
   background: rgba(255,255,255,0.02);
   border-bottom: 1px solid rgba(255,255,255,0.04);
   padding: 0;
-  display: none;
-  opacity: 0;
-  transform: translateY(-10px);
+  display: block;  /* Always visible */
+  opacity: 1;
+  transform: translateY(0);
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-  max-height: 0;
+  max-height: 200px;
   overflow: hidden;
 }
 
-.bg-video-track.active,
-.bg-audio-track.active {
+/* Track content hidden by default, shown when active */
+.bg-video-track .bg-track-content,
+.bg-audio-track .bg-track-content {
+  display: none;
+}
+
+.bg-video-track.active .bg-track-content,
+.bg-audio-track.active .bg-track-content {
   display: block;
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 200px;
 }
 
 .bg-video-track.collapsed .bg-track-content,
@@ -1880,6 +1883,192 @@ body {
 :root[data-theme="light"] .zoom-btn:hover {
   background: rgba(0,0,0,0.08);
   color: rgba(0,0,0,0.9);
+}
+
+/* ============================================================
+   TRACK ACTION BUTTONS AND DROPDOWNS
+   ============================================================ */
+.track-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  position: relative;
+  min-width: 50px;          /* Prevent collapse */
+  flex-shrink: 0;           /* Don't shrink */
+}
+
+.track-action-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.track-action-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.track-actions-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(26,26,26,0.98);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 200px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+}
+
+.track-actions-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.track-actions-dropdown button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Light theme */
+:root[data-theme="light"] .track-action-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] .track-action-btn:hover {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.18);
+}
+
+:root[data-theme="light"] .track-actions-dropdown {
+  background: rgba(255,255,255,0.98);
+  border-color: rgba(0,0,0,0.15);
+}
+
+:root[data-theme="light"] .track-actions-dropdown button {
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] .track-actions-dropdown button:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* Mobile: Keep action buttons visible */
+@media (max-width: 768px) {
+  .track-action-btn {
+    padding: 4px 8px;       /* Smaller padding on mobile */
+    font-size: 12px;        /* Smaller text */
+  }
+
+  .track-actions-dropdown {
+    min-width: 180px;       /* Narrower dropdown */
+    right: auto;            /* Align left on small screens */
+    left: 0;
+  }
+}
+
+/* Loop Markers */
+.loop-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(96, 165, 250, 0.2);
+  border-left: 2px solid #60a5fa;
+  border-right: 2px solid #60a5fa;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.track-loop-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  margin-left: 4px;
+}
+
+.track-loop-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.track-loop-btn.active {
+  background: rgba(96, 165, 250, 0.3);
+  border-color: #60a5fa;
+}
+
+.track-loop-controls {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(26,26,26,0.98);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 8px;
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+}
+
+.track-loop-controls input {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Light theme */
+:root[data-theme="light"] .track-loop-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] .track-loop-btn:hover {
+  background: rgba(0,0,0,0.08);
+}
+
+:root[data-theme="light"] .track-loop-btn.active {
+  background: rgba(0, 113, 227, 0.2);
+  border-color: #0071e3;
+}
+
+:root[data-theme="light"] .track-loop-controls {
+  background: rgba(255,255,255,0.98);
+  border-color: rgba(0,0,0,0.15);
+}
+
+:root[data-theme="light"] .track-loop-controls input {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.12);
+  color: #1d1d1f;
 }
 
 /* ---- Asset Browser Modal ---- */
@@ -3555,6 +3744,22 @@ input[type="range"]:hover::-moz-range-thumb {
           <button class="toggle-btn" id="landscapeBtn">Landscape</button>
           <button class="toggle-btn" id="comparisonBtn">Compare</button>
         </div>
+        <div class="prop-row" style="margin-top:8px">
+          <label>Quick Presets</label>
+          <select id="devicePresetSelect" style="flex:1">
+            <option value="">-- Choose Position --</option>
+            <option value="phoneLeft">📱 Phone Left</option>
+            <option value="phoneRight">📱 Phone Right</option>
+            <option value="phoneCenterZoom">🔍 Center Zoom</option>
+            <option value="dualComparison">📱📱 Dual Comparison</option>
+            <option value="tilt3D">🎨 3D Tilt</option>
+            <option value="landscapeView">🔄 Landscape</option>
+            <option value="floatingAbove">⬆️ Floating</option>
+            <option value="bottomCorner">⬇️ Corner</option>
+            <option value="laptopDesk">💻 Laptop</option>
+            <option value="tabletPresenter">📋 Tablet</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -3573,6 +3778,45 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="btn" id="loadVideo2Btn" style="width:100%;margin-top:6px">Load Video for Device 2</button>
       <input type="file" id="video2Input" accept="video/*" style="display:none">
       <p id="video2Status" style="font-size:9px;color:#555;margin-top:4px">No video loaded for Device 2</p>
+    </div>
+
+    <div class="panel-section" id="deviceKeyframesSection" style="display:none">
+      <h3>Device Animation</h3>
+      <div style="display:flex;gap:4px;margin-bottom:8px">
+        <button class="btn" id="addDeviceKeyframeBtn" style="flex:1">
+          📍 Add Keyframe
+        </button>
+        <button class="btn" id="clearDeviceKeyframesBtn" style="flex:1;color:#f66">
+          Clear All
+        </button>
+      </div>
+      <div id="deviceKeyframesList" style="max-height:150px;overflow-y:auto">
+        <!-- Keyframes will be listed here -->
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.4)">
+        Keyframes: Position, Scale, Rotation, Perspective
+      </div>
+    </div>
+
+    <div class="panel-section" id="standstillSection" style="display:none">
+      <h3>Standstill Mode</h3>
+      <select id="standstillModeSelect" style="width:100%;margin-bottom:8px">
+        <option value="none">None (Normal Playback)</option>
+        <option value="freezeDevice">Freeze Device, Loop Content</option>
+        <option value="freezeBoth">Freeze Everything</option>
+        <option value="pauseAnimation">Pause Animation Only</option>
+      </select>
+      <div id="freezeTimeControl" style="display:none;margin-top:8px">
+        <label>Freeze At:</label>
+        <input type="number" id="freezeTimeInput" min="0" step="0.1" value="0" style="width:80px">
+        <button class="btn-sm" id="setFreezeTimeBtn">Use Current</button>
+      </div>
+      <div id="contentLoopControl" style="display:none;margin-top:8px">
+        <label>Content Loop:</label>
+        <input type="number" id="contentLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <span>to</span>
+        <input type="number" id="contentLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+      </div>
     </div>
 
     <div class="panel-section">
@@ -4001,6 +4245,31 @@ input[type="range"]:hover::-moz-range-thumb {
         Background Audio
       </div>
       <div style="flex: 1"></div>
+      <div class="track-actions">
+        <button class="track-action-btn" id="bgAudioActionsBtn" title="Quick Actions">⚡</button>
+        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" style="display:none">
+          <button onclick="applyBgAudioAction('fadeInAudio', 2000)">↗️ Fade In (2s)</button>
+          <button onclick="applyBgAudioAction('fadeOutAudio', 2000)">↘️ Fade Out (2s)</button>
+          <button onclick="applyBgAudioAction('fadeInSlow')">↗️ Fade In (5s)</button>
+          <button onclick="applyBgAudioAction('fadeOutSlow')">↘️ Fade Out (5s)</button>
+          <button onclick="applyBgAudioAction('ducking')">🔉 Ducking (30%)</button>
+          <button onclick="applyBgAudioAction('loopBeat')">🔄 Loop Beat</button>
+          <button onclick="applyBgAudioAction('speedMatch')">⚡ Speed Match</button>
+          <button onclick="applyBgAudioAction('volumeBoost')">🔊 Boost (100%)</button>
+          <button onclick="applyBgAudioAction('bassBoost')">🎸 Bass Boost</button>
+          <button onclick="applyBgAudioAction('reverb')">🎵 Add Reverb</button>
+          <button onclick="applyBgAudioAction('syncAudio')">🔗 Sync to Main</button>
+          <button onclick="applyBgAudioAction('resetAudio')">⏮️ Reset</button>
+        </div>
+      </div>
+      <button class="track-loop-btn" id="audioLoopMarkerBtn" title="Loop Region">🔁</button>
+      <div class="track-loop-controls" id="audioLoopControls" style="display:none">
+        <label style="font-size:10px">Loop Start:</label>
+        <input type="number" id="audioLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <label style="font-size:10px">End:</label>
+        <input type="number" id="audioLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+        <button class="btn-sm" onclick="toggleAudioLoop()">Enable</button>
+      </div>
       <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
@@ -4050,6 +4319,31 @@ input[type="range"]:hover::-moz-range-thumb {
         Background Video
       </div>
       <div style="flex: 1"></div>
+      <div class="track-actions">
+        <button class="track-action-btn" id="bgVideoActionsBtn" title="Quick Actions">⚡</button>
+        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" style="display:none">
+          <button onclick="applyBgVideoAction('fadeIn', 2000)">↗️ Fade In (2s)</button>
+          <button onclick="applyBgVideoAction('fadeOut', 2000)">↘️ Fade Out (2s)</button>
+          <button onclick="applyBgVideoAction('overlayMode')">🎨 Overlay Mode (50%)</button>
+          <button onclick="applyBgVideoAction('blurBackground')">🌫️ Blur Background</button>
+          <button onclick="applyBgVideoAction('blackAndWhite')">⚫⚪ Black & White</button>
+          <button onclick="applyBgVideoAction('splitScreen')">📱 Split Screen</button>
+          <button onclick="applyBgVideoAction('resetFilters')">🔄 Reset Filters</button>
+          <button onclick="applyBgVideoAction('syncPerfect')">🔗 Sync to Main</button>
+          <button onclick="applyBgVideoAction('speedSlow')">🐌 Slow (0.5x)</button>
+          <button onclick="applyBgVideoAction('speedFast')">⚡ Fast (2x)</button>
+          <button onclick="applyBgVideoAction('enableLoop')">🔄 Loop</button>
+          <button onclick="applyBgVideoAction('resetToStart')">⏮️ Reset</button>
+        </div>
+      </div>
+      <button class="track-loop-btn" id="videoLoopMarkerBtn" title="Loop Region">🔁</button>
+      <div class="track-loop-controls" id="videoLoopControls" style="display:none">
+        <label style="font-size:10px">Loop Start:</label>
+        <input type="number" id="videoLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
+        <label style="font-size:10px">End:</label>
+        <input type="number" id="videoLoopEnd" min="0" max="1" step="0.1" value="1" style="width:60px">
+        <button class="btn-sm" onclick="toggleVideoLoop()">Enable</button>
+      </div>
       <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
@@ -4364,6 +4658,17 @@ const state = {
   preset: 'reels',
   layers: [],
   timeline: { trimIn: 0, trimOut: 1, speed: 1, clips: [], currentClip: 0, keyframes: [] },
+  deviceKeyframes: [],
+  loops: {
+    main: { enabled: false, start: 0, end: 1 },
+    bgVideo: { enabled: false, start: 0, end: 1 },
+    bgAudio: { enabled: false, start: 0, end: 1 }
+  },
+  standstill: {
+    mode: 'none',
+    freezeTime: 0,
+    contentLoop: { enabled: false, start: 0, end: 1 }
+  },
   entrance: { type: 'none', duration: 1000 },
   facecam: { enabled: false, size: 0.15, x: -1, y: -1, corner: 'bottomRight', shape: 'circle', borderColor: '#ffffff', borderWidth: 3, shadow: true, source: 'camera', stream: null },
   hand: { enabled: false, style: 'right' },
@@ -5412,6 +5717,16 @@ function calcDevicePosition(CW, CH) {
   const dev = DEVICES[state.device.type];
   let devW = dev.baseW, devH = dev.baseH;
   if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
+
+  // Get keyframe values if animating
+  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+
+  // Use keyframe values if available, otherwise use state values
+  const deviceX = kf ? kf.x : state.device.x;
+  const deviceY = kf ? kf.y : state.device.y;
+  const deviceScale = kf ? kf.scale : state.device.scale;
+  const rotation = kf ? kf.rotation : 0;
+
   const preset = PRESETS[state.preset];
   let devScale, devX, devY;
   const isComparing = state.comparison.enabled && state.comparison.device2;
@@ -5424,7 +5739,7 @@ function calcDevicePosition(CW, CH) {
     const availW = areaW * (1 - padFrac*2);
     const availH = CH * (1 - padFrac*2);
     const fitScale = Math.min(availW / devW, availH / devH);
-    devScale = fitScale * state.device.scale;
+    devScale = fitScale * deviceScale;
     if (isComparing) {
       devX = CW * 0.25 - (devW * devScale) / 2;
     } else {
@@ -5433,9 +5748,9 @@ function calcDevicePosition(CW, CH) {
     devY = (CH - devH * devScale) / 2;
   }
   // Apply user position offset
-  devX += state.device.x;
-  devY += state.device.y;
-  return { dev, devW, devH, devScale, devX, devY, isComparing };
+  devX += deviceX;
+  devY += deviceY;
+  return { dev, devW, devH, devScale, devX, devY, rotation, isComparing };
 }
 
 function calcSceneTransform() {
@@ -5526,7 +5841,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     return;
   }
 
-  const { dev, devW, devH, devScale, devX, devY } = dc;
+  const { dev, devW, devH, devScale, devX, devY, rotation } = dc;
 
   // Hand overlay (behind device)
   if (state.hand.enabled) {
@@ -5540,6 +5855,12 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
     ctx.shadowBlur = 70 * (devScale/RENDER_SCALE) * state.shadow;
     ctx.shadowOffsetY = 18 * (devScale/RENDER_SCALE) * state.shadow;
     ctx.translate(devX, devY);
+    // Apply keyframe rotation
+    if (rotation) {
+      ctx.translate(devW*devScale/2, devH*devScale/2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.translate(-devW*devScale/2, -devH*devScale/2);
+    }
     if (state.device.landscape) {
       ctx.translate(devW*devScale/2, devH*devScale/2);
       ctx.rotate(-Math.PI/2);
@@ -5554,6 +5875,12 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
   // Draw video into screen
   ctx.save();
   ctx.translate(devX, devY);
+  // Apply keyframe rotation
+  if (rotation) {
+    ctx.translate(devW*devScale/2, devH*devScale/2);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.translate(-devW*devScale/2, -devH*devScale/2);
+  }
   if (state.device.landscape) {
     ctx.translate(devW*devScale/2, devH*devScale/2);
     ctx.rotate(-Math.PI/2);
@@ -5561,6 +5888,30 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
   }
 
   if (hasVideo && _activeVid.readyState >= 2) {
+    // Handle standstill modes
+    if (state.standstill?.mode === 'freezeBoth') {
+      // Freeze both device and content at specific time
+      const freezeTime = state.standstill.freezeTime || 0;
+      if (_activeVid.currentTime !== freezeTime) {
+        _activeVid.currentTime = freezeTime;
+      }
+      if (vtPlaying) {
+        _activeVid.pause();
+      }
+    } else if (state.standstill?.mode === 'freezeDevice') {
+      // Device frozen by keyframe, but content loops
+      if (state.standstill.contentLoop?.enabled) {
+        const loop = state.standstill.contentLoop;
+        const duration = _activeVid.duration;
+        const loopStart = loop.start * duration;
+        const loopEnd = loop.end * duration;
+
+        if (_activeVid.currentTime >= loopEnd) {
+          _activeVid.currentTime = loopStart;
+        }
+      }
+    }
+
     ctx.save();
     rrPath(ctx, dev.screenX*devScale, dev.screenY*devScale, dev.screenW*devScale, dev.screenH*devScale, dev.screenR*devScale);
     ctx.clip();
@@ -6034,8 +6385,10 @@ function updateDisplaySize() {
 // 3D PERSPECTIVE
 // ============================================================
 function updatePerspective() {
-  const rx = parseInt(tiltXSlider.value);
-  const ry = parseInt(tiltYSlider.value);
+  // Get keyframe values if animating, otherwise use sliders
+  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+  const rx = kf ? kf.perspectiveX : parseInt(tiltXSlider.value);
+  const ry = kf ? kf.perspectiveY : parseInt(tiltYSlider.value);
   const orbitY = getOrbitAngle();
   const totalRx = rx;
   const totalRy = ry + orbitY;
@@ -6044,8 +6397,11 @@ function updatePerspective() {
   } else {
     canvasWrap.style.transform = `perspective(1200px) rotateX(${totalRx}deg) rotateY(${totalRy}deg)`;
   }
-  state.perspective.x = rx;
-  state.perspective.y = ry;
+  // Only update state from sliders if not using keyframes
+  if (!kf) {
+    state.perspective.x = rx;
+    state.perspective.y = ry;
+  }
 }
 // Orbit animation loop
 function orbitLoop() {
@@ -6912,6 +7268,67 @@ const FULL_PRESETS = {
   },
 };
 
+// ============================================================
+// DEVICE POSITION PRESETS
+// ============================================================
+const DEVICE_PRESETS = {
+  phoneLeft: {
+    name: 'Phone Left',
+    device: { x: -180, y: 0, scale: 0.45, landscape: false },
+    perspective: { x: 3, y: -2 },
+  },
+  phoneRight: {
+    name: 'Phone Right',
+    device: { x: 180, y: 0, scale: 0.45, landscape: false },
+    perspective: { x: -3, y: -2 },
+  },
+  phoneCenterZoom: {
+    name: 'Center Zoom',
+    device: { x: 0, y: 0, scale: 0.6, landscape: false },
+    perspective: { x: 0, y: 0 },
+  },
+  dualComparison: {
+    name: 'Dual Comparison',
+    device: { x: -100, y: 0, scale: 0.38, landscape: false },
+    perspective: { x: 2, y: 0 },
+    comparison: { enabled: true, x: 100, y: 0 },
+  },
+  tilt3D: {
+    name: '3D Tilt Showcase',
+    device: { x: 0, y: -20, scale: 0.48, landscape: false },
+    perspective: { x: 8, y: -5 },
+    shadow: 0.9,
+  },
+  landscapeView: {
+    name: 'Landscape Mode',
+    device: { x: 0, y: 0, scale: 0.55, landscape: true },
+    perspective: { x: 0, y: -2 },
+  },
+  floatingAbove: {
+    name: 'Floating Above',
+    device: { x: 0, y: -60, scale: 0.42, landscape: false },
+    perspective: { x: 0, y: -6 },
+    shadow: 1.0,
+  },
+  bottomCorner: {
+    name: 'Bottom Corner',
+    device: { x: 120, y: 80, scale: 0.35, landscape: false },
+    perspective: { x: -4, y: 2 },
+  },
+  laptopDesk: {
+    name: 'Laptop Desk View',
+    device: { x: 0, y: 20, scale: 0.58, landscape: false },
+    perspective: { x: 0, y: -8 },
+    shadow: 0.7,
+  },
+  tabletPresenter: {
+    name: 'Tablet Presenter',
+    device: { x: 0, y: -10, scale: 0.52, landscape: false },
+    perspective: { x: 0, y: -4 },
+    shadow: 0.6,
+  },
+};
+
 function applyFullPreset(key) {
   const fp = FULL_PRESETS[key];
   if (!fp) return;
@@ -7121,6 +7538,49 @@ function applyScene(name) {
   if (scene.motionBlur !== undefined) { state.motionBlur.enabled = scene.motionBlur; document.getElementById('motionBlurToggle').value = String(scene.motionBlur); }
 }
 
+function applyDevicePreset(key) {
+  const preset = DEVICE_PRESETS[key];
+  if (!preset) return;
+
+  pushUndoState();
+
+  // Apply device position and scale
+  if (preset.device) {
+    if (preset.device.x !== undefined) state.device.x = preset.device.x;
+    if (preset.device.y !== undefined) state.device.y = preset.device.y;
+    if (preset.device.scale !== undefined) state.device.scale = preset.device.scale;
+    if (preset.device.landscape !== undefined) state.device.landscape = preset.device.landscape;
+  }
+
+  // Apply perspective
+  if (preset.perspective) {
+    state.perspective.x = preset.perspective.x;
+    state.perspective.y = preset.perspective.y;
+    updatePerspective();
+  }
+
+  // Apply shadow
+  if (preset.shadow !== undefined) {
+    state.shadow = preset.shadow;
+    document.getElementById('shadowSlider').value = preset.shadow * 100;
+  }
+
+  // Apply comparison mode
+  if (preset.comparison) {
+    state.comparison.enabled = true;
+    if (preset.comparison.x !== undefined) state.comparison.x = preset.comparison.x;
+    if (preset.comparison.y !== undefined) state.comparison.y = preset.comparison.y;
+  }
+
+  // Update UI and render
+  frameCache = {};
+  resizeCanvas();
+  updateDisplaySize();
+  scheduleSave();
+
+  showToast(`Device preset: ${preset.name}`, 'info');
+}
+
 // ============================================================
 // ENTRANCE ANIMATION
 // ============================================================
@@ -7170,6 +7630,53 @@ function getKeyframeValues(time) {
     zoom: before.zoom + (after.zoom - before.zoom) * ease,
     panX: before.panX + (after.panX - before.panX) * ease,
     panY: before.panY + (after.panY - before.panY) * ease,
+  };
+}
+
+// ============================================================
+// DEVICE KEYFRAME INTERPOLATION
+// ============================================================
+function getDeviceKeyframeValues(time) {
+  const keyframes = state.deviceKeyframes || [];
+  if (keyframes.length === 0) {
+    return {
+      x: state.device.x,
+      y: state.device.y,
+      scale: state.device.scale,
+      rotation: 0,
+      perspectiveX: state.perspective.x,
+      perspectiveY: state.perspective.y
+    };
+  }
+
+  // Find surrounding keyframes
+  let prev = null, next = null;
+  for (let i = 0; i < keyframes.length; i++) {
+    if (keyframes[i].time <= time) prev = keyframes[i];
+    if (keyframes[i].time > time) { next = keyframes[i]; break; }
+  }
+
+  // Before first keyframe - use first keyframe values
+  if (!prev) return { ...keyframes[0] };
+
+  // After last keyframe - use last keyframe values
+  if (!next) return { ...prev };
+
+  // Interpolate between prev and next
+  const duration = next.time - prev.time;
+  const elapsed = time - prev.time;
+  let t = duration > 0 ? elapsed / duration : 0;
+
+  // Ease in-out quad
+  t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  return {
+    x: prev.x + (next.x - prev.x) * t,
+    y: prev.y + (next.y - prev.y) * t,
+    scale: prev.scale + (next.scale - prev.scale) * t,
+    rotation: prev.rotation + (next.rotation - prev.rotation) * t,
+    perspectiveX: prev.perspectiveX + (next.perspectiveX - prev.perspectiveX) * t,
+    perspectiveY: prev.perspectiveY + (next.perspectiveY - prev.perspectiveY) * t
   };
 }
 
@@ -9415,6 +9922,14 @@ document.getElementById('landscapeBtn').addEventListener('click', function() {
   resizeCanvas();
 });
 
+// Device preset dropdown
+document.getElementById('devicePresetSelect')?.addEventListener('change', e => {
+  if (e.target.value) {
+    applyDevicePreset(e.target.value);
+    e.target.value = ''; // Reset dropdown
+  }
+});
+
 // ============================================================
 // PRESET SELECTION
 // ============================================================
@@ -9460,6 +9975,17 @@ function loadVideo(file) {
     state.timeline.clips[0].duration = video.duration;
     rebuildTimeline();
     vtPlay();
+
+    // Show device animation controls when video is loaded
+    const deviceKeyframesSection = document.getElementById('deviceKeyframesSection');
+    const standstillSection = document.getElementById('standstillSection');
+    if (deviceKeyframesSection) deviceKeyframesSection.style.display = 'block';
+    if (standstillSection) standstillSection.style.display = 'block';
+
+    // Initialize keyframes list
+    if (typeof updateDeviceKeyframesList === 'function') {
+      updateDeviceKeyframesList();
+    }
   }, { once: true });
   video.addEventListener('canplay', () => {
     if (!vtPlaying && state.timeline.clips.length === 1) vtPlay();
@@ -10808,6 +11334,131 @@ if (themeToggleBtn && themeToggleIcon) {
 }
 
 // ============================================================
+// DEVICE KEYFRAME CONTROLS
+// ============================================================
+
+// Add device keyframe at current time
+const addDeviceKeyframeBtn = document.getElementById('addDeviceKeyframeBtn');
+if (addDeviceKeyframeBtn) {
+  addDeviceKeyframeBtn.addEventListener('click', () => {
+    if (!hasVideo) {
+      showToast('Load a video first', 'error');
+      return;
+    }
+
+    pushUndoState();
+
+    const kf = {
+      time: vtTime,
+      x: state.device.x,
+      y: state.device.y,
+      scale: state.device.scale,
+      rotation: 0,
+      perspectiveX: state.perspective.x,
+      perspectiveY: state.perspective.y
+    };
+
+    if (!state.deviceKeyframes) state.deviceKeyframes = [];
+    state.deviceKeyframes.push(kf);
+    state.deviceKeyframes.sort((a, b) => a.time - b.time);
+
+    updateDeviceKeyframesList();
+    scheduleSave();
+    showToast(`Device keyframe added at ${vtTime.toFixed(2)}s`, 'success');
+  });
+}
+
+// Clear all device keyframes
+const clearDeviceKeyframesBtn = document.getElementById('clearDeviceKeyframesBtn');
+if (clearDeviceKeyframesBtn) {
+  clearDeviceKeyframesBtn.addEventListener('click', () => {
+    if (!state.deviceKeyframes || state.deviceKeyframes.length === 0) return;
+
+    if (confirm('Delete all device keyframes?')) {
+      pushUndoState();
+      state.deviceKeyframes = [];
+      updateDeviceKeyframesList();
+      scheduleSave();
+      showToast('Device keyframes cleared', 'info');
+    }
+  });
+}
+
+// Update device keyframes list display
+function updateDeviceKeyframesList() {
+  const list = document.getElementById('deviceKeyframesList');
+  if (!list) return;
+
+  const keyframes = state.deviceKeyframes || [];
+  if (keyframes.length === 0) {
+    list.innerHTML = '<div style="padding:8px;color:rgba(255,255,255,0.3);text-align:center">No keyframes</div>';
+    return;
+  }
+
+  list.innerHTML = keyframes.map((kf, i) => `
+    <div class="keyframe-item" style="display:flex;align-items:center;gap:8px;padding:6px;background:rgba(255,255,255,0.05);border-radius:4px;margin-bottom:4px">
+      <span style="flex:1;font-size:11px">
+        ${kf.time.toFixed(2)}s:
+        pos(${kf.x.toFixed(0)}, ${kf.y.toFixed(0)})
+        scale(${kf.scale.toFixed(2)})
+      </span>
+      <button class="btn-icon" onclick="deleteDeviceKeyframe(${i})" title="Delete" style="background:rgba(255,0,0,0.2);border:none;color:#fff;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:12px">🗑</button>
+    </div>
+  `).join('');
+}
+
+// Delete specific device keyframe
+function deleteDeviceKeyframe(index) {
+  pushUndoState();
+  state.deviceKeyframes.splice(index, 1);
+  updateDeviceKeyframesList();
+  scheduleSave();
+  showToast('Keyframe deleted', 'info');
+}
+
+// ============================================================
+// STANDSTILL MODE CONTROLS
+// ============================================================
+
+// Standstill mode selector
+const standstillModeSelect = document.getElementById('standstillModeSelect');
+if (standstillModeSelect) {
+  standstillModeSelect.addEventListener('change', (e) => {
+    if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+
+    pushUndoState();
+    state.standstill.mode = e.target.value;
+
+    // Show/hide controls based on mode
+    const freezeControl = document.getElementById('freezeTimeControl');
+    const contentLoopControl = document.getElementById('contentLoopControl');
+
+    if (freezeControl) {
+      freezeControl.style.display = (e.target.value === 'freezeDevice' || e.target.value === 'freezeBoth') ? 'block' : 'none';
+    }
+    if (contentLoopControl) {
+      contentLoopControl.style.display = (e.target.value === 'freezeDevice') ? 'block' : 'none';
+    }
+
+    scheduleSave();
+    showToast(`Standstill mode: ${e.target.value}`, 'info');
+  });
+}
+
+// Set freeze time to current playback time
+const setFreezeTimeBtn = document.getElementById('setFreezeTimeBtn');
+if (setFreezeTimeBtn) {
+  setFreezeTimeBtn.addEventListener('click', () => {
+    if (!hasVideo) return;
+    if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+    state.standstill.freezeTime = vtTime;
+    document.getElementById('freezeTimeInput').value = vtTime.toFixed(2);
+    scheduleSave();
+    showToast(`Freeze time set to ${vtTime.toFixed(2)}s`, 'success');
+  });
+}
+
+// ============================================================
 // LUCIDE ICONS INITIALIZATION
 // ============================================================
 // Initialize Lucide icons after DOM is ready
@@ -10834,16 +11485,337 @@ let bgAudioSynced = true;
 let bgAudioSpeed = 1;
 let bgAudioVolume = 1;
 
+// ============================================================
+// BACKGROUND VIDEO ACTIONS
+// ============================================================
+const BG_VIDEO_ACTIONS = {
+  fadeIn: {
+    name: 'Fade In (0→100%)',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialOpacity = state.bgVideo.opacity;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        state.bgVideo.opacity = initialOpacity + (1 - initialOpacity) * progress;
+        document.getElementById('bgVideoOpacity').value = state.bgVideo.opacity * 100;
+        document.getElementById('bgVideoOpacityVal').textContent = Math.round(state.bgVideo.opacity * 100) + '%';
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else scheduleSave();
+      }
+      animate();
+      showToast('Fade in started', 'info');
+    }
+  },
+  fadeOut: {
+    name: 'Fade Out (100→0%)',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialOpacity = state.bgVideo.opacity;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        state.bgVideo.opacity = initialOpacity * (1 - progress);
+        document.getElementById('bgVideoOpacity').value = state.bgVideo.opacity * 100;
+        document.getElementById('bgVideoOpacityVal').textContent = Math.round(state.bgVideo.opacity * 100) + '%';
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else scheduleSave();
+      }
+      animate();
+      showToast('Fade out started', 'info');
+    }
+  },
+  overlayMode: {
+    name: 'Overlay Mode',
+    apply: () => {
+      pushUndoState();
+      state.bgVideo.opacity = 0.5;
+      state.bgVideo.fit = 'cover';
+      document.getElementById('bgVideoOpacity').value = 50;
+      document.getElementById('bgVideoOpacityVal').textContent = '50%';
+      document.getElementById('bgVideoFit').value = 'cover';
+      scheduleSave();
+      showToast('Overlay mode applied', 'info');
+    }
+  },
+  syncPerfect: {
+    name: 'Sync Perfect',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideoSynced = true;
+      document.getElementById('bgSyncBtn')?.classList.add('synced');
+      bgVideo.currentTime = vtTime;
+      showToast('Background synced to main', 'success');
+    }
+  },
+  speedSlow: {
+    name: 'Slow Motion (0.5x)',
+    apply: () => {
+      pushUndoState();
+      bgVideoSpeed = 0.5;
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) bgVideo.playbackRate = 0.5;
+      document.getElementById('bgSpeedSelect').value = '0.5';
+      scheduleSave();
+      showToast('Background speed: 0.5×', 'info');
+    }
+  },
+  speedFast: {
+    name: 'Fast Forward (2x)',
+    apply: () => {
+      pushUndoState();
+      bgVideoSpeed = 2;
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) bgVideo.playbackRate = 2;
+      document.getElementById('bgSpeedSelect').value = '2';
+      scheduleSave();
+      showToast('Background speed: 2×', 'info');
+    }
+  },
+  enableLoop: {
+    name: 'Enable Loop',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideoLoop = true;
+      bgVideo.loop = true;
+      document.getElementById('bgLoopBtn')?.classList.add('active');
+      showToast('Background loop enabled', 'success');
+    }
+  },
+  resetToStart: {
+    name: 'Reset to Start',
+    apply: () => {
+      const bgVideo = document.getElementById('bgVideo');
+      if (!bgVideo) return;
+      bgVideo.currentTime = 0;
+      updateBgVideoDisplay();
+      showToast('Background reset to start', 'info');
+    }
+  },
+  blurBackground: {
+    name: 'Blur Background',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = 'blur(10px)';
+      }
+      showToast('Background blurred', 'info');
+    }
+  },
+  blackAndWhite: {
+    name: 'Black & White',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = 'grayscale(100%)';
+      }
+      showToast('Grayscale applied', 'info');
+    }
+  },
+  splitScreen: {
+    name: 'Split Screen (50/50)',
+    apply: () => {
+      pushUndoState();
+      state.bgVideo.fit = 'contain';
+      scheduleSave();
+      showToast('Split screen layout', 'info');
+    }
+  },
+  resetFilters: {
+    name: 'Reset Filters',
+    apply: () => {
+      pushUndoState();
+      const bgVideo = document.getElementById('bgVideo');
+      if (bgVideo) {
+        bgVideo.style.filter = '';
+      }
+      showToast('Filters reset', 'info');
+    }
+  },
+};
+
+function applyBgVideoAction(key, ...params) {
+  const action = BG_VIDEO_ACTIONS[key];
+  if (!action || !state.bgVideo.enabled) return;
+  action.apply(...params);
+}
+
+// ============================================================
+// BACKGROUND AUDIO ACTIONS
+// ============================================================
+const BG_AUDIO_ACTIONS = {
+  fadeInAudio: {
+    name: 'Fade In Audio',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialVolume = bgAudioVolume;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        bgAudioVolume = initialVolume + (1 - initialVolume) * progress;
+        const bgAudio = document.getElementById('bgAudio');
+        if (bgAudio) bgAudio.volume = bgAudioVolume;
+        document.getElementById('audioVolumeSlider').value = bgAudioVolume * 100;
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else { state.bgAudio.volume = bgAudioVolume; scheduleSave(); }
+      }
+      animate();
+      showToast('Audio fade in started', 'info');
+    }
+  },
+  fadeOutAudio: {
+    name: 'Fade Out Audio',
+    apply: (duration = 2000) => {
+      const startTime = performance.now();
+      const initialVolume = bgAudioVolume;
+
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        bgAudioVolume = initialVolume * (1 - progress);
+        const bgAudio = document.getElementById('bgAudio');
+        if (bgAudio) bgAudio.volume = bgAudioVolume;
+        document.getElementById('audioVolumeSlider').value = bgAudioVolume * 100;
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else { state.bgAudio.volume = bgAudioVolume; scheduleSave(); }
+      }
+      animate();
+      showToast('Audio fade out started', 'info');
+    }
+  },
+  ducking: {
+    name: 'Ducking (30%)',
+    apply: () => {
+      pushUndoState();
+      bgAudioVolume = 0.3;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.volume = 0.3;
+      document.getElementById('audioVolumeSlider').value = 30;
+      state.bgAudio.volume = 0.3;
+      scheduleSave();
+      showToast('Audio ducking: 30% volume', 'info');
+    }
+  },
+  loopBeat: {
+    name: 'Loop Beat',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudioLoop = true;
+      bgAudio.loop = true;
+      state.bgAudio.loop = true;
+      document.getElementById('audioLoopBtn')?.classList.add('active');
+      scheduleSave();
+      showToast('Audio loop enabled', 'success');
+    }
+  },
+  speedMatch: {
+    name: 'Speed Match',
+    apply: () => {
+      pushUndoState();
+      bgAudioSpeed = state.timeline.speed;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.playbackRate = bgAudioSpeed;
+      document.getElementById('audioSpeedSelect').value = bgAudioSpeed.toString();
+      state.bgAudio.speed = bgAudioSpeed;
+      scheduleSave();
+      showToast(`Audio speed matched: ${bgAudioSpeed}×`, 'info');
+    }
+  },
+  volumeBoost: {
+    name: 'Volume Boost (100%)',
+    apply: () => {
+      pushUndoState();
+      bgAudioVolume = 1.0;
+      const bgAudio = document.getElementById('bgAudio');
+      if (bgAudio) bgAudio.volume = 1.0;
+      document.getElementById('audioVolumeSlider').value = 100;
+      state.bgAudio.volume = 1.0;
+      scheduleSave();
+      showToast('Audio volume: 100%', 'info');
+    }
+  },
+  syncAudio: {
+    name: 'Sync to Main',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudioSynced = true;
+      document.getElementById('audioSyncBtn')?.classList.add('synced');
+      bgAudio.currentTime = vtTime % bgAudio.duration;
+      showToast('Audio synced to main', 'success');
+    }
+  },
+  resetAudio: {
+    name: 'Reset Audio',
+    apply: () => {
+      const bgAudio = document.getElementById('bgAudio');
+      if (!bgAudio) return;
+      bgAudio.currentTime = 0;
+      updateAudioDisplay();
+      showToast('Audio reset to start', 'info');
+    }
+  },
+  fadeInSlow: {
+    name: 'Fade In (5s)',
+    apply: () => {
+      applyBgAudioAction('fadeInAudio', 5000);
+    }
+  },
+  fadeOutSlow: {
+    name: 'Fade Out (5s)',
+    apply: () => {
+      applyBgAudioAction('fadeOutAudio', 5000);
+    }
+  },
+  bassBoost: {
+    name: 'Bass Boost',
+    apply: () => {
+      pushUndoState();
+      showToast('Bass boost applied (placeholder)', 'info');
+    }
+  },
+  reverb: {
+    name: 'Add Reverb',
+    apply: () => {
+      pushUndoState();
+      showToast('Reverb applied (placeholder)', 'info');
+    }
+  },
+};
+
+function applyBgAudioAction(key, ...params) {
+  const action = BG_AUDIO_ACTIONS[key];
+  if (!action || !state.bgAudio.enabled) return;
+  action.apply(...params);
+}
+
 // Initialize enhanced timeline
 function initEnhancedTimeline() {
   const timelineSystem = document.getElementById('timelineSystem');
   const bgVideoTrack = document.getElementById('bgVideoTrack');
   const bgVideo = document.getElementById('bgVideo');
+  const bgAudio = document.getElementById('bgAudio');
 
   if (!timelineSystem) return;
 
-  // Show timeline system when video is loaded
-  if (hasVideo) {
+  // Show timeline system when ANY media is loaded
+  const hasBgVideo = state.bgVideo.enabled && bgVideo && bgVideo.src;
+  const hasBgAudio = state.bgAudio.enabled && bgAudio && bgAudio.src;
+  const shouldShowTimeline = hasVideo || hasBgVideo || hasBgAudio;
+
+  if (shouldShowTimeline) {
     timelineSystem.classList.add('visible');
   }
 
@@ -11062,22 +12034,26 @@ function updateTimelineVisibility() {
 
   if (!timelineSystem) return;
 
-  // Show/hide entire timeline system
-  if (hasVideo) {
+  // Show timeline system if ANY media is loaded
+  const hasBgVideo = state.bgVideo.enabled && bgVideo && bgVideo.src;
+  const hasBgAudio = state.bgAudio.enabled && bgAudio && bgAudio.src;
+  const shouldShowTimeline = hasVideo || hasBgVideo || hasBgAudio;
+
+  if (shouldShowTimeline) {
     timelineSystem.classList.add('visible');
   } else {
     timelineSystem.classList.remove('visible');
   }
 
   // Show/hide background video track
-  if (state.bgVideo.enabled && bgVideo && bgVideo.src) {
+  if (hasBgVideo) {
     setTimeout(() => bgVideoTrack?.classList.add('active'), 50);
   } else {
     bgVideoTrack?.classList.remove('active');
   }
 
   // Show/hide background audio track
-  if (state.bgAudio.enabled && bgAudio && bgAudio.src) {
+  if (hasBgAudio) {
     setTimeout(() => {
       bgAudioTrack?.classList.add('active');
       updateStageSpacing();
@@ -11111,7 +12087,127 @@ function updateEnhancedTimelineDisplays() {
   if (bgAudioSynced) {
     syncAudioWithMain();
   }
+
+  // Check loops
+  checkLoops();
 }
+
+// ============================================================
+// LOOP SYSTEM
+// ============================================================
+
+function checkLoops() {
+  // Main video loop
+  if (state.loops?.main?.enabled && hasVideo) {
+    const loop = state.loops.main;
+    const duration = vtGetTotalDuration();
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (vtTime >= loopEnd) {
+      seekTo(loopStart);
+    }
+  }
+
+  // Background video loop
+  if (state.loops?.bgVideo?.enabled && state.bgVideo.enabled) {
+    const bgVideo = document.getElementById('bgVideo');
+    if (!bgVideo) return;
+
+    const loop = state.loops.bgVideo;
+    const duration = bgVideo.duration;
+    if (!duration || isNaN(duration)) return;
+
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (bgVideo.currentTime >= loopEnd) {
+      bgVideo.currentTime = loopStart;
+    }
+  }
+
+  // Background audio loop
+  if (state.loops?.bgAudio?.enabled && state.bgAudio.enabled) {
+    const bgAudio = document.getElementById('bgAudio');
+    if (!bgAudio) return;
+
+    const loop = state.loops.bgAudio;
+    const duration = bgAudio.duration;
+    if (!duration || isNaN(duration)) return;
+
+    const loopStart = loop.start * duration;
+    const loopEnd = loop.end * duration;
+
+    if (bgAudio.currentTime >= loopEnd) {
+      bgAudio.currentTime = loopStart;
+    }
+  }
+}
+
+// Toggle audio loop
+function toggleAudioLoop() {
+  const start = parseFloat(document.getElementById('audioLoopStart').value);
+  const end = parseFloat(document.getElementById('audioLoopEnd').value);
+
+  if (!state.loops) state.loops = { main: { enabled: false, start: 0, end: 1 }, bgVideo: { enabled: false, start: 0, end: 1 }, bgAudio: { enabled: false, start: 0, end: 1 } };
+  if (!state.loops.bgAudio) state.loops.bgAudio = { enabled: false, start: 0, end: 1 };
+
+  state.loops.bgAudio.enabled = !state.loops.bgAudio.enabled;
+  state.loops.bgAudio.start = start;
+  state.loops.bgAudio.end = end;
+
+  document.getElementById('audioLoopMarkerBtn')?.classList.toggle('active', state.loops.bgAudio.enabled);
+  showToast(state.loops.bgAudio.enabled ? 'Audio loop enabled' : 'Audio loop disabled', 'info');
+  scheduleSave();
+}
+
+// Toggle video loop
+function toggleVideoLoop() {
+  const start = parseFloat(document.getElementById('videoLoopStart').value);
+  const end = parseFloat(document.getElementById('videoLoopEnd').value);
+
+  if (!state.loops) state.loops = { main: { enabled: false, start: 0, end: 1 }, bgVideo: { enabled: false, start: 0, end: 1 }, bgAudio: { enabled: false, start: 0, end: 1 } };
+  if (!state.loops.bgVideo) state.loops.bgVideo = { enabled: false, start: 0, end: 1 };
+
+  state.loops.bgVideo.enabled = !state.loops.bgVideo.enabled;
+  state.loops.bgVideo.start = start;
+  state.loops.bgVideo.end = end;
+
+  document.getElementById('videoLoopMarkerBtn')?.classList.toggle('active', state.loops.bgVideo.enabled);
+  showToast(state.loops.bgVideo.enabled ? 'Video loop enabled' : 'Video loop disabled', 'info');
+  scheduleSave();
+}
+
+// Toggle loop controls dropdown
+document.getElementById('audioLoopMarkerBtn')?.addEventListener('click', () => {
+  const dropdown = document.getElementById('audioLoopControls');
+  if (dropdown) {
+    dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+  }
+});
+
+document.getElementById('videoLoopMarkerBtn')?.addEventListener('click', () => {
+  const dropdown = document.getElementById('videoLoopControls');
+  if (dropdown) {
+    dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+  }
+});
+
+// Close loop controls when clicking outside
+document.addEventListener('click', (e) => {
+  const audioLoopBtn = document.getElementById('audioLoopMarkerBtn');
+  const audioLoopControls = document.getElementById('audioLoopControls');
+  const videoLoopBtn = document.getElementById('videoLoopMarkerBtn');
+  const videoLoopControls = document.getElementById('videoLoopControls');
+
+  if (audioLoopControls && !audioLoopBtn?.contains(e.target) && !audioLoopControls.contains(e.target)) {
+    audioLoopControls.style.display = 'none';
+  }
+
+  if (videoLoopControls && !videoLoopBtn?.contains(e.target) && !videoLoopControls.contains(e.target)) {
+    videoLoopControls.style.display = 'none';
+  }
+});
 
 // ============================================================
 // BACKGROUND AUDIO CONTROLS
@@ -11510,6 +12606,42 @@ document.getElementById('bgVideoInput')?.addEventListener('change', () => {
       bgLoopBtn.classList.add('active'); // Default to loop enabled
     }
   }, 100);
+});
+
+// ============================================================
+// ACTION DROPDOWN TOGGLES
+// ============================================================
+
+// Toggle background video actions dropdown
+document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('bgVideoActionsDropdown');
+  const isVisible = dropdown.style.display !== 'none';
+  dropdown.style.display = isVisible ? 'none' : 'block';
+});
+
+// Toggle background audio actions dropdown
+document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('bgAudioActionsDropdown');
+  const isVisible = dropdown.style.display !== 'none';
+  dropdown.style.display = isVisible ? 'none' : 'block';
+});
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  const videoDropdown = document.getElementById('bgVideoActionsDropdown');
+  const audioDropdown = document.getElementById('bgAudioActionsDropdown');
+  const videoBtnElement = document.getElementById('bgVideoActionsBtn');
+  const audioBtnElement = document.getElementById('bgAudioActionsBtn');
+
+  if (videoDropdown && !videoBtnElement?.contains(e.target) && !videoDropdown?.contains(e.target)) {
+    videoDropdown.style.display = 'none';
+  }
+
+  if (audioDropdown && !audioBtnElement?.contains(e.target) && !audioDropdown?.contains(e.target)) {
+    audioDropdown.style.display = 'none';
+  }
 });
 
 // Update displays every frame

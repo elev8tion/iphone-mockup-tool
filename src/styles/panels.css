@@ -79,6 +79,7 @@
 .panel-body {
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 240px; /* Ensure content rises above timeline */
 }
 
 /* Collapsed State */

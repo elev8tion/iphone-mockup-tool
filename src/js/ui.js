@@ -91,6 +91,14 @@ document.getElementById('landscapeBtn').addEventListener('click', function() {
   resizeCanvas();
 });
 
+// Device preset dropdown
+document.getElementById('devicePresetSelect')?.addEventListener('change', e => {
+  if (e.target.value) {
+    applyDevicePreset(e.target.value);
+    e.target.value = ''; // Reset dropdown
+  }
+});
+
 // ============================================================
 // PRESET SELECTION
 // ============================================================
@@ -136,6 +144,17 @@ function loadVideo(file) {
     state.timeline.clips[0].duration = video.duration;
     rebuildTimeline();
     vtPlay();
+
+    // Show device animation controls when video is loaded
+    const deviceKeyframesSection = document.getElementById('deviceKeyframesSection');
+    const standstillSection = document.getElementById('standstillSection');
+    if (deviceKeyframesSection) deviceKeyframesSection.style.display = 'block';
+    if (standstillSection) standstillSection.style.display = 'block';
+
+    // Initialize keyframes list
+    if (typeof updateDeviceKeyframesList === 'function') {
+      updateDeviceKeyframesList();
+    }
   }, { once: true });
   video.addEventListener('canplay', () => {
     if (!vtPlaying && state.timeline.clips.length === 1) vtPlay();
@@ -1480,6 +1499,131 @@ if (themeToggleBtn && themeToggleIcon) {
 
     // Show toast
     showToast(`Switched to ${newTheme} theme`, 'success');
+  });
+}
+
+// ============================================================
+// DEVICE KEYFRAME CONTROLS
+// ============================================================
+
+// Add device keyframe at current time
+const addDeviceKeyframeBtn = document.getElementById('addDeviceKeyframeBtn');
+if (addDeviceKeyframeBtn) {
+  addDeviceKeyframeBtn.addEventListener('click', () => {
+    if (!hasVideo) {
+      showToast('Load a video first', 'error');
+      return;
+    }
+
+    pushUndoState();
+
+    const kf = {
+      time: vtTime,
+      x: state.device.x,
+      y: state.device.y,
+      scale: state.device.scale,
+      rotation: 0,
+      perspectiveX: state.perspective.x,
+      perspectiveY: state.perspective.y
+    };
+
+    if (!state.deviceKeyframes) state.deviceKeyframes = [];
+    state.deviceKeyframes.push(kf);
+    state.deviceKeyframes.sort((a, b) => a.time - b.time);
+
+    updateDeviceKeyframesList();
+    scheduleSave();
+    showToast(`Device keyframe added at ${vtTime.toFixed(2)}s`, 'success');
+  });
+}
+
+// Clear all device keyframes
+const clearDeviceKeyframesBtn = document.getElementById('clearDeviceKeyframesBtn');
+if (clearDeviceKeyframesBtn) {
+  clearDeviceKeyframesBtn.addEventListener('click', () => {
+    if (!state.deviceKeyframes || state.deviceKeyframes.length === 0) return;
+
+    if (confirm('Delete all device keyframes?')) {
+      pushUndoState();
+      state.deviceKeyframes = [];
+      updateDeviceKeyframesList();
+      scheduleSave();
+      showToast('Device keyframes cleared', 'info');
+    }
+  });
+}
+
+// Update device keyframes list display
+function updateDeviceKeyframesList() {
+  const list = document.getElementById('deviceKeyframesList');
+  if (!list) return;
+
+  const keyframes = state.deviceKeyframes || [];
+  if (keyframes.length === 0) {
+    list.innerHTML = '<div style="padding:8px;color:rgba(255,255,255,0.3);text-align:center">No keyframes</div>';
+    return;
+  }
+
+  list.innerHTML = keyframes.map((kf, i) => `
+    <div class="keyframe-item" style="display:flex;align-items:center;gap:8px;padding:6px;background:rgba(255,255,255,0.05);border-radius:4px;margin-bottom:4px">
+      <span style="flex:1;font-size:11px">
+        ${kf.time.toFixed(2)}s:
+        pos(${kf.x.toFixed(0)}, ${kf.y.toFixed(0)})
+        scale(${kf.scale.toFixed(2)})
+      </span>
+      <button class="btn-icon" onclick="deleteDeviceKeyframe(${i})" title="Delete" style="background:rgba(255,0,0,0.2);border:none;color:#fff;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:12px">🗑</button>
+    </div>
+  `).join('');
+}
+
+// Delete specific device keyframe
+function deleteDeviceKeyframe(index) {
+  pushUndoState();
+  state.deviceKeyframes.splice(index, 1);
+  updateDeviceKeyframesList();
+  scheduleSave();
+  showToast('Keyframe deleted', 'info');
+}
+
+// ============================================================
+// STANDSTILL MODE CONTROLS
+// ============================================================
+
+// Standstill mode selector
+const standstillModeSelect = document.getElementById('standstillModeSelect');
+if (standstillModeSelect) {
+  standstillModeSelect.addEventListener('change', (e) => {
+    if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+
+    pushUndoState();
+    state.standstill.mode = e.target.value;
+
+    // Show/hide controls based on mode
+    const freezeControl = document.getElementById('freezeTimeControl');
+    const contentLoopControl = document.getElementById('contentLoopControl');
+
+    if (freezeControl) {
+      freezeControl.style.display = (e.target.value === 'freezeDevice' || e.target.value === 'freezeBoth') ? 'block' : 'none';
+    }
+    if (contentLoopControl) {
+      contentLoopControl.style.display = (e.target.value === 'freezeDevice') ? 'block' : 'none';
+    }
+
+    scheduleSave();
+    showToast(`Standstill mode: ${e.target.value}`, 'info');
+  });
+}
+
+// Set freeze time to current playback time
+const setFreezeTimeBtn = document.getElementById('setFreezeTimeBtn');
+if (setFreezeTimeBtn) {
+  setFreezeTimeBtn.addEventListener('click', () => {
+    if (!hasVideo) return;
+    if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+    state.standstill.freezeTime = vtTime;
+    document.getElementById('freezeTimeInput').value = vtTime.toFixed(2);
+    scheduleSave();
+    showToast(`Freeze time set to ${vtTime.toFixed(2)}s`, 'success');
   });
 }
 

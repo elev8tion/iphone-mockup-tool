@@ -9,7 +9,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-width: 0;
-  padding-bottom: 150px; /* Account for timeline height */
+  padding-bottom: 220px; /* Account for always-visible timeline (2 tracks always showing) */
 }
 
 /* Adjust padding when timeline has more tracks */

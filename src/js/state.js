@@ -9,6 +9,17 @@ const state = {
   preset: 'reels',
   layers: [],
   timeline: { trimIn: 0, trimOut: 1, speed: 1, clips: [], currentClip: 0, keyframes: [] },
+  deviceKeyframes: [],
+  loops: {
+    main: { enabled: false, start: 0, end: 1 },
+    bgVideo: { enabled: false, start: 0, end: 1 },
+    bgAudio: { enabled: false, start: 0, end: 1 }
+  },
+  standstill: {
+    mode: 'none',
+    freezeTime: 0,
+    contentLoop: { enabled: false, start: 0, end: 1 }
+  },
   entrance: { type: 'none', duration: 1000 },
   facecam: { enabled: false, size: 0.15, x: -1, y: -1, corner: 'bottomRight', shape: 'circle', borderColor: '#ffffff', borderWidth: 3, shadow: true, source: 'camera', stream: null },
   hand: { enabled: false, style: 'right' },
