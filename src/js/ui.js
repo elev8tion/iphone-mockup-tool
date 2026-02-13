@@ -41,8 +41,8 @@ deviceGrid.addEventListener('click', e => {
   if (!btn) return;
   pushUndoState();
   const devId = btn.dataset.device;
-  state.device.type = devId;
-  state.device.color = DEVICES[devId].defaultColor;
+      state.device.type = devId;
+      updateHandOverlayUI();  state.device.color = DEVICES[devId].defaultColor;
   frameCache = {};
   deviceGrid.querySelectorAll('.dev-btn').forEach(x => x.classList.remove('active'));
   btn.classList.add('active');
@@ -115,7 +115,7 @@ customH.addEventListener('change', () => { PRESETS.custom.h = parseInt(customH.v
 function loadVideo(file) {
   const url = URL.createObjectURL(file);
   video.src = url;
-  video.muted = false;
+  video.muted = true;
   video.load();
   hasVideo = true;
   promptEl.classList.remove('visible');
@@ -130,6 +130,23 @@ function loadVideo(file) {
   // Reset virtual timeline
   vtTime = 0;
   vtActiveClipIdx = 0;
+  // Add clip to timeline
+  state.timeline.clips = [{ video: video, name: file.name, start: 0, duration: 0, trimIn: 0, trimOut: 1 }];
+  video.addEventListener('loadedmetadata', () => {
+    state.timeline.clips[0].duration = video.duration;
+    rebuildTimeline();
+    vtPlay();
+  }, { once: true });
+  video.addEventListener('canplay', () => {
+    if (!vtPlaying && state.timeline.clips.length === 1) vtPlay();
+  }, { once: true });
+  showToast('Video loaded: ' + file.name, 'success');
+}
+
+loadBtn.addEventListener('click', () => fileInput.click());
+canvasWrap.addEventListener('click', () => { if (!hasVideo) fileInput.click(); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadVideo(e.target.files[0]); });
+
 // Drag & drop
 let dragN = 0;
 document.addEventListener('dragenter', e => { e.preventDefault(); dragN++; dropOverlay.classList.add('active'); });
@@ -198,6 +215,51 @@ speedSelect.addEventListener('change', e => {
   state.timeline.clips.forEach(c => { c.video.playbackRate = state.timeline.speed; });
 });
 
+// Timeline click to seek (on empty track area, not clip blocks)
+timelineTrack.addEventListener('click', e => {
+  if (e.target.closest('.clip-block')) return;
+  if (!hasVideo) return;
+  const rect = timelineTrack.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const totalDuration = vtGetTotalDuration() || 1;
+  vtSeek(pct * totalDuration);
+});
+
+// Add clip
+document.getElementById('addClipBtn').addEventListener('click', () => clipInput.click());
+clipInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  pushUndoState();
+  const v = document.createElement('video');
+  v.src = URL.createObjectURL(file);
+  v.preload = 'auto';
+  v.muted = true;
+  v.playsInline = true;
+  v.style.display = 'none';
+  document.body.appendChild(v);
+  v.addEventListener('loadedmetadata', () => {
+    state.timeline.clips.push({ video: v, name: file.name, start: 0, duration: v.duration, trimIn: 0, trimOut: 1 });
+    rebuildTimeline();
+    showToast('Clip added: ' + file.name, 'success');
+  });
+  e.target.value = '';
+});
+
+// Zoom keyframes
+document.getElementById('addKeyframeBtn').addEventListener('click', () => {
+  if (!hasVideo) return;
+  const kf = {
+    time: vtTime,
+    zoom: parseInt(document.getElementById('kfZoom').value) / 100,
+    panX: parseInt(document.getElementById('kfPanX').value),
+    panY: parseInt(document.getElementById('kfPanY').value),
+  };
+  state.timeline.keyframes.push(kf);
+  state.timeline.keyframes.sort((a, b) => a.time - b.time);
+  rebuildTimeline();
+});
+
 // Keyboard shortcuts
 const kbOverlay = document.getElementById('kbOverlay');
 function toggleKbHelp() { kbOverlay.classList.toggle('open'); }
@@ -230,13 +292,17 @@ document.addEventListener('mousedown', e => {
 }, true);
 
 // ============================================================
-// COLLAPSIBLE SIDEBAR PANELS
+// COLLAPSIBLE SIDEBAR PANELS & MOBILE MENU
 // ============================================================
 const leftPanel = document.getElementById('leftPanel');
 const rightPanel = document.getElementById('rightPanel');
 const leftPanelToggle = document.getElementById('leftPanelToggle');
 const rightPanelToggle = document.getElementById('rightPanelToggle');
+const mobileLeftToggle = document.getElementById('mobileLeftToggle');
+const mobileRightToggle = document.getElementById('mobileRightToggle');
+const panelBackdrop = document.getElementById('panelBackdrop');
 
+// Desktop toggle (collapsed state)
 function togglePanel(side) {
   const panel = side === 'left' ? leftPanel : rightPanel;
   const btn = side === 'left' ? leftPanelToggle : rightPanelToggle;
@@ -247,6 +313,36 @@ function togglePanel(side) {
     btn.textContent = collapsed ? '«' : '»';
   }
   savePanelState();
+}
+
+// Mobile/Tablet toggle (overlay mode)
+function toggleMobilePanel(side) {
+  const panel = side === 'left' ? leftPanel : rightPanel;
+  const otherPanel = side === 'left' ? rightPanel : leftPanel;
+
+  // Close other panel first
+  otherPanel.classList.remove('mobile-open', 'tablet-open');
+
+  // Toggle this panel
+  const isOpen = panel.classList.contains('mobile-open') || panel.classList.contains('tablet-open');
+
+  if (window.innerWidth < 768) {
+    // Mobile: use mobile-open class with backdrop
+    if (isOpen) {
+      panel.classList.remove('mobile-open');
+      panelBackdrop.classList.remove('visible');
+    } else {
+      panel.classList.add('mobile-open');
+      panelBackdrop.classList.add('visible');
+    }
+  } else if (window.innerWidth < 1024) {
+    // Tablet: use tablet-open class
+    if (isOpen) {
+      panel.classList.remove('tablet-open');
+    } else {
+      panel.classList.add('tablet-open');
+    }
+  }
 }
 
 function savePanelState() {
@@ -277,8 +373,53 @@ function loadPanelState() {
   } catch (e) { /* ignore */ }
 }
 
-leftPanelToggle.addEventListener('click', () => togglePanel('left'));
-rightPanelToggle.addEventListener('click', () => togglePanel('right'));
+// Desktop toggle buttons
+if (leftPanelToggle) leftPanelToggle.addEventListener('click', () => togglePanel('left'));
+if (rightPanelToggle) rightPanelToggle.addEventListener('click', () => togglePanel('right'));
+
+// Mobile toggle buttons
+if (mobileLeftToggle) mobileLeftToggle.addEventListener('click', () => toggleMobilePanel('left'));
+if (mobileRightToggle) mobileRightToggle.addEventListener('click', () => toggleMobilePanel('right'));
+
+// Close mobile panels when backdrop is clicked
+if (panelBackdrop) {
+  panelBackdrop.addEventListener('click', () => {
+    leftPanel.classList.remove('mobile-open', 'tablet-open');
+    rightPanel.classList.remove('mobile-open', 'tablet-open');
+    panelBackdrop.classList.remove('visible');
+  });
+}
+
+// Swipe to close panels on mobile
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+}, { passive: true });
+
+function handleSwipe() {
+  const swipeDistance = touchEndX - touchStartX;
+  const threshold = 100;
+
+  // Swipe right to left (close left panel)
+  if (swipeDistance < -threshold && leftPanel.classList.contains('mobile-open')) {
+    leftPanel.classList.remove('mobile-open');
+    panelBackdrop.classList.remove('visible');
+  }
+
+  // Swipe left to right (close right panel)
+  if (swipeDistance > threshold && rightPanel.classList.contains('mobile-open')) {
+    rightPanel.classList.remove('mobile-open');
+    panelBackdrop.classList.remove('visible');
+  }
+}
+
 loadPanelState();
 
 // ============================================================
@@ -287,10 +428,29 @@ loadPanelState();
 document.getElementById('handBtn').addEventListener('click', function() {
   pushUndoState();
   state.hand.enabled = !state.hand.enabled;
-  this.classList.toggle('active', state.hand.enabled);
-  this.textContent = state.hand.enabled ? 'Disable Hand' : 'Enable Hand';
-  document.getElementById('resetHandBtn').style.display = state.hand.enabled ? 'inline-block' : 'none';
+  updateHandOverlayUI();
+  scheduleRender();
 });
+
+function updateHandOverlayUI() {
+  const handBtn = document.getElementById('handBtn');
+  const resetHandBtn = document.getElementById('resetHandBtn');
+  const supportedDevices = ['iphone16', 'applewatch']; // Devices that support hand overlay
+
+  if (supportedDevices.includes(state.device.type)) {
+    handBtn.disabled = false;
+    handBtn.classList.toggle('active', state.hand.enabled);
+    handBtn.textContent = state.hand.enabled ? 'Disable Hand' : 'Enable Hand';
+    resetHandBtn.style.display = state.hand.enabled ? 'inline-block' : 'none';
+  } else {
+    // Device not supported, disable hand overlay
+    state.hand.enabled = false;
+    handBtn.disabled = true;
+    handBtn.classList.remove('active');
+    handBtn.textContent = 'Hand Overlay (N/A for ' + DEVICES[state.device.type].name + ')';
+    resetHandBtn.style.display = 'none';
+  }
+}
 document.getElementById('handStyle').addEventListener('change', e => { state.hand.style = e.target.value; });
 
 // ============================================================
@@ -646,8 +806,7 @@ document.getElementById('clearAnnotationsBtn').addEventListener('click', () => {
 // Reset Device Transform
 document.getElementById('resetTransformBtn').addEventListener('click', () => {
   state.device.scale = 0.45;
-  state.device.tiltX = 0;
-  state.device.tiltY = 0;
+
   document.getElementById('scaleSlider').value = 45;
   document.getElementById('scaleVal').textContent = '45%';
   document.getElementById('tiltX').value = 0;
@@ -737,7 +896,10 @@ function rebuildOverlayList() {
     btn.addEventListener('click', e => {
       const idx = parseInt(e.target.dataset.ovRemove);
       const ov = state.videoOverlays[idx];
-      ov.video.pause(); URL.revokeObjectURL(ov.video.src);
+      if (ov.video) {
+        ov.video.pause();
+        URL.revokeObjectURL(ov.video.src);
+      }
       state.videoOverlays.splice(idx, 1);
       rebuildOverlayList();
     });
@@ -762,6 +924,14 @@ function syncOverlays() {
   for (const ov of state.videoOverlays) {
     if (!vtPlaying && !ov.video.paused) ov.video.pause();
     else if (vtPlaying && ov.video.paused) ov.video.play();
+  }
+  // Sync background video playback state
+  if (state.bgVideo.enabled) {
+    const bgVid = document.getElementById('bgVideo');
+    if (bgVid) {
+      if (!vtPlaying && !bgVid.paused) bgVid.pause();
+      else if (vtPlaying && bgVid.paused) bgVid.play().catch(err => console.warn('BG video play prevented:', err));
+    }
   }
 }
 
@@ -1020,6 +1190,7 @@ document.getElementById('projectFileInput').addEventListener('change', e => {
       const s = JSON.parse(reader.result);
       if (!s || !s.device) { showToast('Invalid project file', 'error'); return; }
       applyStateToUI(s);
+      updateHandOverlayUI();
       saveState();
       showToast('Project loaded: ' + file.name, 'success');
     } catch (err) {
@@ -1035,4 +1206,288 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
   location.reload();
 });
+
+// Load saved state on startup (must be after all DOM refs are initialized)
+loadState();
+updateHandOverlayUI();
+
+// ============================================================
+// DEVICE DRAGGING
+// ============================================================
+let isDragging = false;
+let dragTarget = null; // 'device' or 'device2'
+let dragStartX = 0;
+let dragStartY = 0;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  // Check if clicking on a device (simple hit test based on position)
+  const sz = getCanvasSize();
+  const dc = calcDevicePosition(sz.w, sz.h);
+
+  // Check device 1
+  if (state.device.type !== 'none') {
+    const dev = DEVICES[state.device.type];
+    let devW = dev.baseW, devH = dev.baseH;
+    if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
+    const devRect = {
+      x: dc.devX,
+      y: dc.devY,
+      w: devW * dc.devScale,
+      h: devH * dc.devScale
+    };
+    if (mx >= devRect.x && mx <= devRect.x + devRect.w &&
+        my >= devRect.y && my <= devRect.y + devRect.h) {
+      isDragging = true;
+      dragTarget = 'device';
+      dragStartX = mx;
+      dragStartY = my;
+      dragOffsetX = state.device.x;
+      dragOffsetY = state.device.y;
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
+  }
+
+  // Check device 2 if in comparison mode
+  if (dc.isComparing) {
+    const dev2 = DEVICES[state.comparison.device2.type];
+    if (dev2) {
+      let d2W = dev2.baseW, d2H = dev2.baseH;
+      if (state.device.landscape) { let t = d2W; d2W = d2H; d2H = t; }
+      const padFrac = 0.12;
+      const areaW = sz.w * 0.45;
+      const availW2 = areaW * (1 - padFrac*2);
+      const availH2 = sz.h * (1 - padFrac*2);
+      const fitScale2 = Math.min(availW2 / d2W, availH2 / d2H);
+      const d2Scale = fitScale2 * state.device.scale;
+      const d2Rect = {
+        x: sz.w * 0.75 - (d2W * d2Scale) / 2 + state.comparison.x,
+        y: (sz.h - d2H * d2Scale) / 2 + state.comparison.y,
+        w: d2W * d2Scale,
+        h: d2H * d2Scale
+      };
+      if (mx >= d2Rect.x && mx <= d2Rect.x + d2Rect.w &&
+          my >= d2Rect.y && my <= d2Rect.y + d2Rect.h) {
+        isDragging = true;
+        dragTarget = 'device2';
+        dragStartX = mx;
+        dragStartY = my;
+        dragOffsetX = state.comparison.x;
+        dragOffsetY = state.comparison.y;
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!isDragging) {
+    // Show grab cursor when hovering over devices
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    const sz = getCanvasSize();
+    const dc = calcDevicePosition(sz.w, sz.h);
+
+    let overDevice = false;
+
+    // Check device 1
+    if (state.device.type !== 'none') {
+      const dev = DEVICES[state.device.type];
+      let devW = dev.baseW, devH = dev.baseH;
+      if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
+      const devRect = {
+        x: dc.devX,
+        y: dc.devY,
+        w: devW * dc.devScale,
+        h: devH * dc.devScale
+      };
+      if (mx >= devRect.x && mx <= devRect.x + devRect.w &&
+          my >= devRect.y && my <= devRect.y + devRect.h) {
+        overDevice = true;
+      }
+    }
+
+    // Check device 2
+    if (!overDevice && dc.isComparing) {
+      const dev2 = DEVICES[state.comparison.device2.type];
+      if (dev2) {
+        let d2W = dev2.baseW, d2H = dev2.baseH;
+        if (state.device.landscape) { let t = d2W; d2W = d2H; d2H = t; }
+        const padFrac = 0.12;
+        const areaW = sz.w * 0.45;
+        const availW2 = areaW * (1 - padFrac*2);
+        const availH2 = sz.h * (1 - padFrac*2);
+        const fitScale2 = Math.min(availW2 / d2W, availH2 / d2H);
+        const d2Scale = fitScale2 * state.device.scale;
+        const d2Rect = {
+          x: sz.w * 0.75 - (d2W * d2Scale) / 2 + state.comparison.x,
+          y: (sz.h - d2H * d2Scale) / 2 + state.comparison.y,
+          w: d2W * d2Scale,
+          h: d2H * d2Scale
+        };
+        if (mx >= d2Rect.x && mx <= d2Rect.x + d2Rect.w &&
+            my >= d2Rect.y && my <= d2Rect.y + d2Rect.h) {
+          overDevice = true;
+        }
+      }
+    }
+
+    canvas.style.cursor = overDevice ? 'grab' : 'default';
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  const deltaX = mx - dragStartX;
+  const deltaY = my - dragStartY;
+
+  if (dragTarget === 'device') {
+    state.device.x = dragOffsetX + deltaX;
+    state.device.y = dragOffsetY + deltaY;
+  } else if (dragTarget === 'device2') {
+    state.comparison.x = dragOffsetX + deltaX;
+    state.comparison.y = dragOffsetY + deltaY;
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (isDragging) {
+    pushUndoState();
+    scheduleSave();
+  }
+  isDragging = false;
+  dragTarget = null;
+  canvas.style.cursor = 'default';
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (isDragging) {
+    pushUndoState();
+    scheduleSave();
+  }
+  isDragging = false;
+  dragTarget = null;
+  canvas.style.cursor = 'default';
+});
+
+// ============================================================
+// TOOLTIP SYSTEM
+// ============================================================
+const tooltip = document.getElementById('tooltip');
+const tooltipContent = tooltip ? tooltip.querySelector('.tooltip-content') : null;
+
+if (tooltip && tooltipContent) {
+  document.querySelectorAll('[data-tooltip]').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      const text = el.dataset.tooltip;
+      if (!text) return;
+
+      tooltipContent.textContent = text;
+      tooltip.classList.add('visible');
+
+      const rect = el.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+
+      // Position tooltip above the element
+      const left = rect.left + rect.width / 2;
+      const top = rect.bottom + 8;
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+      tooltip.style.transform = 'translateX(-50%)';
+    });
+
+    el.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+
+  // Hide tooltip on scroll to prevent positioning issues
+  window.addEventListener('scroll', () => {
+    tooltip.classList.remove('visible');
+  }, true); // Use capture to catch all scroll events
+}
+
+// ============================================================
+// WELCOME MODAL
+// ============================================================
+const hasSeenWelcome = localStorage.getItem('mockupStudioWelcomeSeen');
+const welcomeOverlay = document.getElementById('welcomeOverlay');
+const dismissWelcome = document.getElementById('dismissWelcome');
+
+if (!hasSeenWelcome && welcomeOverlay) {
+  welcomeOverlay.classList.add('open');
+}
+
+if (dismissWelcome) {
+  dismissWelcome.addEventListener('click', () => {
+    welcomeOverlay.classList.remove('open');
+    localStorage.setItem('mockupStudioWelcomeSeen', 'true');
+  });
+}
+
+// ============================================================
+// THEME MANAGEMENT
+// ============================================================
+// Initialize theme from localStorage or default to dark
+const savedTheme = localStorage.getItem('mockupStudioTheme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+// Theme toggle button
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeToggleIcon = document.getElementById('themeToggleIcon');
+
+if (themeToggleBtn && themeToggleIcon) {
+  // Set initial icon based on current theme
+  function updateThemeIcon(theme) {
+    themeToggleIcon.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+
+  // Set initial icon
+  updateThemeIcon(savedTheme);
+
+  // Toggle theme on click
+  themeToggleBtn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+
+    // Apply theme
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('mockupStudioTheme', newTheme);
+
+    // Update icon
+    updateThemeIcon(newTheme);
+
+    // Show toast
+    showToast(`Switched to ${newTheme} theme`, 'success');
+  });
+}
+
+// ============================================================
+// LUCIDE ICONS INITIALIZATION
+// ============================================================
+// Initialize Lucide icons after DOM is ready
+if (typeof lucide !== 'undefined') {
+  lucide.createIcons();
+}
 

@@ -1,9 +1,52 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-content"></div>
+  <div class="tooltip-arrow"></div>
+</div>
+
+<!-- Welcome Modal -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-card glass-panel">
+    <h2>Welcome to Mockup Studio</h2>
+    <p style="color: var(--text-secondary); margin: 8px 0 20px;">Create stunning device mockup videos in seconds</p>
+    <div class="welcome-steps">
+      <div class="step">
+        <span class="step-icon"><i data-lucide="smartphone"></i></span>
+        <span>Choose a device</span>
+      </div>
+      <div class="step">
+        <span class="step-icon"><i data-lucide="video"></i></span>
+        <span>Upload your video</span>
+      </div>
+      <div class="step">
+        <span class="step-icon"><i data-lucide="sparkles"></i></span>
+        <span>Export & share</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="dismissWelcome" style="width: 100%;">Get Started</button>
+  </div>
+</div>
+
+<!-- Panel Backdrop for Mobile -->
+<div class="panel-backdrop" id="panelBackdrop"></div>
+
 <!-- Top Bar -->
 <div class="top-bar">
+  <!-- Mobile: Left Panel Toggle (Hamburger Menu) -->
+  <button class="mobile-menu-toggle" id="mobileLeftToggle" title="Open menu">
+    <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+  </button>
+
   <span class="logo">Mockup Studio</span>
+
+  <!-- Mobile: Right Panel Toggle -->
+  <button class="mobile-menu-toggle" id="mobileRightToggle" title="Open effects" style="margin-left: auto;">
+    <i data-lucide="sliders" style="width: 20px; height: 20px;"></i>
+  </button>
+
   <div class="sep"></div>
 
   <label>Preset
@@ -36,17 +79,18 @@
 
   <div class="spacer"></div>
 
-  <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled>↩</button>
-  <button class="undo-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" disabled>↪</button>
+  <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled><i data-lucide="rotate-ccw"></i></button>
+  <button class="undo-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" disabled><i data-lucide="rotate-cw"></i></button>
   <div class="sep"></div>
 
-  <button class="btn" id="assetBrowserBtn" style="background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.2));border-color:rgba(139,92,246,0.3)">📂 Assets</button>
-  <button class="btn" id="loadBtn">Load Video</button>
-  <button class="btn" id="loopBtn">Loop</button>
-  <button class="btn" id="ssBtn">Screenshot</button>
-  <button class="btn" id="thumbBtn">Thumbnail</button>
-  <button class="btn" id="kbHelpBtn" title="Keyboard shortcuts (?)">⌨</button>
-  <button class="btn btn-primary" id="exportBtn">Export</button>
+  <button class="btn" id="assetBrowserBtn" data-tooltip="Browse your asset library" style="background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.2));border-color:rgba(139,92,246,0.3)"><i data-lucide="folder"></i><span>Assets</span></button>
+  <button class="btn" id="themeToggleBtn" data-tooltip="Toggle light/dark theme"><i data-lucide="sun" id="themeToggleIcon"></i></button>
+  <button class="btn" id="loadBtn" data-tooltip="Load a video file to get started"><i data-lucide="upload"></i><span>Load Video</span></button>
+  <button class="btn" id="loopBtn" data-tooltip="Toggle video looping"><i data-lucide="repeat"></i><span>Loop</span></button>
+  <button class="btn" id="ssBtn" data-tooltip="Save current frame as image"><i data-lucide="camera"></i><span>Screenshot</span></button>
+  <button class="btn" id="thumbBtn" data-tooltip="Generate thumbnail from video"><i data-lucide="image"></i><span>Thumbnail</span></button>
+  <button class="btn" id="kbHelpBtn" data-tooltip="View keyboard shortcuts" title="Keyboard shortcuts (?)"><i data-lucide="keyboard"></i></button>
+  <button class="btn btn-primary" id="exportBtn" data-tooltip="Export your mockup as video"><i data-lucide="download"></i><span>Export</span></button>
 </div>
 
 <!-- Keyboard Shortcuts Overlay -->
@@ -68,6 +112,13 @@
 <!-- Export Dialog -->
 <div class="export-dialog" id="exportDialog">
   <div class="export-dialog-panel">
+    <div class="export-success" id="exportSuccess" style="display:none">
+      <svg class="checkmark" viewBox="0 0 52 52">
+        <circle class="checkmark-circle" cx="26" cy="26" r="25"/>
+        <path class="checkmark-check" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
+      <h3 style="color: var(--accent-success); margin-top: 12px;">Export Complete!</h3>
+    </div>
     <h2>Export Settings</h2>
     <div class="ed-row"><label>Format</label><select id="edFormat"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select></div>
     <div id="edFormatNote" style="font-size:9px;color:#666;padding:0 4px 4px;display:none"></div>
@@ -107,8 +158,11 @@
 
   <!-- Left Panel -->
   <div class="panel left-panel" id="leftPanel">
-    <button class="panel-toggle" id="leftPanelToggle" title="Toggle left panel [">«</button>
-    <div class="panel-collapsed-label">Templates</div>
+    <div class="panel-header">
+      <h3 class="panel-title">Templates</h3>
+      <button class="panel-toggle" id="leftPanelToggle" title="Toggle left panel [">«</button>
+    </div>
+    <div class="panel-body">
     <div class="panel-section">
       <div class="section-header">
         <h3>Studio Templates</h3>
@@ -135,11 +189,11 @@
       </div>
       <div class="collapsible-content" id="deviceContent">
         <div class="device-grid" id="deviceGrid">
-          <div class="dev-btn" data-device="none"><span class="icon">🚫</span>None</div>
-          <div class="dev-btn active" data-device="iphone16"><span class="icon">📱</span>iPhone 16</div>
-          <div class="dev-btn" data-device="ipadpro"><span class="icon">📲</span>iPad Pro</div>
-          <div class="dev-btn" data-device="macbookpro"><span class="icon">💻</span>MacBook</div>
-          <div class="dev-btn" data-device="applewatch"><span class="icon">⌚</span>Watch</div>
+          <div class="dev-btn" data-device="none"><span class="icon"><i data-lucide="x"></i></span>None</div>
+          <div class="dev-btn active" data-device="iphone16"><span class="icon"><i data-lucide="smartphone"></i></span>iPhone 16</div>
+          <div class="dev-btn" data-device="ipadpro"><span class="icon"><i data-lucide="tablet"></i></span>iPad Pro</div>
+          <div class="dev-btn" data-device="macbookpro"><span class="icon"><i data-lucide="monitor"></i></span>MacBook</div>
+          <div class="dev-btn" data-device="applewatch"><span class="icon"><i data-lucide="watch"></i></span>Watch</div>
         </div>
         <div id="colorSwatches" class="color-swatches"></div>
         <div class="toggle-row" id="deviceToggles">
@@ -155,10 +209,10 @@
         <button class="btn btn-danger" id="disableCompareBtn">Disable</button>
       </div>
       <div class="device-grid" id="device2Grid">
-        <div class="dev-btn active" data-device="ipadpro"><span class="icon">📲</span>iPad Pro</div>
-        <div class="dev-btn" data-device="iphone16"><span class="icon">📱</span>iPhone 16</div>
-        <div class="dev-btn" data-device="macbookpro"><span class="icon">💻</span>MacBook</div>
-        <div class="dev-btn" data-device="applewatch"><span class="icon">⌚</span>Watch</div>
+        <div class="dev-btn active" data-device="ipadpro"><span class="icon"><i data-lucide="tablet"></i></span>iPad Pro</div>
+        <div class="dev-btn" data-device="iphone16"><span class="icon"><i data-lucide="smartphone"></i></span>iPhone 16</div>
+        <div class="dev-btn" data-device="macbookpro"><span class="icon"><i data-lucide="monitor"></i></span>MacBook</div>
+        <div class="dev-btn" data-device="applewatch"><span class="icon"><i data-lucide="watch"></i></span>Watch</div>
       </div>
       <div id="colorSwatches2" class="color-swatches"></div>
       <button class="btn" id="loadVideo2Btn" style="width:100%;margin-top:6px">Load Video for Device 2</button>
@@ -242,6 +296,7 @@
         <p style="font-size:8px;color:#555;margin-top:3px">Upload draft_content.json from CapCut Desktop project folder</p>
       </div>
     </div>
+    </div>
   </div>
 
   <!-- Canvas Stage -->
@@ -258,8 +313,11 @@
 
   <!-- Right Panel -->
   <div class="panel right-panel" id="rightPanel">
-    <button class="panel-toggle" id="rightPanelToggle" title="Toggle right panel ]">»</button>
-    <div class="panel-collapsed-label">Effects</div>
+    <div class="panel-header">
+      <h3 class="panel-title">Effects</h3>
+      <button class="panel-toggle" id="rightPanelToggle" title="Toggle right panel ]">»</button>
+    </div>
+    <div class="panel-body">
     <div class="panel-section">
       <div class="section-header">
         <h3>Background</h3>
@@ -304,6 +362,14 @@
             </select>
           </div>
         </div>
+      </div>
+      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.04);padding-top:8px">
+        <div class="section-header" style="margin-bottom:4px">
+          <label style="font-size:9px;color:#666;font-weight:600">BG AUDIO</label>
+        </div>
+        <button class="btn" id="loadBgAudioBtn" style="width:100%;font-size:9px">Load Background Audio (MP3)</button>
+        <input type="file" id="bgAudioInput" accept="audio/*" style="display:none">
+        <p id="bgAudioStatus" style="font-size:8px;color:#555;margin-top:3px"></p>
       </div>
     </div>
 
@@ -564,48 +630,179 @@
       <input type="file" id="projectFileInput" accept=".json,application/json" style="display:none">
       <button class="btn" id="resetAllBtn" style="width:100%;color:#f66;border-color:rgba(255,100,100,0.2)">Reset All</button>
     </div>
+    </div>
   </div>
 </div>
 
-<!-- Timeline -->
-<div class="timeline-bar" id="timelineBar">
-  <div class="timeline-track" id="timelineTrack">
-    <div class="timeline-scrubber" id="timelineScrubber"></div>
+<!-- Enhanced Multi-Track Timeline System -->
+<div class="timeline-system" id="timelineSystem">
+
+  <!-- Background Audio Track -->
+  <div class="bg-audio-track" id="bgAudioTrack">
+    <div class="track-header">
+      <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+      <div class="track-label">
+        <span class="track-label-icon">🎵</span>
+        Background Audio
+      </div>
+      <div style="flex: 1"></div>
+      <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
+        <span class="sync-icon">⚡</span> Sync
+      </button>
+    </div>
+
+    <div class="bg-track-content">
+      <div class="bg-video-controls">
+        <button class="track-play-btn" id="audioTrackPlayBtn" title="Play/Pause audio">
+          <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="pause-icon" style="display:none" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="track-loop-btn" id="audioLoopBtn" title="Toggle loop">
+          ↻
+        </button>
+        <input type="range" id="audioVolumeSlider" min="0" max="100" value="100" title="Volume" style="width: 60px; margin: 0 4px;">
+      </div>
+
+      <div class="bg-progress-track" id="audioProgressTrack">
+        <div class="bg-progress-fill" id="audioProgressFill" style="background: linear-gradient(90deg, rgba(245,158,11,0.3) 0%, rgba(245,158,11,0.2) 100%); border-right-color: rgba(245,158,11,0.8);">
+          <div class="bg-progress-handle" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 2px 8px rgba(245,158,11,0.4), 0 0 0 3px rgba(245,158,11,0.2);"></div>
+          <div class="bg-progress-waveform"></div>
+        </div>
+      </div>
+
+      <div class="bg-video-options">
+        <span class="bg-time-display" id="audioTimeDisplay">0:00 / 0:00</span>
+        <select class="track-speed-select" id="audioSpeedSelect">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+        <button class="btn btn-danger" id="removeAudioBtn" style="padding: 4px 8px; font-size: 9px;">Remove</button>
+      </div>
+    </div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <button class="btn" id="addClipBtn" style="font-size:9px">+ Add Clip</button>
-    <label style="font-size:9px;color:#666">Transition
-      <select id="transitionSelect" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:3px;color:#ccc;padding:1px 3px;font-size:9px">
-        <option value="cut">Cut</option>
-        <option value="crossfade">Crossfade</option>
-        <option value="slide">Slide</option>
-      </select>
-    </label>
+
+  <!-- Background Video Track -->
+  <div class="bg-video-track" id="bgVideoTrack">
+    <div class="track-header">
+      <div class="track-indicator bg-video"></div>
+      <div class="track-label">
+        <span class="track-label-icon">🎬</span>
+        Background Video
+      </div>
+      <div style="flex: 1"></div>
+      <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
+        <span class="sync-icon">⚡</span> Sync
+      </button>
+    </div>
+
+    <div class="bg-track-content">
+      <div class="bg-video-controls">
+        <button class="track-play-btn" id="bgTrackPlayBtn" title="Play/Pause background video">
+          <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="pause-icon" style="display:none" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="track-loop-btn" id="bgLoopBtn" title="Toggle loop">
+          ↻
+        </button>
+      </div>
+
+      <div class="bg-progress-track" id="bgProgressTrack">
+        <div class="bg-progress-fill" id="bgProgressFill">
+          <div class="bg-progress-handle"></div>
+          <div class="bg-progress-waveform"></div>
+        </div>
+      </div>
+
+      <div class="bg-video-options">
+        <span class="bg-time-display" id="bgTimeDisplay">0:00 / 0:00</span>
+        <select class="track-speed-select" id="bgSpeedSelect">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Device Video Track -->
+  <div class="main-video-track">
+    <div class="track-header">
+      <div class="track-indicator"></div>
+      <div class="track-label">
+        <span class="track-label-icon">📱</span>
+        Device Content
+      </div>
+    </div>
+
+    <div class="main-track-content">
+      <div style="min-width: 140px">
+        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+      </div>
+
+      <!-- Timeline Track (existing multi-clip timeline) -->
+      <div class="timeline-track" id="timelineTrack" style="height: 40px; margin: 0;">
+        <div class="timeline-scrubber" id="timelineScrubber"></div>
+      </div>
+
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn" id="addClipBtn" style="font-size: 9px; padding: 4px 8px;">+ Clip</button>
+        <select id="transitionSelect" class="track-speed-select" style="min-width: 80px;">
+          <option value="cut">Cut</option>
+          <option value="crossfade">Crossfade</option>
+          <option value="slide">Slide</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Playback Controls -->
+  <div class="unified-controls">
+    <button class="master-play-btn" id="masterPlayBtn" title="Play/Pause (Space)">
+      <svg id="masterIconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="masterIconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+
+    <div class="progress-track" id="progressTrack" style="flex: 1; margin: 0;">
+      <div class="progress-fill" id="progressFill">
+        <div class="progress-handle">
+          <div class="progress-tooltip" id="progressTooltip"></div>
+        </div>
+      </div>
+    </div>
+
+    <span class="master-time-display" id="masterTimeDisplay">0:00 / 0:00</span>
+
+    <select class="track-speed-select" id="speedSelect">
+      <option value="0.25">0.25×</option>
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+
+    <div class="timeline-zoom-control">
+      <button class="zoom-btn" id="zoomOutBtn" title="Zoom out timeline">−</button>
+      <button class="zoom-btn" id="zoomInBtn" title="Zoom in timeline">+</button>
+    </div>
   </div>
 </div>
 
-<!-- Playback Bar -->
-<div class="playback-bar" id="playbackBar">
+<!-- Legacy elements for compatibility -->
+<div class="timeline-bar" id="timelineBar" style="display:none"></div>
+<div class="playback-bar" id="playbackBar" style="display:none">
   <button class="play-btn" id="playBtn">
     <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
     <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
   </button>
-  <div class="progress-track" id="progressTrack">
-    <div class="progress-fill" id="progressFill">
-      <div class="progress-handle">
-        <div class="progress-tooltip" id="progressTooltip"></div>
-      </div>
-    </div>
-  </div>
   <span class="time-label" id="timeLabel">0:00 / 0:00</span>
-  <span id="videoFileName" style="font-size:10px;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-  <select class="speed-select" id="speedSelect">
-    <option value="0.25">0.25x</option>
-    <option value="0.5">0.5x</option>
-    <option value="1" selected>1x</option>
-    <option value="1.5">1.5x</option>
-    <option value="2">2x</option>
-  </select>
+  <span id="videoFileName" style="font-size:10px;color:#666"></span>
 </div>
 
 <!-- Drop overlay -->
@@ -646,4 +843,5 @@
 <video id="srcVideo" style="display:none" playsinline></video>
 <video id="srcVideo2" style="display:none" playsinline loop></video>
 <video id="bgVideo" style="display:none" playsinline loop muted></video>
+<audio id="bgAudio" style="display:none"></audio>
 

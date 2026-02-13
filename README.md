@@ -6,7 +6,22 @@ Drop in a screen recording, pick a device, style the scene, and export a polishe
 
 ## Quick Start
 
-**Option 1 — One-click (macOS)**
+**Option 1 — macOS App Bundle (Recommended)**
+
+Create a native macOS app you can double-click:
+
+```bash
+./create-app-bundle.sh
+```
+
+Then launch `Mockup Studio.app` from Finder. You can:
+- Drag it to your Dock for quick access
+- Create an alias in `/Applications`
+- Double-click to launch (no terminal needed)
+
+**Auto-rebuild:** The app automatically detects when source files change and rebuilds on next launch.
+
+**Option 2 — Terminal launcher (macOS/Linux/Windows)**
 
 ```bash
 ./mockup-studio
@@ -14,7 +29,7 @@ Drop in a screen recording, pick a device, style the scene, and export a polishe
 
 Starts a local server on port 8070 and opens Chrome automatically.
 
-**Option 2 — Manual server**
+**Option 3 — Manual server**
 
 ```bash
 python3 -m http.server 8070
@@ -22,7 +37,7 @@ python3 -m http.server 8070
 
 Then open [http://localhost:8070/mockup-player.html](http://localhost:8070/mockup-player.html) in Chrome.
 
-**Option 3 — Direct file**
+**Option 4 — Direct file**
 
 Open `mockup-player.html` directly in Chrome. Some features (asset browser, video backgrounds) require a local server.
 

@@ -1,15 +1,18 @@
 /* ---- Top Bar ---- */
 .top-bar {
   height: 44px;
-  background: rgba(18,18,18,0.95);
+  background: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
   padding: 0 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   z-index: 100;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 44px;
 }
 
 .top-bar .logo {
@@ -18,16 +21,16 @@
   letter-spacing: -0.4px;
   margin-right: 12px;
   white-space: nowrap;
-  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.top-bar .sep { width: 1px; height: 20px; background: rgba(255,255,255,0.08); }
+.top-bar .sep { width: 1px; height: 20px; background: var(--glass-border); }
 
 .top-bar label {
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -49,16 +52,36 @@
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  color: #ccc;
-  padding: 5px 10px;
-  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  min-height: 36px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
-.btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+.btn:hover {
+  background: rgba(255,255,255,0.13);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Accessibility: Focus states */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
 
 .btn-primary {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
@@ -74,12 +97,118 @@
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
 .undo-btn {
-  background: none; border: none; color: #555; font-size: 14px;
+  background: none; border: none; color: var(--text-tertiary); font-size: 14px;
   cursor: pointer; padding: 2px 5px; border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
-.undo-btn:hover:not(:disabled) { color: #ccc; background: rgba(255,255,255,0.06); }
+.undo-btn:hover:not(:disabled) { color: var(--text-secondary); background: rgba(255,255,255,0.06); }
 .undo-btn:disabled { color: #333; cursor: default; }
 
 .top-bar .spacer { flex: 1; }
+
+/* Mobile Menu Toggle Buttons */
+.mobile-menu-toggle {
+  display: none; /* Hidden by default, shown via media queries */
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.mobile-menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.mobile-menu-toggle:active {
+  transform: scale(0.95);
+}
+
+.mobile-menu-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================ */
+/* LIGHT THEME OVERRIDES */
+/* ============================================================ */
+:root[data-theme="light"] .top-bar {
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .top-bar .logo {
+  background: linear-gradient(135deg, #0071e3, #8e5cdb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root[data-theme="light"] .top-bar .sep {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .top-bar select,
+:root[data-theme="light"] .top-bar input[type="number"] {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .btn {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #0071e3, #8e5cdb);
+  border-color: rgba(0, 113, 227, 0.4);
+  color: #fff;
+}
+
+:root[data-theme="light"] .btn-primary:hover {
+  opacity: 0.9;
+}
+
+:root[data-theme="light"] .btn-primary.recording {
+  background: linear-gradient(135deg, #dc2626, #e11d48);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+:root[data-theme="light"] .undo-btn {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="light"] .undo-btn:hover:not(:disabled) {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .undo-btn:disabled {
+  color: var(--text-tertiary);
+  opacity: 0.4;
+}
+
+:root[data-theme="light"] .mobile-menu-toggle {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="light"] .mobile-menu-toggle:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
 

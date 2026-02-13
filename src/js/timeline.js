@@ -69,6 +69,14 @@ function vtSeek(t) {
   const clips = state.timeline.clips;
   if (clips.length === 0) {
     video.currentTime = vtTime;
+    syncOverlays();
+    // Sync background video
+    if (state.bgVideo.enabled) {
+      const bgVid = document.getElementById('bgVideo');
+      if (bgVid && bgVid.readyState >= 2) {
+        bgVid.currentTime = Math.min(vtTime, bgVid.duration - 0.01);
+      }
+    }
     return;
   }
   // Pause all clips
@@ -77,6 +85,14 @@ function vtSeek(t) {
   if (info) {
     vtActiveClipIdx = info.index;
     info.clip.video.currentTime = info.localTime;
+    syncOverlays();
+    // Sync background video
+    if (state.bgVideo.enabled) {
+      const bgVid = document.getElementById('bgVideo');
+      if (bgVid && bgVid.readyState >= 2) {
+        bgVid.currentTime = Math.min(vtTime, bgVid.duration - 0.01);
+      }
+    }
     if (vtPlaying) info.clip.video.play();
   }
 }
@@ -87,19 +103,20 @@ function vtPlay() {
   vtLastTick = performance.now();
   const clips = state.timeline.clips;
   if (clips.length === 0) {
-    video.play();
+    video.play().catch(err => { console.warn('Main video play prevented:', err); });
   } else {
     const info = vtGetClipAt(vtTime);
     if (info) {
       vtActiveClipIdx = info.index;
       info.clip.video.currentTime = info.localTime;
       info.clip.video.playbackRate = state.timeline.speed;
-      info.clip.video.play();
+      info.clip.video.play().catch(err => { console.warn('Clip video play prevented:', err); });
     }
   }
   iconPlay.style.display = 'none'; iconPause.style.display = 'block';
-  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.play(); });
-  if (state.bgVideo.enabled) document.getElementById('bgVideo').play();
+  state.videoOverlays.forEach(ov => { if (ov.video) ov.video.play().catch(err => { console.warn('Overlay video play prevented:', err); }); });
+  if (state.bgVideo.enabled) document.getElementById('bgVideo').play().catch(err => { console.warn('Background video play prevented:', err); });
+  syncOverlays();
 }
 
 function vtPause() {
@@ -113,6 +130,7 @@ function vtPause() {
   iconPlay.style.display = 'block'; iconPause.style.display = 'none';
   state.videoOverlays.forEach(ov => { if (ov.video) ov.video.pause(); });
   if (state.bgVideo.enabled) document.getElementById('bgVideo').pause();
+  syncOverlays();
 }
 
 function vtToggle() {
@@ -148,14 +166,14 @@ function vtTick() {
       vtActiveClipIdx = info.index;
       info.clip.video.currentTime = info.localTime;
       info.clip.video.playbackRate = state.timeline.speed;
-      info.clip.video.play();
+      info.clip.video.play().catch(err => { console.warn('Clip video play prevented:', err); });
     }
     // Handle transition — keep both clips playing during overlap
     const trans = vtGetTransition();
     if (trans && trans.inClip.video.paused) {
       trans.inClip.video.currentTime = trans.inClip.duration * (trans.inClip.trimIn || 0);
       trans.inClip.video.playbackRate = state.timeline.speed;
-      trans.inClip.video.play();
+      trans.inClip.video.play().catch(err => { console.warn('Transition inClip video play prevented:', err); });
     }
   }
 
@@ -164,24 +182,6 @@ function vtTick() {
   timeLabel.textContent = fmt(vtTime) + ' / ' + fmt(totalDur);
   updateTimelineScrubber();
 }
-
-// ============================================================
-  // Add clip to timeline
-  state.timeline.clips = [{ video: video, name: file.name, start: 0, duration: 0, trimIn: 0, trimOut: 1 }];
-  video.addEventListener('loadedmetadata', () => {
-    state.timeline.clips[0].duration = video.duration;
-    rebuildTimeline();
-    vtPlay();
-  }, { once: true });
-  video.addEventListener('canplay', () => {
-    if (!vtPlaying && state.timeline.clips.length === 1) vtPlay();
-  }, { once: true });
-  showToast('Video loaded: ' + file.name, 'success');
-}
-
-loadBtn.addEventListener('click', () => fileInput.click());
-canvasWrap.addEventListener('click', () => { if (!hasVideo) fileInput.click(); });
-fileInput.addEventListener('change', e => { if (e.target.files[0]) loadVideo(e.target.files[0]); });
 
 // TIMELINE
 // ============================================================
@@ -334,52 +334,5 @@ function updateTimelineScrubber() {
     });
   }
 }
-
-// Timeline click to seek (on empty track area, not clip blocks)
-timelineTrack.addEventListener('click', e => {
-  if (e.target.closest('.clip-block')) return; // handled by clip block click
-  if (!hasVideo) return;
-  const rect = timelineTrack.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  const totalDuration = vtGetTotalDuration() || 1;
-  vtSeek(pct * totalDuration);
-});
-
-// Add clip
-document.getElementById('addClipBtn').addEventListener('click', () => clipInput.click());
-clipInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  pushUndoState();
-  const v = document.createElement('video');
-  v.src = URL.createObjectURL(file);
-  v.preload = 'auto';
-  v.muted = true;
-  v.playsInline = true;
-  v.style.display = 'none';
-  document.body.appendChild(v);
-  v.addEventListener('loadedmetadata', () => {
-    state.timeline.clips.push({ video: v, name: file.name, start: 0, duration: v.duration, trimIn: 0, trimOut: 1 });
-    rebuildTimeline();
-    showToast('Clip added: ' + file.name, 'success');
-  });
-  e.target.value = '';
-});
-
-// ============================================================
-// ZOOM KEYFRAMES
-// ============================================================
-document.getElementById('addKeyframeBtn').addEventListener('click', () => {
-  if (!hasVideo) return;
-  const kf = {
-    time: vtTime,
-    zoom: parseInt(document.getElementById('kfZoom').value) / 100,
-    panX: parseInt(document.getElementById('kfPanX').value),
-    panY: parseInt(document.getElementById('kfPanY').value),
-  };
-  state.timeline.keyframes.push(kf);
-  state.timeline.keyframes.sort((a, b) => a.time - b.time);
-  rebuildTimeline();
-});
 
 // ============================================================

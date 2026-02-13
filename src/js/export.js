@@ -190,6 +190,15 @@ function startExport() {
     if (exportRAF) cancelAnimationFrame(exportRAF);
     reconnectAudioGraph();
     showToast('Export complete — WebM downloaded', 'success');
+
+    // Show success animation
+    const exportSuccess = document.getElementById('exportSuccess');
+    if (exportSuccess) {
+      exportSuccess.style.display = 'flex';
+      setTimeout(() => {
+        exportSuccess.style.display = 'none';
+      }, 2500);
+    }
   };
 
   // Play from start of virtual timeline
@@ -248,6 +257,11 @@ async function startMp4Export() {
   exportCanvas.width = expW;
   exportCanvas.height = expH;
   const eCtx = exportCanvas.getContext('2d');
+
+  if (typeof Mp4Muxer === 'undefined') {
+    console.error('Mp4Muxer is not defined. MP4 export is unavailable. Please check your internet connection.');
+    return;
+  }
 
   // Configure mp4-muxer (uses shared AudioContext singleton)
   var mp4AudioCtx = null;
@@ -322,7 +336,7 @@ async function startMp4Export() {
         try {
           const audioData = new AudioData({
             format: 'f32-planar',
-            sampleRate: audioCtx.sampleRate,
+            sampleRate: mp4AudioCtx.sampleRate,
             numberOfFrames: nf,
             numberOfChannels: 2,
             timestamp: audioTimestamp,
@@ -416,6 +430,15 @@ async function startMp4Export() {
       a.href = URL.createObjectURL(blob);
       a.click();
       showToast('Export complete \u2014 MP4 downloaded', 'success');
+
+      // Show success animation
+      const exportSuccess = document.getElementById('exportSuccess');
+      if (exportSuccess) {
+        exportSuccess.style.display = 'flex';
+        setTimeout(() => {
+          exportSuccess.style.display = 'none';
+        }, 2500);
+      }
     } catch (err) {
       console.error('MP4 finalize error:', err);
       showToast('MP4 export failed: ' + err.message, 'error');

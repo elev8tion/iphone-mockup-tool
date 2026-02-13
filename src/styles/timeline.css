@@ -1,7 +1,7 @@
 /* ---- Timeline ---- */
 .timeline-bar {
   height: 80px;
-  background: rgba(18,18,18,0.95);
+  background: var(--bg-panel);
   border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
   border: 1px solid rgba(96,165,250,0.3);
   border-radius: 3px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 9px; color: #60a5fa;
+  font-size: 9px; color: var(--accent-primary);
   cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   user-select: none; transition: opacity 0.15s;
 }
@@ -64,7 +64,7 @@
 /* ---- Playback Bar ---- */
 .playback-bar {
   height: 40px;
-  background: rgba(18,18,18,0.95);
+  background: var(--bg-panel);
   border-top: 1px solid rgba(255,255,255,0.06);
   padding: 0 16px;
   display: flex;
@@ -91,7 +91,7 @@
 }
 .progress-track:hover, .progress-track.scrubbing { height: 6px; }
 .progress-fill {
-  height: 100%; background: #60a5fa; border-radius: 2px; width: 0%;
+  height: 100%; background: var(--accent-primary); border-radius: 2px; width: 0%;
   pointer-events: none; position: relative;
 }
 .progress-handle {
@@ -120,5 +120,96 @@
 .speed-select {
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
   border-radius: 4px; color: #ccc; padding: 2px 4px; font-size: 10px; font-family: inherit;
+}
+
+/* ============================================================ */
+/* LIGHT THEME OVERRIDES */
+/* ============================================================ */
+
+/* Timeline Bar */
+:root[data-theme="light"] .timeline-bar {
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .timeline-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Clip Blocks */
+:root[data-theme="light"] .timeline-track .clip-block {
+  background: rgba(0, 113, 227, 0.12);
+  border: 1px solid rgba(0, 113, 227, 0.3);
+  color: var(--accent-primary);
+}
+
+:root[data-theme="light"] .clip-block.active {
+  border-color: var(--accent-warning);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+:root[data-theme="light"] .clip-block .clip-trim-handle {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="light"] .clip-block .clip-trim-handle:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"] .clip-trans-indicator {
+  background: rgba(142, 92, 219, 0.6);
+}
+
+/* Trim Handles */
+:root[data-theme="light"] .trim-handle {
+  background: rgba(0, 113, 227, 0.6);
+}
+
+/* Timeline Scrubber/Playhead */
+:root[data-theme="light"] .timeline-scrubber {
+  background: var(--accent-warning);
+}
+
+:root[data-theme="light"] .keyframe-diamond {
+  background: var(--accent-warning);
+}
+
+/* Playback Bar */
+:root[data-theme="light"] .playback-bar {
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .play-btn svg {
+  fill: var(--text-primary);
+}
+
+:root[data-theme="light"] .progress-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .progress-fill {
+  background: var(--accent-primary);
+}
+
+:root[data-theme="light"] .progress-handle {
+  background: #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"] .progress-tooltip {
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #fff;
+}
+
+:root[data-theme="light"] .time-label {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .speed-select {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
 }
 

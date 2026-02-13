@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0d0d0d;
+  background: #1e1e1e;
   position: relative;
   overflow: hidden;
   min-width: 0;
@@ -16,7 +16,13 @@
   transition: transform 0.2s ease;
 }
 
-#renderCanvas { display: block; }
+#renderCanvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+}
 
 /* ---- Drop overlay ---- */
 .drop-overlay {
@@ -39,5 +45,33 @@
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   background-color: #1a1a1a;
+}
+
+/* ============================================================ */
+/* LIGHT THEME OVERRIDES */
+/* ============================================================ */
+
+/* Canvas Stage */
+:root[data-theme="light"] .stage {
+  background: #e8e8ea;
+}
+
+/* Drop Overlay */
+:root[data-theme="light"] .drop-overlay {
+  background: rgba(0, 113, 227, 0.15);
+  border: 3px dashed #0071e3;
+  color: #0071e3;
+}
+
+/* Checkerboard for transparent background */
+:root[data-theme="light"] .canvas-wrap.checker-bg {
+  background-image:
+    linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
+    linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
+    linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  background-color: #f0f0f0;
 }
 

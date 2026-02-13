@@ -1,7 +1,7 @@
 // STATE
 // ============================================================
 const state = {
-  device: { type: 'iphone16', color: 'black', landscape: false, scale: 0.45 },
+  device: { type: 'iphone16', color: 'black', landscape: false, scale: 0.45, x: 0, y: 0 },
   videoFit: 'cover',
   perspective: { x: 0, y: 0 },
   background: { color: '#0a0a0a' },
@@ -10,21 +10,22 @@ const state = {
   layers: [],
   timeline: { trimIn: 0, trimOut: 1, speed: 1, clips: [], currentClip: 0, keyframes: [] },
   entrance: { type: 'none', duration: 1000 },
-  facecam: { enabled: false, size: 0.15, x: -1, y: -1, shape: 'circle', borderColor: '#ffffff', borderWidth: 3, shadow: true, source: 'camera', stream: null },
+  facecam: { enabled: false, size: 0.15, x: -1, y: -1, corner: 'bottomRight', shape: 'circle', borderColor: '#ffffff', borderWidth: 3, shadow: true, source: 'camera', stream: null },
   hand: { enabled: false, style: 'right' },
-  comparison: { enabled: false, device2: null, video2: null },
-  annotation: { tool: null, color: '#ff4444', width: 3, items: [] },
+  comparison: { enabled: false, device2: null, video2: null, x: 0, y: 0 },
+  annotation: { tool: null, color: '#ff4444', width: 3 },
   gradient: { enabled: false, type: 'linear', color1: '#0f0c29', color2: '#302b63', color3: '#24243e', angle: 135, animated: false, speed: 1 },
   particles: { enabled: false, type: 'bokeh', count: 30, color: '#ffffff', speed: 0.5 },
   orbit: { enabled: false, speed: 0.3, axis: 'y', range: 15 },
   motionBlur: { enabled: false, amount: 0.15 },
   waveform: { enabled: false, color: '#60a5fa', height: 0.06, position: 'bottom', style: 'bars' },
   progressBar: { enabled: false, color: '#60a5fa', height: 4, position: 'top' },
-  glassmorphism: { enabled: false, text: 'Your CTA Here', x: -1, y: -1, width: 280, height: 60, blur: 12, opacity: 0.15, borderOpacity: 0.2 },
+  glassmorphism: { enabled: false, text: 'Your CTA Here', x: -1, y: -1, width: 280, height: 60, blur: 12, opacity: 15, borderOpacity: 0.2 },
   chromaKey: { enabled: false, color: '#00ff00', tolerance: 80, softness: 10 },
   videoOverlays: [],
-  lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '' },
+  lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '', _presetKey: '' },
   bgVideo: { enabled: false, opacity: 1.0, fit: 'cover' },
+  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0 },
   bgType: 'solid',
   animPreset: { type: 'none', intensity: 1.0, bpm: 120, autoBPM: false },
   scene: 'custom',
@@ -52,7 +53,7 @@ const redoStack = [];
 
 function getUndoSnapshot() {
   return {
-    device: { type: state.device.type, color: state.device.color, landscape: state.device.landscape, scale: state.device.scale },
+    device: { type: state.device.type, color: state.device.color, landscape: state.device.landscape, scale: state.device.scale, x: state.device.x, y: state.device.y },
     videoFit: state.videoFit,
     perspective: { x: state.perspective.x, y: state.perspective.y },
     background: { color: state.background.color },
@@ -71,14 +72,26 @@ function getUndoSnapshot() {
     waveform: { enabled: state.waveform.enabled, color: state.waveform.color, height: state.waveform.height, position: state.waveform.position, style: state.waveform.style },
     progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
     glassmorphism: { enabled: state.glassmorphism.enabled, text: state.glassmorphism.text, blur: state.glassmorphism.blur, opacity: state.glassmorphism.opacity },
-    hand: { enabled: state.hand.enabled, style: state.hand.style },
-    layers: state.layers.map(l => {
-      const copy = { ...l };
-      delete copy.img; // non-serializable
-      if (l.type === 'annotation') copy.points = [...l.points];
-      return copy;
-    }),
-    annotation: { tool: state.annotation.tool, color: state.annotation.color, width: state.annotation.width },
+        hand: { enabled: state.hand.enabled, style: state.hand.style },
+        facecam: {
+          enabled: state.facecam.enabled,
+          size: state.facecam.size,
+          corner: state.facecam.corner,
+          shape: state.facecam.shape,
+          borderColor: state.facecam.borderColor,
+          borderWidth: state.facecam.borderWidth,
+          shadow: state.facecam.shadow,
+          x: state.facecam.x,
+          y: state.facecam.y,
+        },
+        layers: state.layers.map(l => {            const copy = { ...l };
+            if (l.type === 'image' && l.img) {
+              copy.imgSrc = l.img.src;
+            }
+            delete copy.img; // non-serializable
+            if (l.type === 'annotation') copy.points = [...l.points];
+            return copy;
+          }),    annotation: { tool: state.annotation.tool, color: state.annotation.color, width: state.annotation.width },
     videoOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
     selectedLayer: state.selectedLayer,
   };
@@ -131,6 +144,11 @@ function applyUndoSnapshot(snap) {
   state.layers = snap.layers.map(l => {
     const copy = { ...l };
     if (l.type === 'annotation') copy.points = [...l.points];
+    if (l.type === 'image' && l.imgSrc) {
+      const img = new Image();
+      img.src = l.imgSrc;
+      copy.img = img;
+    }
     return copy;
   });
   state.selectedLayer = snap.selectedLayer;
@@ -303,7 +321,42 @@ function getSerializableState() {
     progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
     glassmorphism: { enabled: state.glassmorphism.enabled, text: state.glassmorphism.text, blur: state.glassmorphism.blur, opacity: state.glassmorphism.opacity },
     hand: { enabled: state.hand.enabled, style: state.hand.style },
+    facecam: {
+      enabled: state.facecam.enabled,
+      size: state.facecam.size,
+      corner: state.facecam.corner,
+      shape: state.facecam.shape,
+      borderColor: state.facecam.borderColor,
+      borderWidth: state.facecam.borderWidth,
+      shadow: state.facecam.shadow,
+      x: state.facecam.x,
+      y: state.facecam.y,
+    },
+    layers: state.layers.map(l => {
+      const copy = { ...l };
+      if (l.type === 'image' && l.img) {
+        copy.imgSrc = l.img.src;
+      }
+      delete copy.img; // non-serializable
+      if (l.type === 'annotation') copy.points = [...l.points];
+      return copy;
+    }),
     builtinOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
+    bgVideo: {
+      enabled: state.bgVideo.enabled,
+      opacity: state.bgVideo.opacity,
+      fit: state.bgVideo.fit,
+    },
+    comparison: {
+      enabled: state.comparison.enabled,
+      device2: state.comparison.device2 ? {
+        type: state.comparison.device2.type,
+        color: state.comparison.device2.color,
+      } : null,
+      video2: state.comparison.video2 ? {
+        src: state.comparison.video2.src,
+      } : null,
+    },
     isLooping: isLooping,
     speed: state.timeline.speed,
   };
@@ -455,13 +508,45 @@ function applyStateToUI(s) {
     document.getElementById('glassControls').style.display = s.glassmorphism.enabled ? 'block' : 'none';
     document.getElementById('glassText').value = s.glassmorphism.text;
     document.getElementById('glassBlur').value = s.glassmorphism.blur;
-    document.getElementById('glassOpacity').value = Math.round(s.glassmorphism.opacity * 100);
+    document.getElementById('glassOpacity').value = s.glassmorphism.opacity;
   }
 
   // Hand
   if (s.hand) {
     state.hand.enabled = s.hand.enabled;
     state.hand.style = s.hand.style;
+
+  // Facecam
+  state.facecam.enabled = s.facecam.enabled;
+  state.facecam.size = s.facecam.size;
+  state.facecam.corner = s.facecam.corner;
+  state.facecam.shape = s.facecam.shape;
+  state.facecam.borderColor = s.facecam.borderColor;
+  state.facecam.borderWidth = s.facecam.borderWidth;
+  state.facecam.shadow = s.facecam.shadow;
+  state.facecam.x = s.facecam.x;
+  state.facecam.y = s.facecam.y;
+
+  // Update UI elements for facecam
+  document.getElementById('facecamSize').value = Math.round(s.facecam.size * 100);
+  document.getElementById('facecamCorner').value = s.facecam.corner;
+  document.getElementById('facecamShape').value = s.facecam.shape;
+  document.getElementById('facecamBorderColor').value = s.facecam.borderColor;
+  document.getElementById('facecamBorderWidth').value = s.facecam.borderWidth;
+  document.getElementById('facecamShadow').value = String(s.facecam.shadow);
+
+  // Layers
+  state.layers = s.layers.map(l => {
+    const copy = { ...l };
+    if (l.type === 'annotation') copy.points = [...l.points];
+    if (l.type === 'image' && l.imgSrc) {
+      const img = new Image();
+      img.src = l.imgSrc;
+      copy.img = img;
+    }
+    return copy;
+  });
+
     document.getElementById('handStyle').value = s.hand.style;
   }
 
@@ -481,7 +566,7 @@ function applyStateToUI(s) {
   // Loop & speed
   if (typeof s.isLooping !== 'undefined') {
     isLooping = s.isLooping;
-    video.loop = isLooping;
+  
     loopBtn.classList.toggle('active', isLooping);
     loopBtn.textContent = isLooping ? 'Loop' : 'No Loop';
   }
@@ -489,6 +574,32 @@ function applyStateToUI(s) {
     state.timeline.speed = s.speed;
     video.playbackRate = s.speed;
     document.getElementById('speedSelect').value = s.speed;
+  }
+
+  // Background Video
+  if (s.bgVideo) {
+    state.bgVideo.enabled = s.bgVideo.enabled;
+    state.bgVideo.opacity = s.bgVideo.opacity;
+    state.bgVideo.fit = s.bgVideo.fit;
+    // Potentially update UI elements for bgVideo here
+  }
+
+  // Comparison
+  if (s.comparison) {
+    state.comparison.enabled = s.comparison.enabled;
+    if (s.comparison.device2) {
+      state.comparison.device2 = { ...s.comparison.device2 };
+    } else {
+      state.comparison.device2 = null;
+    }
+    if (s.comparison.video2) {
+      // Re-create video element if necessary, or just store src
+      // For simplicity, just storing src for now, actual video loading would be external
+      state.comparison.video2 = { ...s.comparison.video2 };
+    } else {
+      state.comparison.video2 = null;
+    }
+    // Potentially update UI elements for comparison here
   }
 
   resizeCanvas();
@@ -503,9 +614,6 @@ function loadState() {
     applyStateToUI(s);
   } catch (e) { /* corrupt data — ignore */ }
 }
-
-// Load saved state on startup
-loadState();
 
 // Auto-save: listen for input/change on all panels
 document.querySelectorAll('.panel, .top-bar, .playback-bar').forEach(panel => {

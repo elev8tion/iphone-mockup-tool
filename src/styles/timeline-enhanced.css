@@ -1,0 +1,464 @@
+/* ============================================================
+   ENHANCED TIMELINE SYSTEM - Cinema Grade
+   Professional multi-track timeline with background video controls
+   ============================================================ */
+
+/* Base Timeline Container - Stacked Multi-Track Layout */
+.timeline-system {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(12,12,14,0.98) 0%, rgba(18,18,20,0.98) 100%);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.timeline-system.visible {
+  transform: translateY(0);
+}
+
+/* Track Header - Labels for each timeline track */
+.track-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  min-height: 36px;
+}
+
+.track-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.track-label-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.track-indicator {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+
+.track-indicator.bg-video {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+}
+
+/* Background Video Track */
+.bg-video-track,
+.bg-audio-track {
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 0 16px;
+  display: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bg-video-track.active,
+.bg-audio-track.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bg-track-content {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.bg-video-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.track-play-btn {
+  width: 24px;
+  height: 24px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.track-play-btn:hover {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+}
+
+.track-play-btn:active {
+  transform: scale(0.95);
+}
+
+.track-play-btn svg {
+  width: 10px;
+  height: 10px;
+  fill: rgba(255,255,255,0.9);
+  margin-left: 1px;
+}
+
+.track-play-btn.playing svg {
+  margin-left: 0;
+}
+
+.track-loop-btn {
+  width: 24px;
+  height: 24px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s;
+}
+
+.track-loop-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.track-loop-btn.active {
+  background: rgba(167,139,250,0.2);
+  border-color: rgba(167,139,250,0.4);
+  color: #a78bfa;
+}
+
+/* Enhanced Progress Track for BG Video */
+.bg-progress-track {
+  flex: 1;
+  height: 32px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.bg-progress-track:hover {
+  border-color: rgba(167,139,250,0.3);
+  box-shadow: 0 0 12px rgba(167,139,250,0.15);
+}
+
+.bg-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg,
+    rgba(167,139,250,0.3) 0%,
+    rgba(167,139,250,0.2) 100%
+  );
+  border-right: 2px solid rgba(167,139,250,0.8);
+  width: 0%;
+  position: relative;
+  transition: width 0.1s linear;
+}
+
+.bg-progress-waveform {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(167,139,250,0.05) 0px,
+    rgba(167,139,250,0.05) 2px,
+    transparent 2px,
+    transparent 8px
+  );
+  pointer-events: none;
+}
+
+.bg-progress-handle {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  box-shadow:
+    0 2px 8px rgba(139,92,246,0.4),
+    0 0 0 3px rgba(167,139,250,0.2);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.bg-progress-track:hover .bg-progress-handle,
+.bg-progress-track.scrubbing .bg-progress-handle {
+  opacity: 1;
+}
+
+.bg-time-display {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.5px;
+  min-width: 90px;
+  text-align: right;
+}
+
+.bg-video-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-speed-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.7);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.track-speed-select:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.track-sync-btn {
+  padding: 4px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: rgba(96,165,250,0.15);
+  border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 4px;
+  color: #60a5fa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.track-sync-btn:hover {
+  background: rgba(96,165,250,0.25);
+  transform: translateY(-1px);
+}
+
+.track-sync-btn.synced {
+  background: rgba(34,197,94,0.15);
+  border-color: rgba(34,197,94,0.3);
+  color: #22c55e;
+}
+
+/* Main Device Video Track (Enhanced) */
+.main-video-track {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.main-track-content {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Unified Playback Controls */
+.unified-controls {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.2);
+}
+
+.master-play-btn {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 12px rgba(96,165,250,0.3);
+}
+
+.master-play-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(96,165,250,0.45);
+}
+
+.master-play-btn:active {
+  transform: scale(0.98);
+}
+
+.master-play-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: white;
+  margin-left: 2px;
+}
+
+.master-play-btn.playing svg {
+  margin-left: 0;
+}
+
+.master-time-display {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 0.3px;
+  min-width: 100px;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.timeline-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.zoom-btn {
+  width: 26px;
+  height: 26px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .bg-track-content,
+  .main-track-content {
+    grid-template-columns: 100px 1fr auto;
+    gap: 8px;
+  }
+
+  .track-label {
+    min-width: 100px;
+    font-size: 9px;
+  }
+
+  .bg-video-options {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline-system {
+    font-size: 90%;
+  }
+
+  .bg-track-content,
+  .main-track-content {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .track-label {
+    display: none;
+  }
+
+  .bg-video-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .unified-controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* Accessibility */
+.track-play-btn:focus,
+.track-loop-btn:focus,
+.master-play-btn:focus,
+.zoom-btn:focus {
+  outline: 2px solid rgba(96,165,250,0.5);
+  outline-offset: 2px;
+}
+
+/* Loading States */
+.bg-progress-track.loading .bg-progress-fill {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.1) 0%,
+    rgba(255,255,255,0.2) 50%,
+    rgba(255,255,255,0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Premium Details */
+.track-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(96,165,250,0.5) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.bg-video-track:hover .track-label::before {
+  opacity: 1;
+}

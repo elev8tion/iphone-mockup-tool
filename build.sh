@@ -19,8 +19,10 @@ CSS_FILES=(
   "$SRC/styles/panels.css"
   "$SRC/styles/stage.css"
   "$SRC/styles/timeline.css"
+  "$SRC/styles/timeline-enhanced.css"
   "$SRC/styles/modals.css"
   "$SRC/styles/components.css"
+  "$SRC/styles/responsive.css"
 )
 
 # ---- JS order (matching original file order for correct initialization) ----
@@ -53,6 +55,7 @@ JS_FILES=(
   "$SRC/js/export.js"
   "$SRC/js/assets.js"
   "$SRC/js/ui.js"
+  "$SRC/js/timeline-enhanced.js"
 )
 
 BODY="$SRC/_body.html"

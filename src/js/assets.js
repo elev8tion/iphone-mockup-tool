@@ -31,7 +31,11 @@ async function pickAssetFolder() {
     abIndex = [];
     abFolders = [];
     abSource = 'folder';
-    abContent.innerHTML = '<div class="ab-loading">Scanning folder...</div>';
+    abContent.innerHTML = `
+      <div class="ab-grid">
+        ${Array(6).fill('<div class="preset-skeleton"><div class="skeleton skeleton-preview"></div></div>').join('')}
+      </div>
+    `;
     abSidebar.innerHTML = '';
     await scanDirectory(abDirHandle, '');
     buildFolderTree();
@@ -429,7 +433,11 @@ async function loadAssetItemFromURL(item) {
 
 // ---- Auto-detect: manifest → stored handle → show picker prompt ----
 async function abAutoDetect() {
-  abContent.innerHTML = '<div class="ab-loading">Detecting assets...</div>';
+  abContent.innerHTML = `
+    <div class="ab-grid">
+      ${Array(6).fill('<div class="preset-skeleton"><div class="skeleton skeleton-preview"></div></div>').join('')}
+    </div>
+  `;
   abSidebar.innerHTML = '';
   abUpdateStatus();
 
@@ -449,7 +457,11 @@ async function abAutoDetect() {
         abIndex = [];
         abFolders = [];
         abSource = 'folder';
-        abContent.innerHTML = '<div class="ab-loading">Scanning folder...</div>';
+        abContent.innerHTML = `
+      <div class="ab-grid">
+        ${Array(6).fill('<div class="preset-skeleton"><div class="skeleton skeleton-preview"></div></div>').join('')}
+      </div>
+    `;
         await scanDirectory(abDirHandle, '');
         buildFolderTree();
         abUpdateStatus();

@@ -1,3 +1,33 @@
+/* ---- Lucide Icons ---- */
+.btn i[data-lucide] {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover i[data-lucide] {
+  transform: scale(1.1);
+}
+
+.btn:has(i[data-lucide]:only-child) i[data-lucide] {
+  margin-right: 0;
+}
+
+.undo-btn i[data-lucide] {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2px;
+}
+
+.dev-btn .icon i[data-lucide] {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2px;
+}
+
 /* ---- Facecam ---- */
 .facecam-preview {
   position: absolute;
@@ -8,6 +38,113 @@
   display: none;
 }
 .facecam-preview video { width: 100%; height: 100%; object-fit: cover; }
+
+/* Range Input Styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.6);
+}
+
+/* Loading Skeleton Styles */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-preview {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 8px;
+}
+
+.preset-skeleton {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 4px 6px;
+  pointer-events: none;
+}
+
+/* Tooltip System */
+.tooltip {
+  position: fixed;
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  max-width: 200px;
+  white-space: nowrap;
+}
+
+.tooltip.visible {
+  opacity: 1;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(18, 18, 18, 0.95);
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
 
 /* Scrollbar styling for panels */
 .panel::-webkit-scrollbar { width: 4px; }
@@ -35,13 +172,13 @@
   pointer-events: none;
 }
 .toast-item {
-  background: rgba(18,18,18,0.92);
+  background: var(--glass-bg);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 10px 16px;
   font-size: 12px;
-  color: #ccc;
+  color: var(--text-secondary);
   white-space: nowrap;
   border-left: 3px solid rgba(255,255,255,0.15);
   transform: translateX(120%);
@@ -52,7 +189,102 @@
   transform: translateX(0);
   opacity: 1;
 }
-.toast-item.toast-success { border-left-color: #4ade80; }
-.toast-item.toast-info { border-left-color: #60a5fa; }
+.toast-item.toast-success { border-left-color: var(--accent-success); }
+.toast-item.toast-info { border-left-color: var(--accent-primary); }
 .toast-item.toast-error { border-left-color: #f87171; }
+
+/* ============================================================ */
+/* LIGHT THEME OVERRIDES */
+/* ============================================================ */
+
+/* Range Input Styling */
+:root[data-theme="light"] input[type="range"] {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] input[type="range"]::-webkit-slider-thumb {
+  background: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+}
+
+:root[data-theme="light"] input[type="range"]:hover::-webkit-slider-thumb {
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.5);
+}
+
+:root[data-theme="light"] input[type="range"]::-moz-range-thumb {
+  background: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+}
+
+:root[data-theme="light"] input[type="range"]:hover::-moz-range-thumb {
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.5);
+}
+
+/* Loading Skeleton Styles */
+:root[data-theme="light"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  );
+}
+
+:root[data-theme="light"] .preset-skeleton {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Tooltip System - Keep dark for readability (industry standard) */
+:root[data-theme="light"] .tooltip {
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #fff;
+}
+
+:root[data-theme="light"] .tooltip-arrow {
+  border-bottom-color: rgba(0, 0, 0, 0.9);
+}
+
+/* Scrollbar styling for panels */
+:root[data-theme="light"] .panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Danger buttons */
+:root[data-theme="light"] .btn-danger {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+:root[data-theme="light"] .btn-danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* Toast Notifications */
+:root[data-theme="light"] .toast-item {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="light"] .toast-item.toast-success {
+  border-left-color: var(--accent-success);
+}
+
+:root[data-theme="light"] .toast-item.toast-info {
+  border-left-color: var(--accent-primary);
+}
+
+:root[data-theme="light"] .toast-item.toast-error {
+  border-left-color: var(--accent-error);
+}
+
+/* Facecam preview */
+:root[data-theme="light"] .facecam-preview {
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
 

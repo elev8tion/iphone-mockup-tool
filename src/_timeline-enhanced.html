@@ -1,0 +1,111 @@
+<!-- Enhanced Multi-Track Timeline System -->
+<div class="timeline-system" id="timelineSystem">
+
+  <!-- Background Video Track -->
+  <div class="bg-video-track" id="bgVideoTrack">
+    <div class="track-header">
+      <div class="track-indicator bg-video"></div>
+      <div class="track-label">
+        <span class="track-label-icon">🎬</span>
+        Background Video
+      </div>
+      <div style="flex: 1"></div>
+      <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
+        <span class="sync-icon">⚡</span> Sync
+      </button>
+    </div>
+
+    <div class="bg-track-content">
+      <div class="bg-video-controls">
+        <button class="track-play-btn" id="bgTrackPlayBtn" title="Play/Pause background video">
+          <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="pause-icon" style="display:none" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="track-loop-btn" id="bgLoopBtn" title="Toggle loop">
+          ↻
+        </button>
+      </div>
+
+      <div class="bg-progress-track" id="bgProgressTrack">
+        <div class="bg-progress-fill" id="bgProgressFill">
+          <div class="bg-progress-handle"></div>
+          <div class="bg-progress-waveform"></div>
+        </div>
+      </div>
+
+      <div class="bg-video-options">
+        <span class="bg-time-display" id="bgTimeDisplay">0:00 / 0:00</span>
+        <select class="track-speed-select" id="bgSpeedSelect">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Device Video Track -->
+  <div class="main-video-track">
+    <div class="track-header">
+      <div class="track-indicator"></div>
+      <div class="track-label">
+        <span class="track-label-icon">📱</span>
+        Device Content
+      </div>
+    </div>
+
+    <div class="main-track-content">
+      <div style="min-width: 140px">
+        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+      </div>
+
+      <!-- Timeline Track (existing multi-clip timeline) -->
+      <div class="timeline-track" id="timelineTrack" style="height: 40px; margin: 0;">
+        <div class="timeline-scrubber" id="timelineScrubber"></div>
+      </div>
+
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn" id="addClipBtn" style="font-size: 9px; padding: 4px 8px;">+ Clip</button>
+        <select id="transitionSelect" class="track-speed-select" style="min-width: 80px;">
+          <option value="cut">Cut</option>
+          <option value="crossfade">Crossfade</option>
+          <option value="slide">Slide</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Playback Controls -->
+  <div class="unified-controls">
+    <button class="master-play-btn" id="masterPlayBtn" title="Play/Pause (Space)">
+      <svg id="masterIconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="masterIconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+
+    <div class="progress-track" id="progressTrack" style="flex: 1; margin: 0;">
+      <div class="progress-fill" id="progressFill">
+        <div class="progress-handle">
+          <div class="progress-tooltip" id="progressTooltip"></div>
+        </div>
+      </div>
+    </div>
+
+    <span class="master-time-display" id="masterTimeDisplay">0:00 / 0:00</span>
+
+    <select class="track-speed-select" id="speedSelect">
+      <option value="0.25">0.25×</option>
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+
+    <div class="timeline-zoom-control">
+      <button class="zoom-btn" id="zoomOutBtn" title="Zoom out timeline">−</button>
+      <button class="zoom-btn" id="zoomInBtn" title="Zoom in timeline">+</button>
+    </div>
+  </div>
+</div>

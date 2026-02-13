@@ -80,7 +80,7 @@ let playbackStartTime = 0;
 
 function renderBackground(ctx, CW, CH) {
   if (state.bgType === 'transparent') return;
-  if (state.gradient.enabled) {
+  if (state.bgType === 'gradient') {
     drawGradientBG(ctx, CW, CH);
   } else {
     ctx.fillStyle = state.background.color;
@@ -112,6 +112,9 @@ function calcDevicePosition(CW, CH) {
     }
     devY = (CH - devH * devScale) / 2;
   }
+  // Apply user position offset
+  devX += state.device.x;
+  devY += state.device.y;
   return { dev, devW, devH, devScale, devX, devY, isComparing };
 }
 
@@ -329,8 +332,11 @@ function renderDevice2Layer(ctx, CW, CH, dc) {
   const availH2 = CH * (1 - padFrac*2);
   const fitScale2 = Math.min(availW2 / d2W, availH2 / d2H);
   const d2Scale = fitScale2 * state.device.scale;
-  const d2X = CW * 0.75 - (d2W * d2Scale) / 2;
-  const d2Y = (CH - d2H * d2Scale) / 2;
+  let d2X = CW * 0.75 - (d2W * d2Scale) / 2;
+  let d2Y = (CH - d2H * d2Scale) / 2;
+  // Apply user position offset for device 2
+  d2X += state.comparison.x;
+  d2Y += state.comparison.y;
 
   // Shadow for device 2
   if (state.shadow > 0) {
