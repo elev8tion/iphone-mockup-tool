@@ -1,0 +1,368 @@
+/* EFFECTS PANEL STYLING
+   ============================================================ */
+
+/* Track Effects Section */
+.track-effects-section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+}
+
+.effects-toggle-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.effects-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.track-effects-section.collapsed .effects-panel {
+  display: none;
+}
+
+/* Effects Panel */
+.effects-panel {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Effect Groups */
+.effect-group {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.effect-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.effect-group h4 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #60a5fa;
+  margin: 0 0 10px 0;
+}
+
+/* Effect Control */
+.effect-control {
+  display: grid;
+  grid-template-columns: 80px 1fr 50px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.effect-control label {
+  font-size: 11px;
+  color: #999;
+}
+
+.effect-control input[type="range"] {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.effect-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.effect-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #3b82f6;
+  transform: scale(1.1);
+}
+
+.effect-control input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.effect-control input[type="range"]::-moz-range-thumb:hover {
+  background: #3b82f6;
+  transform: scale(1.1);
+}
+
+.effect-control .value {
+  font-size: 11px;
+  color: #ccc;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Select Dropdowns */
+.effect-control select,
+.effect-group select {
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.effect-control select:hover,
+.effect-group select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Checkboxes */
+.effect-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.effect-group input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Solo/Mute Buttons */
+.solo-btn,
+.mute-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 6px;
+}
+
+.solo-btn:hover,
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ccc;
+}
+
+.solo-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000;
+}
+
+.mute-btn.active {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* EQ Graph Canvas */
+.eq-graph {
+  width: 100%;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Compressor Controls */
+.compressor-controls {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Effect Stack */
+.effect-stack {
+  min-height: 40px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.effect-stack-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #ccc;
+}
+
+.effect-stack-item:last-child {
+  margin-bottom: 0;
+}
+
+.effect-stack-item .effect-name {
+  flex: 1;
+}
+
+.effect-stack-item .effect-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.effect-stack-item button {
+  padding: 2px 6px;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: #999;
+  cursor: pointer;
+}
+
+.effect-stack-item button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ccc;
+}
+
+/* Preset Buttons */
+.save-preset-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 4px;
+  color: #60a5fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-preset-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+/* Light Theme Overrides */
+:root[data-theme="light"] .effects-toggle-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #555;
+}
+
+:root[data-theme="light"] .effects-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="light"] .effects-panel {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-group {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .effect-group h4 {
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control label {
+  color: #666;
+}
+
+:root[data-theme="light"] .effect-control input[type="range"] {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-control input[type="range"]::-webkit-slider-thumb {
+  background: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control input[type="range"]::-moz-range-thumb {
+  background: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control .value {
+  color: #444;
+}
+
+:root[data-theme="light"] .effect-control select,
+:root[data-theme="light"] .effect-group select {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #444;
+}
+
+:root[data-theme="light"] .effect-group label {
+  color: #444;
+}
+
+:root[data-theme="light"] .solo-btn,
+:root[data-theme="light"] .mute-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #666;
+}
+
+:root[data-theme="light"] .solo-btn:hover,
+:root[data-theme="light"] .mute-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #444;
+}
+
+:root[data-theme="light"] .eq-graph {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-stack {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="light"] .effect-stack-item {
+  background: rgba(0, 0, 0, 0.04);
+  color: #444;
+}
+
+:root[data-theme="light"] .save-preset-btn {
+  background: rgba(0, 113, 227, 0.08);
+  border-color: rgba(0, 113, 227, 0.3);
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .save-preset-btn:hover {
+  background: rgba(0, 113, 227, 0.12);
+}

@@ -20,6 +20,7 @@ CSS_FILES=(
   "$SRC/styles/stage.css"
   "$SRC/styles/timeline.css"
   "$SRC/styles/timeline-enhanced.css"
+  "$SRC/styles/effects-panel.css"
   "$SRC/styles/modals.css"
   "$SRC/styles/components.css"
   "$SRC/styles/responsive.css"
@@ -47,6 +48,9 @@ JS_FILES=(
   "$SRC/js/timeline.js"
   "$SRC/js/render.js"
   "$SRC/js/effects.js"
+  "$SRC/js/audio-processor.js"
+  "$SRC/js/video-processor.js"
+  "$SRC/js/effect-presets.js"
   "$SRC/js/beat-detector.js"
   "$SRC/js/devices-draw.js"
   "$SRC/js/layers.js"
@@ -56,6 +60,7 @@ JS_FILES=(
   "$SRC/js/assets.js"
   "$SRC/js/ui.js"
   "$SRC/js/timeline-enhanced.js"
+  "$SRC/js/effect-ui.js"
 )
 
 BODY="$SRC/_body.html"

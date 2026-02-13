@@ -38,6 +38,78 @@ const state = {
   bgVideo: { enabled: false, opacity: 1.0, fit: 'cover' },
   bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0 },
   bgType: 'solid',
+  audioEffects: {
+    main: {
+      volume: 1.0,
+      pan: 0,
+      mute: false,
+      solo: false,
+      eq: { low: 0, mid: 0, high: 0 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    },
+    bgAudio: {
+      volume: 1.0,
+      pan: 0,
+      mute: false,
+      solo: false,
+      eq: { low: 0, mid: 0, high: 0 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+  videoEffects: {
+    main: {
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    },
+    bgVideo: {
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
   animPreset: { type: 'none', intensity: 1.0, bpm: 120, autoBPM: false },
   scene: 'custom',
   selectedLayer: -1,
@@ -105,6 +177,8 @@ function getUndoSnapshot() {
           }),    annotation: { tool: state.annotation.tool, color: state.annotation.color, width: state.annotation.width },
     videoOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
     selectedLayer: state.selectedLayer,
+    audioEffects: JSON.parse(JSON.stringify(state.audioEffects)),
+    videoEffects: JSON.parse(JSON.stringify(state.videoEffects)),
   };
 }
 
@@ -168,6 +242,19 @@ function applyUndoSnapshot(snap) {
   state.videoOverlays = state.videoOverlays.filter(ov => !ov.builtin);
   for (const type of snap.videoOverlays) {
     state.videoOverlays.push({ id: Date.now() + Math.random(), builtin: type, name: type, opacity: 0.5, blendMode: 'screen' });
+  }
+
+  // Restore audio and video effects
+  if (snap.audioEffects) {
+    state.audioEffects = JSON.parse(JSON.stringify(snap.audioEffects));
+    // Update audio chains
+    if (typeof updateAudioEffects === 'function') {
+      updateAudioEffects('main');
+      updateAudioEffects('bgAudio');
+    }
+  }
+  if (snap.videoEffects) {
+    state.videoEffects = JSON.parse(JSON.stringify(snap.videoEffects));
   }
 }
 
@@ -370,6 +457,8 @@ function getSerializableState() {
     },
     isLooping: isLooping,
     speed: state.timeline.speed,
+    audioEffects: state.audioEffects,
+    videoEffects: state.videoEffects,
   };
 }
 
@@ -611,6 +700,19 @@ function applyStateToUI(s) {
       state.comparison.video2 = null;
     }
     // Potentially update UI elements for comparison here
+  }
+
+  // Audio and Video Effects
+  if (s.audioEffects) {
+    state.audioEffects = s.audioEffects;
+    // Update audio chains if initialized
+    if (typeof updateAudioEffects === 'function') {
+      updateAudioEffects('main');
+      updateAudioEffects('bgAudio');
+    }
+  }
+  if (s.videoEffects) {
+    state.videoEffects = s.videoEffects;
   }
 
   resizeCanvas();

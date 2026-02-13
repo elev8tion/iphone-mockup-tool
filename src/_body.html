@@ -763,6 +763,105 @@
         </select>
         <button class="btn btn-danger" id="removeAudioBtn" style="padding: 4px 8px; font-size: 9px;">Remove</button>
       </div>
+
+      <!-- Audio Effects Panel -->
+      <div class="track-effects-section collapsed" id="bgAudioEffectsSection">
+        <button class="effects-toggle-btn" id="bgAudioEffectsToggle">
+          🎚️ Audio Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Mixing Section -->
+          <div class="effect-group">
+            <h4>Mixing</h4>
+            <div class="effect-control">
+              <label>Volume</label>
+              <input type="range" id="bgAudioVolumeFX" min="0" max="200" value="100">
+              <span class="value">100%</span>
+            </div>
+            <div class="effect-control">
+              <label>Pan</label>
+              <input type="range" id="bgAudioPan" min="-100" max="100" value="0">
+              <span class="value">Center</span>
+            </div>
+            <button class="solo-btn" data-track="bgAudio">Solo</button>
+            <button class="mute-btn" data-track="bgAudio">Mute</button>
+          </div>
+
+          <!-- EQ Section -->
+          <div class="effect-group">
+            <h4>Equalizer (3-Band)</h4>
+            <canvas class="eq-graph" id="bgAudioEQGraph" width="200" height="80"></canvas>
+            <div class="effect-control">
+              <label>Low (200Hz)</label>
+              <input type="range" id="bgAudioEQLow" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+            <div class="effect-control">
+              <label>Mid (1kHz)</label>
+              <input type="range" id="bgAudioEQMid" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+            <div class="effect-control">
+              <label>High (3kHz)</label>
+              <input type="range" id="bgAudioEQHigh" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+          </div>
+
+          <!-- Compressor Section -->
+          <div class="effect-group">
+            <h4>Compressor</h4>
+            <label>
+              <input type="checkbox" id="bgAudioCompressorEnable">
+              Enable
+            </label>
+            <div class="compressor-controls" id="bgAudioCompressorControls" style="display:none">
+              <div class="effect-control">
+                <label>Threshold</label>
+                <input type="range" id="bgAudioCompThreshold" min="-60" max="0" value="-24">
+                <span class="value">-24 dB</span>
+              </div>
+              <div class="effect-control">
+                <label>Ratio</label>
+                <select id="bgAudioCompRatio">
+                  <option value="1.5">1.5:1</option>
+                  <option value="3" selected>3:1</option>
+                  <option value="8">8:1</option>
+                  <option value="20">20:1 (Limiter)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effects Section -->
+          <div class="effect-group">
+            <h4>Effects</h4>
+            <label>
+              <input type="checkbox" id="bgAudioReverbEnable">
+              Reverb
+            </label>
+            <label>
+              <input type="checkbox" id="bgAudioEchoEnable">
+              Echo/Delay
+            </label>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="bgAudioPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="podcast">Podcast Voice</option>
+              <option value="music">Music Enhancement</option>
+              <option value="bass">Bass Boost</option>
+              <option value="vocal">Vocal Clarity</option>
+              <option value="radio">Radio Effect</option>
+              <option value="spacious">Spacious Reverb</option>
+            </select>
+            <button class="save-preset-btn" id="bgAudioSavePreset">Save Custom</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -835,6 +934,92 @@
           <option value="2">2×</option>
         </select>
       </div>
+
+      <!-- Video Effects Panel -->
+      <div class="track-effects-section collapsed" id="bgVideoEffectsSection">
+        <button class="effects-toggle-btn" id="bgVideoEffectsToggle">
+          ✨ Video Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Color Correction -->
+          <div class="effect-group">
+            <h4>Color Correction</h4>
+            <div class="effect-control">
+              <label>Brightness</label>
+              <input type="range" id="bgVideoBrightness" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Contrast</label>
+              <input type="range" id="bgVideoContrast" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Saturation</label>
+              <input type="range" id="bgVideoSaturation" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Hue</label>
+              <input type="range" id="bgVideoHue" min="-180" max="180" value="0">
+              <span class="value">0°</span>
+            </div>
+            <div class="effect-control">
+              <label>Temperature</label>
+              <input type="range" id="bgVideoTemp" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+          </div>
+
+          <!-- Effect Stack -->
+          <div class="effect-group">
+            <h4>Effect Stack</h4>
+            <div class="effect-stack" id="bgVideoEffectStack">
+              <span style="font-size: 10px; color: #666;">No effects added</span>
+            </div>
+            <select id="bgVideoAddEffect">
+              <option value="">+ Add Effect</option>
+              <option value="blur">Blur</option>
+              <option value="sharpen">Sharpen</option>
+              <option value="pixelate">Pixelate</option>
+              <option value="edgedetect">Edge Detect</option>
+              <option value="posterize">Posterize</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="sepia">Sepia</option>
+            </select>
+          </div>
+
+          <!-- Blend Modes -->
+          <div class="effect-group">
+            <h4>Blend Mode</h4>
+            <select id="bgVideoBlendMode">
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="darken">Darken</option>
+              <option value="lighten">Lighten</option>
+            </select>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="bgVideoPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="vibrant">Vibrant Pop</option>
+              <option value="vintage">Vintage Film</option>
+              <option value="bwContrast">B&W Contrast</option>
+              <option value="cool">Cool Tone</option>
+              <option value="warm">Warm Tone</option>
+              <option value="fade">Faded Look</option>
+              <option value="dramatic">Dramatic</option>
+            </select>
+            <button class="save-preset-btn" id="bgVideoSavePreset">Save Custom</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -867,6 +1052,79 @@
           <option value="crossfade">Crossfade</option>
           <option value="slide">Slide</option>
         </select>
+      </div>
+
+      <!-- Main Video Effects Panel -->
+      <div class="track-effects-section collapsed" id="mainVideoEffectsSection">
+        <button class="effects-toggle-btn" id="mainVideoEffectsToggle">
+          ✨ Video Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Color Correction -->
+          <div class="effect-group">
+            <h4>Color Correction</h4>
+            <div class="effect-control">
+              <label>Brightness</label>
+              <input type="range" id="mainVideoBrightness" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Contrast</label>
+              <input type="range" id="mainVideoContrast" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Saturation</label>
+              <input type="range" id="mainVideoSaturation" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Hue</label>
+              <input type="range" id="mainVideoHue" min="-180" max="180" value="0">
+              <span class="value">0°</span>
+            </div>
+            <div class="effect-control">
+              <label>Temperature</label>
+              <input type="range" id="mainVideoTemp" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+          </div>
+
+          <!-- Effect Stack -->
+          <div class="effect-group">
+            <h4>Effect Stack</h4>
+            <div class="effect-stack" id="mainVideoEffectStack">
+              <span style="font-size: 10px; color: #666;">No effects added</span>
+            </div>
+            <select id="mainVideoAddEffect">
+              <option value="">+ Add Effect</option>
+              <option value="blur">Blur</option>
+              <option value="sharpen">Sharpen</option>
+              <option value="pixelate">Pixelate</option>
+              <option value="edgedetect">Edge Detect</option>
+              <option value="posterize">Posterize</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="sepia">Sepia</option>
+            </select>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="mainVideoPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="vibrant">Vibrant Pop</option>
+              <option value="vintage">Vintage Film</option>
+              <option value="bwContrast">B&W Contrast</option>
+              <option value="cool">Cool Tone</option>
+              <option value="warm">Warm Tone</option>
+              <option value="fade">Faded Look</option>
+              <option value="dramatic">Dramatic</option>
+            </select>
+            <button class="save-preset-btn" id="mainVideoSavePreset">Save Custom</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

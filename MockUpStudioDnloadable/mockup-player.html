@@ -399,6 +399,7 @@ body {
 .panel-body {
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 240px; /* Ensure content rises above timeline */
 }
 
 /* Collapsed State */
@@ -1366,15 +1367,28 @@ body {
   overflow: hidden;
 }
 
-/* Track content hidden by default, shown when active */
+/* Tracks always visible, dimmed when no media loaded */
 .bg-video-track .bg-track-content,
 .bg-audio-track .bg-track-content {
-  display: none;
+  display: block;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
 }
 
-.bg-video-track.active .bg-track-content,
-.bg-audio-track.active .bg-track-content {
-  display: block;
+.bg-video-track.loaded .bg-track-content,
+.bg-audio-track.loaded .bg-track-content {
+  opacity: 1;
+}
+
+/* Disable pointer events when not loaded to prevent confusion */
+.bg-video-track:not(.loaded) .bg-track-content,
+.bg-audio-track:not(.loaded) .bg-track-content {
+  pointer-events: none;
+}
+
+.bg-video-track.loaded .bg-track-content,
+.bg-audio-track.loaded .bg-track-content {
+  pointer-events: auto;
 }
 
 .bg-video-track.collapsed .bg-track-content,
@@ -1913,6 +1927,18 @@ body {
   border-color: rgba(255,255,255,0.25);
 }
 
+/* Active state when dropdown is open */
+.track-action-btn.is-open {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.track-action-btn.is-open:hover {
+  background: rgba(96, 165, 250, 0.35);
+}
+
 .track-actions-dropdown {
   position: absolute;
   top: 100%;
@@ -1926,6 +1952,21 @@ body {
   z-index: 1000;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   backdrop-filter: blur(20px);
+
+  /* Hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  pointer-events: none;
+}
+
+/* Shown when open */
+.track-actions-dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .track-actions-dropdown button {
@@ -1956,6 +1997,18 @@ body {
 :root[data-theme="light"] .track-action-btn:hover {
   background: rgba(0,0,0,0.08);
   border-color: rgba(0,0,0,0.18);
+}
+
+/* Light theme active state */
+:root[data-theme="light"] .track-action-btn.is-open {
+  background: rgba(0, 113, 227, 0.15);
+  border-color: rgba(0, 113, 227, 0.4);
+  color: #0071e3;
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);
+}
+
+:root[data-theme="light"] .track-action-btn.is-open:hover {
+  background: rgba(0, 113, 227, 0.25);
 }
 
 :root[data-theme="light"] .track-actions-dropdown {
@@ -2018,6 +2071,13 @@ body {
   border-color: #60a5fa;
 }
 
+/* Loop button active state (when dropdown is open) */
+.track-loop-btn.is-open {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
+}
+
 .track-loop-controls {
   position: absolute;
   top: 100%;
@@ -2033,6 +2093,21 @@ body {
   align-items: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   backdrop-filter: blur(20px);
+
+  /* Hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  pointer-events: none;
+}
+
+/* Shown when open */
+.track-loop-controls.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .track-loop-controls input {
@@ -2060,6 +2135,13 @@ body {
   border-color: #0071e3;
 }
 
+/* Light theme loop button active state (when dropdown is open) */
+:root[data-theme="light"] .track-loop-btn.is-open {
+  background: rgba(0, 113, 227, 0.15);
+  border-color: rgba(0, 113, 227, 0.4);
+  color: #0071e3;
+}
+
 :root[data-theme="light"] .track-loop-controls {
   background: rgba(255,255,255,0.98);
   border-color: rgba(0,0,0,0.15);
@@ -2069,6 +2151,375 @@ body {
   background: rgba(0,0,0,0.04);
   border-color: rgba(0,0,0,0.12);
   color: #1d1d1f;
+}
+
+/* EFFECTS PANEL STYLING
+   ============================================================ */
+
+/* Track Effects Section */
+.track-effects-section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+}
+
+.effects-toggle-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.effects-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.track-effects-section.collapsed .effects-panel {
+  display: none;
+}
+
+/* Effects Panel */
+.effects-panel {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Effect Groups */
+.effect-group {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.effect-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.effect-group h4 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #60a5fa;
+  margin: 0 0 10px 0;
+}
+
+/* Effect Control */
+.effect-control {
+  display: grid;
+  grid-template-columns: 80px 1fr 50px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.effect-control label {
+  font-size: 11px;
+  color: #999;
+}
+
+.effect-control input[type="range"] {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.effect-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.effect-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #3b82f6;
+  transform: scale(1.1);
+}
+
+.effect-control input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.effect-control input[type="range"]::-moz-range-thumb:hover {
+  background: #3b82f6;
+  transform: scale(1.1);
+}
+
+.effect-control .value {
+  font-size: 11px;
+  color: #ccc;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Select Dropdowns */
+.effect-control select,
+.effect-group select {
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.effect-control select:hover,
+.effect-group select:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Checkboxes */
+.effect-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.effect-group input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Solo/Mute Buttons */
+.solo-btn,
+.mute-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 6px;
+}
+
+.solo-btn:hover,
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ccc;
+}
+
+.solo-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000;
+}
+
+.mute-btn.active {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* EQ Graph Canvas */
+.eq-graph {
+  width: 100%;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Compressor Controls */
+.compressor-controls {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Effect Stack */
+.effect-stack {
+  min-height: 40px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.effect-stack-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #ccc;
+}
+
+.effect-stack-item:last-child {
+  margin-bottom: 0;
+}
+
+.effect-stack-item .effect-name {
+  flex: 1;
+}
+
+.effect-stack-item .effect-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.effect-stack-item button {
+  padding: 2px 6px;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: #999;
+  cursor: pointer;
+}
+
+.effect-stack-item button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ccc;
+}
+
+/* Preset Buttons */
+.save-preset-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 4px;
+  color: #60a5fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-preset-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+/* Light Theme Overrides */
+:root[data-theme="light"] .effects-toggle-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #555;
+}
+
+:root[data-theme="light"] .effects-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="light"] .effects-panel {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-group {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .effect-group h4 {
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control label {
+  color: #666;
+}
+
+:root[data-theme="light"] .effect-control input[type="range"] {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-control input[type="range"]::-webkit-slider-thumb {
+  background: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control input[type="range"]::-moz-range-thumb {
+  background: #0071e3;
+}
+
+:root[data-theme="light"] .effect-control .value {
+  color: #444;
+}
+
+:root[data-theme="light"] .effect-control select,
+:root[data-theme="light"] .effect-group select {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #444;
+}
+
+:root[data-theme="light"] .effect-group label {
+  color: #444;
+}
+
+:root[data-theme="light"] .solo-btn,
+:root[data-theme="light"] .mute-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #666;
+}
+
+:root[data-theme="light"] .solo-btn:hover,
+:root[data-theme="light"] .mute-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #444;
+}
+
+:root[data-theme="light"] .eq-graph {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .effect-stack {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="light"] .effect-stack-item {
+  background: rgba(0, 0, 0, 0.04);
+  color: #444;
+}
+
+:root[data-theme="light"] .save-preset-btn {
+  background: rgba(0, 113, 227, 0.08);
+  border-color: rgba(0, 113, 227, 0.3);
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .save-preset-btn:hover {
+  background: rgba(0, 113, 227, 0.12);
 }
 
 /* ---- Asset Browser Modal ---- */
@@ -4246,8 +4697,8 @@ input[type="range"]:hover::-moz-range-thumb {
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
-        <button class="track-action-btn" id="bgAudioActionsBtn" title="Quick Actions">⚡</button>
-        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" style="display:none">
+        <button class="track-action-btn" id="bgAudioActionsBtn" title="Quick Actions" aria-label="Background audio quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
+        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" role="menu" aria-labelledby="bgAudioActionsBtn" style="display:none">
           <button onclick="applyBgAudioAction('fadeInAudio', 2000)">↗️ Fade In (2s)</button>
           <button onclick="applyBgAudioAction('fadeOutAudio', 2000)">↘️ Fade Out (2s)</button>
           <button onclick="applyBgAudioAction('fadeInSlow')">↗️ Fade In (5s)</button>
@@ -4262,7 +4713,7 @@ input[type="range"]:hover::-moz-range-thumb {
           <button onclick="applyBgAudioAction('resetAudio')">⏮️ Reset</button>
         </div>
       </div>
-      <button class="track-loop-btn" id="audioLoopMarkerBtn" title="Loop Region">🔁</button>
+      <button class="track-loop-btn" id="audioLoopMarkerBtn" title="Loop Region" aria-label="Configure audio loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
       <div class="track-loop-controls" id="audioLoopControls" style="display:none">
         <label style="font-size:10px">Loop Start:</label>
         <input type="number" id="audioLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
@@ -4307,6 +4758,105 @@ input[type="range"]:hover::-moz-range-thumb {
         </select>
         <button class="btn btn-danger" id="removeAudioBtn" style="padding: 4px 8px; font-size: 9px;">Remove</button>
       </div>
+
+      <!-- Audio Effects Panel -->
+      <div class="track-effects-section collapsed" id="bgAudioEffectsSection">
+        <button class="effects-toggle-btn" id="bgAudioEffectsToggle">
+          🎚️ Audio Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Mixing Section -->
+          <div class="effect-group">
+            <h4>Mixing</h4>
+            <div class="effect-control">
+              <label>Volume</label>
+              <input type="range" id="bgAudioVolumeFX" min="0" max="200" value="100">
+              <span class="value">100%</span>
+            </div>
+            <div class="effect-control">
+              <label>Pan</label>
+              <input type="range" id="bgAudioPan" min="-100" max="100" value="0">
+              <span class="value">Center</span>
+            </div>
+            <button class="solo-btn" data-track="bgAudio">Solo</button>
+            <button class="mute-btn" data-track="bgAudio">Mute</button>
+          </div>
+
+          <!-- EQ Section -->
+          <div class="effect-group">
+            <h4>Equalizer (3-Band)</h4>
+            <canvas class="eq-graph" id="bgAudioEQGraph" width="200" height="80"></canvas>
+            <div class="effect-control">
+              <label>Low (200Hz)</label>
+              <input type="range" id="bgAudioEQLow" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+            <div class="effect-control">
+              <label>Mid (1kHz)</label>
+              <input type="range" id="bgAudioEQMid" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+            <div class="effect-control">
+              <label>High (3kHz)</label>
+              <input type="range" id="bgAudioEQHigh" min="-12" max="12" value="0" step="0.5">
+              <span class="value">0 dB</span>
+            </div>
+          </div>
+
+          <!-- Compressor Section -->
+          <div class="effect-group">
+            <h4>Compressor</h4>
+            <label>
+              <input type="checkbox" id="bgAudioCompressorEnable">
+              Enable
+            </label>
+            <div class="compressor-controls" id="bgAudioCompressorControls" style="display:none">
+              <div class="effect-control">
+                <label>Threshold</label>
+                <input type="range" id="bgAudioCompThreshold" min="-60" max="0" value="-24">
+                <span class="value">-24 dB</span>
+              </div>
+              <div class="effect-control">
+                <label>Ratio</label>
+                <select id="bgAudioCompRatio">
+                  <option value="1.5">1.5:1</option>
+                  <option value="3" selected>3:1</option>
+                  <option value="8">8:1</option>
+                  <option value="20">20:1 (Limiter)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effects Section -->
+          <div class="effect-group">
+            <h4>Effects</h4>
+            <label>
+              <input type="checkbox" id="bgAudioReverbEnable">
+              Reverb
+            </label>
+            <label>
+              <input type="checkbox" id="bgAudioEchoEnable">
+              Echo/Delay
+            </label>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="bgAudioPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="podcast">Podcast Voice</option>
+              <option value="music">Music Enhancement</option>
+              <option value="bass">Bass Boost</option>
+              <option value="vocal">Vocal Clarity</option>
+              <option value="radio">Radio Effect</option>
+              <option value="spacious">Spacious Reverb</option>
+            </select>
+            <button class="save-preset-btn" id="bgAudioSavePreset">Save Custom</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4320,8 +4870,8 @@ input[type="range"]:hover::-moz-range-thumb {
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
-        <button class="track-action-btn" id="bgVideoActionsBtn" title="Quick Actions">⚡</button>
-        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" style="display:none">
+        <button class="track-action-btn" id="bgVideoActionsBtn" title="Quick Actions" aria-label="Background video quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
+        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" role="menu" aria-labelledby="bgVideoActionsBtn" style="display:none">
           <button onclick="applyBgVideoAction('fadeIn', 2000)">↗️ Fade In (2s)</button>
           <button onclick="applyBgVideoAction('fadeOut', 2000)">↘️ Fade Out (2s)</button>
           <button onclick="applyBgVideoAction('overlayMode')">🎨 Overlay Mode (50%)</button>
@@ -4336,7 +4886,7 @@ input[type="range"]:hover::-moz-range-thumb {
           <button onclick="applyBgVideoAction('resetToStart')">⏮️ Reset</button>
         </div>
       </div>
-      <button class="track-loop-btn" id="videoLoopMarkerBtn" title="Loop Region">🔁</button>
+      <button class="track-loop-btn" id="videoLoopMarkerBtn" title="Loop Region" aria-label="Configure video loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
       <div class="track-loop-controls" id="videoLoopControls" style="display:none">
         <label style="font-size:10px">Loop Start:</label>
         <input type="number" id="videoLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
@@ -4379,6 +4929,92 @@ input[type="range"]:hover::-moz-range-thumb {
           <option value="2">2×</option>
         </select>
       </div>
+
+      <!-- Video Effects Panel -->
+      <div class="track-effects-section collapsed" id="bgVideoEffectsSection">
+        <button class="effects-toggle-btn" id="bgVideoEffectsToggle">
+          ✨ Video Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Color Correction -->
+          <div class="effect-group">
+            <h4>Color Correction</h4>
+            <div class="effect-control">
+              <label>Brightness</label>
+              <input type="range" id="bgVideoBrightness" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Contrast</label>
+              <input type="range" id="bgVideoContrast" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Saturation</label>
+              <input type="range" id="bgVideoSaturation" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Hue</label>
+              <input type="range" id="bgVideoHue" min="-180" max="180" value="0">
+              <span class="value">0°</span>
+            </div>
+            <div class="effect-control">
+              <label>Temperature</label>
+              <input type="range" id="bgVideoTemp" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+          </div>
+
+          <!-- Effect Stack -->
+          <div class="effect-group">
+            <h4>Effect Stack</h4>
+            <div class="effect-stack" id="bgVideoEffectStack">
+              <span style="font-size: 10px; color: #666;">No effects added</span>
+            </div>
+            <select id="bgVideoAddEffect">
+              <option value="">+ Add Effect</option>
+              <option value="blur">Blur</option>
+              <option value="sharpen">Sharpen</option>
+              <option value="pixelate">Pixelate</option>
+              <option value="edgedetect">Edge Detect</option>
+              <option value="posterize">Posterize</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="sepia">Sepia</option>
+            </select>
+          </div>
+
+          <!-- Blend Modes -->
+          <div class="effect-group">
+            <h4>Blend Mode</h4>
+            <select id="bgVideoBlendMode">
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="darken">Darken</option>
+              <option value="lighten">Lighten</option>
+            </select>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="bgVideoPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="vibrant">Vibrant Pop</option>
+              <option value="vintage">Vintage Film</option>
+              <option value="bwContrast">B&W Contrast</option>
+              <option value="cool">Cool Tone</option>
+              <option value="warm">Warm Tone</option>
+              <option value="fade">Faded Look</option>
+              <option value="dramatic">Dramatic</option>
+            </select>
+            <button class="save-preset-btn" id="bgVideoSavePreset">Save Custom</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4411,6 +5047,79 @@ input[type="range"]:hover::-moz-range-thumb {
           <option value="crossfade">Crossfade</option>
           <option value="slide">Slide</option>
         </select>
+      </div>
+
+      <!-- Main Video Effects Panel -->
+      <div class="track-effects-section collapsed" id="mainVideoEffectsSection">
+        <button class="effects-toggle-btn" id="mainVideoEffectsToggle">
+          ✨ Video Effects
+        </button>
+        <div class="effects-panel">
+          <!-- Color Correction -->
+          <div class="effect-group">
+            <h4>Color Correction</h4>
+            <div class="effect-control">
+              <label>Brightness</label>
+              <input type="range" id="mainVideoBrightness" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Contrast</label>
+              <input type="range" id="mainVideoContrast" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Saturation</label>
+              <input type="range" id="mainVideoSaturation" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+            <div class="effect-control">
+              <label>Hue</label>
+              <input type="range" id="mainVideoHue" min="-180" max="180" value="0">
+              <span class="value">0°</span>
+            </div>
+            <div class="effect-control">
+              <label>Temperature</label>
+              <input type="range" id="mainVideoTemp" min="-100" max="100" value="0">
+              <span class="value">0</span>
+            </div>
+          </div>
+
+          <!-- Effect Stack -->
+          <div class="effect-group">
+            <h4>Effect Stack</h4>
+            <div class="effect-stack" id="mainVideoEffectStack">
+              <span style="font-size: 10px; color: #666;">No effects added</span>
+            </div>
+            <select id="mainVideoAddEffect">
+              <option value="">+ Add Effect</option>
+              <option value="blur">Blur</option>
+              <option value="sharpen">Sharpen</option>
+              <option value="pixelate">Pixelate</option>
+              <option value="edgedetect">Edge Detect</option>
+              <option value="posterize">Posterize</option>
+              <option value="grayscale">Grayscale</option>
+              <option value="sepia">Sepia</option>
+            </select>
+          </div>
+
+          <!-- Presets -->
+          <div class="effect-group">
+            <h4>Presets</h4>
+            <select id="mainVideoPreset">
+              <option value="">-- Load Preset --</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="vibrant">Vibrant Pop</option>
+              <option value="vintage">Vintage Film</option>
+              <option value="bwContrast">B&W Contrast</option>
+              <option value="cool">Cool Tone</option>
+              <option value="warm">Warm Tone</option>
+              <option value="fade">Faded Look</option>
+              <option value="dramatic">Dramatic</option>
+            </select>
+            <button class="save-preset-btn" id="mainVideoSavePreset">Save Custom</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -4687,6 +5396,78 @@ const state = {
   bgVideo: { enabled: false, opacity: 1.0, fit: 'cover' },
   bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0 },
   bgType: 'solid',
+  audioEffects: {
+    main: {
+      volume: 1.0,
+      pan: 0,
+      mute: false,
+      solo: false,
+      eq: { low: 0, mid: 0, high: 0 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    },
+    bgAudio: {
+      volume: 1.0,
+      pan: 0,
+      mute: false,
+      solo: false,
+      eq: { low: 0, mid: 0, high: 0 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+  videoEffects: {
+    main: {
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    },
+    bgVideo: {
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
   animPreset: { type: 'none', intensity: 1.0, bpm: 120, autoBPM: false },
   scene: 'custom',
   selectedLayer: -1,
@@ -4754,6 +5535,8 @@ function getUndoSnapshot() {
           }),    annotation: { tool: state.annotation.tool, color: state.annotation.color, width: state.annotation.width },
     videoOverlays: state.videoOverlays.filter(ov => ov.builtin).map(ov => ov.builtin),
     selectedLayer: state.selectedLayer,
+    audioEffects: JSON.parse(JSON.stringify(state.audioEffects)),
+    videoEffects: JSON.parse(JSON.stringify(state.videoEffects)),
   };
 }
 
@@ -4817,6 +5600,19 @@ function applyUndoSnapshot(snap) {
   state.videoOverlays = state.videoOverlays.filter(ov => !ov.builtin);
   for (const type of snap.videoOverlays) {
     state.videoOverlays.push({ id: Date.now() + Math.random(), builtin: type, name: type, opacity: 0.5, blendMode: 'screen' });
+  }
+
+  // Restore audio and video effects
+  if (snap.audioEffects) {
+    state.audioEffects = JSON.parse(JSON.stringify(snap.audioEffects));
+    // Update audio chains
+    if (typeof updateAudioEffects === 'function') {
+      updateAudioEffects('main');
+      updateAudioEffects('bgAudio');
+    }
+  }
+  if (snap.videoEffects) {
+    state.videoEffects = JSON.parse(JSON.stringify(snap.videoEffects));
   }
 }
 
@@ -5019,6 +5815,8 @@ function getSerializableState() {
     },
     isLooping: isLooping,
     speed: state.timeline.speed,
+    audioEffects: state.audioEffects,
+    videoEffects: state.videoEffects,
   };
 }
 
@@ -5260,6 +6058,19 @@ function applyStateToUI(s) {
       state.comparison.video2 = null;
     }
     // Potentially update UI elements for comparison here
+  }
+
+  // Audio and Video Effects
+  if (s.audioEffects) {
+    state.audioEffects = s.audioEffects;
+    // Update audio chains if initialized
+    if (typeof updateAudioEffects === 'function') {
+      updateAudioEffects('main');
+      updateAudioEffects('bgAudio');
+    }
+  }
+  if (s.videoEffects) {
+    state.videoEffects = s.videoEffects;
   }
 
   resizeCanvas();
@@ -7690,6 +8501,1037 @@ entranceDur.addEventListener('input', e => {
 });
 
 // ============================================================
+
+// AUDIO EFFECTS PROCESSOR
+// ============================================================
+// Professional audio processing using Web Audio API
+
+class AudioEffectChain {
+  constructor(audioElement, trackName) {
+    this.audioElement = audioElement;
+    this.trackName = trackName;
+    this.ctx = getSharedAudioContext();
+
+    // Audio nodes
+    this.sourceNode = null;
+    this.gainNode = null;
+    this.panNode = null;
+    this.eqLowNode = null;
+    this.eqMidNode = null;
+    this.eqHighNode = null;
+    this.compressorNode = null;
+    this.reverbNode = null;
+    this.delayNode = null;
+    this.delayGainNode = null;
+    this.reverbGainNode = null;
+    this.analyserNode = null;
+
+    // State
+    this.initialized = false;
+    this.reverb = { enabled: false, buffer: null, mix: 0.3 };
+    this.echo = { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 };
+  }
+
+  initialize() {
+    if (this.initialized) return;
+
+    try {
+      // Create source node (only once per audio element)
+      if (!this.sourceNode) {
+        this.sourceNode = this.ctx.createMediaElementSource(this.audioElement);
+      }
+
+      // Create effect nodes
+      this.gainNode = this.ctx.createGain();
+      this.panNode = this.ctx.createStereoPanner();
+
+      // EQ - 3-band with shelf filters
+      this.eqLowNode = this.ctx.createBiquadFilter();
+      this.eqLowNode.type = 'lowshelf';
+      this.eqLowNode.frequency.value = 200;
+
+      this.eqMidNode = this.ctx.createBiquadFilter();
+      this.eqMidNode.type = 'peaking';
+      this.eqMidNode.frequency.value = 1000;
+      this.eqMidNode.Q.value = 0.5;
+
+      this.eqHighNode = this.ctx.createBiquadFilter();
+      this.eqHighNode.type = 'highshelf';
+      this.eqHighNode.frequency.value = 3000;
+
+      // Compressor
+      this.compressorNode = this.ctx.createDynamicsCompressor();
+      this.compressorNode.threshold.value = -24;
+      this.compressorNode.knee.value = 30;
+      this.compressorNode.ratio.value = 3;
+      this.compressorNode.attack.value = 0.003;
+      this.compressorNode.release.value = 0.25;
+
+      // Reverb setup (ConvolverNode)
+      this.reverbNode = this.ctx.createConvolver();
+      this.reverbGainNode = this.ctx.createGain();
+      this.reverbGainNode.gain.value = 0;
+
+      // Echo/Delay setup
+      this.delayNode = this.ctx.createDelay(2.0);
+      this.delayNode.delayTime.value = 0.5;
+      this.delayGainNode = this.ctx.createGain();
+      this.delayGainNode.gain.value = 0;
+
+      // Analyser for visualization
+      this.analyserNode = this.ctx.createAnalyser();
+      this.analyserNode.fftSize = 512;
+
+      // Build audio graph
+      this.rebuild();
+
+      this.initialized = true;
+    } catch (e) {
+      console.error(`AudioEffectChain init error (${this.trackName}):`, e);
+    }
+  }
+
+  rebuild() {
+    if (!this.initialized) return;
+
+    try {
+      // Disconnect all nodes
+      this.sourceNode.disconnect();
+      this.gainNode.disconnect();
+      this.panNode.disconnect();
+      this.eqLowNode.disconnect();
+      this.eqMidNode.disconnect();
+      this.eqHighNode.disconnect();
+      this.compressorNode.disconnect();
+      this.delayNode.disconnect();
+      this.delayGainNode.disconnect();
+      this.reverbNode.disconnect();
+      this.reverbGainNode.disconnect();
+      this.analyserNode.disconnect();
+
+      // Main chain: source → gain → pan → EQ (low/mid/high) → compressor
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.panNode);
+      this.panNode.connect(this.eqLowNode);
+      this.eqLowNode.connect(this.eqMidNode);
+      this.eqMidNode.connect(this.eqHighNode);
+      this.eqHighNode.connect(this.compressorNode);
+
+      // Reverb send/return
+      this.compressorNode.connect(this.reverbNode);
+      this.reverbNode.connect(this.reverbGainNode);
+
+      // Delay send/return with feedback
+      this.compressorNode.connect(this.delayNode);
+      this.delayNode.connect(this.delayGainNode);
+      this.delayGainNode.connect(this.delayNode); // Feedback loop
+
+      // Mix everything to analyser
+      this.compressorNode.connect(this.analyserNode);
+      this.reverbGainNode.connect(this.analyserNode);
+      this.delayGainNode.connect(this.analyserNode);
+
+      // Final output
+      this.analyserNode.connect(this.ctx.destination);
+
+    } catch (e) {
+      console.error(`AudioEffectChain rebuild error (${this.trackName}):`, e);
+    }
+  }
+
+  // Volume control (0-2 for 0-200%)
+  setVolume(value) {
+    if (!this.gainNode) return;
+    this.gainNode.gain.setValueAtTime(value, this.ctx.currentTime);
+  }
+
+  // Pan control (-1 left, 0 center, 1 right)
+  setPan(value) {
+    if (!this.panNode) return;
+    this.panNode.pan.setValueAtTime(value, this.ctx.currentTime);
+  }
+
+  // EQ controls (gain in dB: -12 to +12)
+  setEQ(band, gainDB) {
+    if (!this.initialized) return;
+    const gain = gainDB; // Direct dB value
+
+    switch (band) {
+      case 'low':
+        this.eqLowNode.gain.setValueAtTime(gain, this.ctx.currentTime);
+        break;
+      case 'mid':
+        this.eqMidNode.gain.setValueAtTime(gain, this.ctx.currentTime);
+        break;
+      case 'high':
+        this.eqHighNode.gain.setValueAtTime(gain, this.ctx.currentTime);
+        break;
+    }
+  }
+
+  // Compressor settings
+  setCompressor(params) {
+    if (!this.compressorNode) return;
+
+    if (params.threshold !== undefined) {
+      this.compressorNode.threshold.setValueAtTime(params.threshold, this.ctx.currentTime);
+    }
+    if (params.ratio !== undefined) {
+      this.compressorNode.ratio.setValueAtTime(params.ratio, this.ctx.currentTime);
+    }
+    if (params.attack !== undefined) {
+      this.compressorNode.attack.setValueAtTime(params.attack, this.ctx.currentTime);
+    }
+    if (params.release !== undefined) {
+      this.compressorNode.release.setValueAtTime(params.release, this.ctx.currentTime);
+    }
+  }
+
+  // Enable/disable reverb
+  enableReverb(enabled, mix = 0.3) {
+    if (!this.initialized) return;
+    this.reverb.enabled = enabled;
+    this.reverb.mix = mix;
+
+    if (enabled) {
+      // Create impulse response if not exists
+      if (!this.reverb.buffer) {
+        this.reverb.buffer = this.createReverbImpulse(2.0, 2);
+        this.reverbNode.buffer = this.reverb.buffer;
+      }
+      this.reverbGainNode.gain.setValueAtTime(mix, this.ctx.currentTime);
+    } else {
+      this.reverbGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    }
+  }
+
+  // Create reverb impulse response
+  createReverbImpulse(duration, decay) {
+    const sampleRate = this.ctx.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = this.ctx.createBuffer(2, length, sampleRate);
+    const impulseL = impulse.getChannelData(0);
+    const impulseR = impulse.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+      const n = length - i;
+      impulseL[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+      impulseR[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+    }
+
+    return impulse;
+  }
+
+  // Enable/disable echo/delay
+  enableEcho(enabled, params = {}) {
+    if (!this.initialized) return;
+    this.echo.enabled = enabled;
+
+    if (enabled) {
+      const delay = params.delay !== undefined ? params.delay : 0.5;
+      const feedback = params.feedback !== undefined ? params.feedback : 0.3;
+      const mix = params.mix !== undefined ? params.mix : 0.5;
+
+      this.echo.delay = delay;
+      this.echo.feedback = feedback;
+      this.echo.mix = mix;
+
+      this.delayNode.delayTime.setValueAtTime(delay, this.ctx.currentTime);
+      this.delayGainNode.gain.setValueAtTime(mix * feedback, this.ctx.currentTime);
+    } else {
+      this.delayGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    }
+  }
+
+  // Get analyser data for visualization
+  getAnalyserData() {
+    if (!this.analyserNode) return null;
+    const data = new Uint8Array(this.analyserNode.frequencyBinCount);
+    this.analyserNode.getByteFrequencyData(data);
+    return data;
+  }
+
+  // Cleanup
+  destroy() {
+    if (!this.initialized) return;
+
+    try {
+      this.sourceNode.disconnect();
+      this.gainNode.disconnect();
+      this.panNode.disconnect();
+      this.eqLowNode.disconnect();
+      this.eqMidNode.disconnect();
+      this.eqHighNode.disconnect();
+      this.compressorNode.disconnect();
+      this.delayNode.disconnect();
+      this.delayGainNode.disconnect();
+      this.reverbNode.disconnect();
+      this.reverbGainNode.disconnect();
+      this.analyserNode.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+
+    this.initialized = false;
+  }
+}
+
+// Global audio effect chains (initialized on demand)
+const audioChains = {
+  main: null,
+  bgAudio: null
+};
+
+// Initialize audio chain for a track
+function initAudioChain(trackName) {
+  let audioEl = null;
+
+  if (trackName === 'main') {
+    audioEl = document.getElementById('srcVideo');
+  } else if (trackName === 'bgAudio') {
+    audioEl = document.getElementById('bgAudio');
+  }
+
+  if (!audioEl) {
+    console.warn(`Audio element not found for track: ${trackName}`);
+    return null;
+  }
+
+  if (!audioChains[trackName]) {
+    audioChains[trackName] = new AudioEffectChain(audioEl, trackName);
+  }
+
+  audioChains[trackName].initialize();
+  return audioChains[trackName];
+}
+
+// Update audio effects from state
+function updateAudioEffects(trackName) {
+  const effects = state.audioEffects?.[trackName];
+  if (!effects) return;
+
+  const chain = audioChains[trackName];
+  if (!chain || !chain.initialized) return;
+
+  // Update volume and pan
+  chain.setVolume(effects.volume);
+  chain.setPan(effects.pan);
+
+  // Update EQ
+  chain.setEQ('low', effects.eq.low);
+  chain.setEQ('mid', effects.eq.mid);
+  chain.setEQ('high', effects.eq.high);
+
+  // Update compressor
+  if (effects.compressor.enabled) {
+    chain.setCompressor({
+      threshold: effects.compressor.threshold,
+      ratio: effects.compressor.ratio,
+      attack: effects.compressor.attack,
+      release: effects.compressor.release
+    });
+  }
+
+  // Update reverb
+  chain.enableReverb(effects.reverb.enabled, effects.reverb.mix);
+
+  // Update echo
+  chain.enableEcho(effects.echo.enabled, {
+    delay: effects.echo.delay,
+    feedback: effects.echo.feedback,
+    mix: effects.echo.mix
+  });
+}
+
+// VIDEO EFFECTS PROCESSOR
+// ============================================================
+// Professional video processing using CSS filters + WebGL shaders
+
+class VideoEffectProcessor {
+  constructor(trackName) {
+    this.trackName = trackName;
+    this.glCanvas = null;
+    this.gl = null;
+    this.shaders = {};
+    this.initialized = false;
+  }
+
+  // Apply CSS filters (fast, GPU-accelerated)
+  applyCSSFilters(videoElement, effects) {
+    if (!videoElement) return;
+
+    const filters = [];
+
+    // Brightness (-100 to 100 → 0% to 200%)
+    if (effects.brightness !== 0) {
+      const val = 100 + effects.brightness;
+      filters.push(`brightness(${val}%)`);
+    }
+
+    // Contrast (-100 to 100 → 0% to 200%)
+    if (effects.contrast !== 0) {
+      const val = 100 + effects.contrast;
+      filters.push(`contrast(${val}%)`);
+    }
+
+    // Saturation (-100 to 100 → 0% to 200%)
+    if (effects.saturation !== 0) {
+      const val = 100 + effects.saturation;
+      filters.push(`saturate(${val}%)`);
+    }
+
+    // Hue rotation (-180 to 180 degrees)
+    if (effects.hue !== 0) {
+      filters.push(`hue-rotate(${effects.hue}deg)`);
+    }
+
+    // Temperature (warm/cool tint using sepia + hue)
+    if (effects.temperature !== 0) {
+      const warmth = effects.temperature / 100;
+      if (warmth > 0) {
+        filters.push(`sepia(${warmth * 30}%)`);
+        filters.push(`hue-rotate(${warmth * -10}deg)`);
+      } else {
+        filters.push(`hue-rotate(${warmth * 10}deg)`);
+      }
+    }
+
+    // Apply filter stack from effects.filters array
+    if (effects.filters && effects.filters.length > 0) {
+      for (const filter of effects.filters) {
+        switch (filter.type) {
+          case 'blur':
+            filters.push(`blur(${filter.amount || 5}px)`);
+            break;
+          case 'sharpen':
+            // CSS doesn't support sharpen directly, handled by WebGL
+            break;
+          case 'grayscale':
+            filters.push(`grayscale(100%)`);
+            break;
+          case 'sepia':
+            filters.push(`sepia(${filter.amount || 100}%)`);
+            break;
+        }
+      }
+    }
+
+    videoElement.style.filter = filters.length > 0 ? filters.join(' ') : '';
+  }
+
+  // Check if WebGL effects are needed (advanced filters)
+  needsWebGL(effects) {
+    if (!effects.filters) return false;
+
+    const webglTypes = ['pixelate', 'edgedetect', 'posterize', 'solarize', 'sharpen'];
+    return effects.filters.some(f => webglTypes.includes(f.type));
+  }
+
+  // Initialize WebGL context
+  initWebGL() {
+    if (this.initialized) return true;
+
+    this.glCanvas = document.createElement('canvas');
+    this.gl = this.glCanvas.getContext('webgl', {
+      preserveDrawingBuffer: true,
+      premultipliedAlpha: false
+    });
+
+    if (!this.gl) {
+      console.warn('WebGL not supported for video effects');
+      return false;
+    }
+
+    // Compile shaders
+    this.compileShaders();
+    this.initialized = true;
+    return true;
+  }
+
+  // Compile GLSL shaders
+  compileShaders() {
+    const gl = this.gl;
+
+    // Vertex shader (same for all effects)
+    const vertexShaderSource = `
+      attribute vec2 a_position;
+      attribute vec2 a_texCoord;
+      varying vec2 v_texCoord;
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+        v_texCoord = a_texCoord;
+      }
+    `;
+
+    // Pixelate shader
+    const pixelateFragmentSource = `
+      precision mediump float;
+      uniform sampler2D u_texture;
+      uniform vec2 u_resolution;
+      uniform float u_blockSize;
+      varying vec2 v_texCoord;
+
+      void main() {
+        vec2 blocks = u_resolution / u_blockSize;
+        vec2 coord = floor(v_texCoord * blocks) / blocks;
+        gl_FragColor = texture2D(u_texture, coord);
+      }
+    `;
+
+    // Edge detection shader (Sobel)
+    const edgeDetectFragmentSource = `
+      precision mediump float;
+      uniform sampler2D u_texture;
+      uniform vec2 u_resolution;
+      varying vec2 v_texCoord;
+
+      void main() {
+        vec2 texel = 1.0 / u_resolution;
+
+        // Sobel kernel
+        float tl = texture2D(u_texture, v_texCoord + vec2(-texel.x, texel.y)).r;
+        float t  = texture2D(u_texture, v_texCoord + vec2(0.0, texel.y)).r;
+        float tr = texture2D(u_texture, v_texCoord + vec2(texel.x, texel.y)).r;
+        float l  = texture2D(u_texture, v_texCoord + vec2(-texel.x, 0.0)).r;
+        float r  = texture2D(u_texture, v_texCoord + vec2(texel.x, 0.0)).r;
+        float bl = texture2D(u_texture, v_texCoord + vec2(-texel.x, -texel.y)).r;
+        float b  = texture2D(u_texture, v_texCoord + vec2(0.0, -texel.y)).r;
+        float br = texture2D(u_texture, v_texCoord + vec2(texel.x, -texel.y)).r;
+
+        float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+        float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+
+        float edge = sqrt(gx*gx + gy*gy);
+        gl_FragColor = vec4(vec3(edge), 1.0);
+      }
+    `;
+
+    // Posterize shader
+    const posterizeFragmentSource = `
+      precision mediump float;
+      uniform sampler2D u_texture;
+      uniform float u_levels;
+      varying vec2 v_texCoord;
+
+      void main() {
+        vec4 color = texture2D(u_texture, v_texCoord);
+        vec3 posterized = floor(color.rgb * u_levels) / u_levels;
+        gl_FragColor = vec4(posterized, color.a);
+      }
+    `;
+
+    // Compile and store shaders
+    this.shaders.pixelate = this.createProgram(vertexShaderSource, pixelateFragmentSource);
+    this.shaders.edgedetect = this.createProgram(vertexShaderSource, edgeDetectFragmentSource);
+    this.shaders.posterize = this.createProgram(vertexShaderSource, posterizeFragmentSource);
+  }
+
+  // Create shader program
+  createProgram(vertexSource, fragmentSource) {
+    const gl = this.gl;
+
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexSource);
+    gl.compileShader(vertexShader);
+
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentSource);
+    gl.compileShader(fragmentShader);
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('Shader program link error:', gl.getProgramInfoLog(program));
+      return null;
+    }
+
+    return program;
+  }
+
+  // Apply WebGL effects (advanced)
+  applyWebGLEffects(sourceCanvas, effects) {
+    if (!this.initWebGL()) return;
+
+    const gl = this.gl;
+    const filters = effects.filters || [];
+
+    // Setup canvas size
+    if (this.glCanvas.width !== sourceCanvas.width || this.glCanvas.height !== sourceCanvas.height) {
+      this.glCanvas.width = sourceCanvas.width;
+      this.glCanvas.height = sourceCanvas.height;
+      gl.viewport(0, 0, this.glCanvas.width, this.glCanvas.height);
+    }
+
+    // Create texture from source
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // Setup geometry (full-screen quad)
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1, -1,  1, -1,  -1, 1,
+      -1, 1,   1, -1,  1, 1
+    ]), gl.STATIC_DRAW);
+
+    const texCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      0, 1,  1, 1,  0, 0,
+      0, 0,  1, 1,  1, 0
+    ]), gl.STATIC_DRAW);
+
+    // Apply each filter in sequence
+    for (const filter of filters) {
+      let program = null;
+
+      switch (filter.type) {
+        case 'pixelate':
+          program = this.shaders.pixelate;
+          if (program) {
+            gl.useProgram(program);
+            gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), this.glCanvas.width, this.glCanvas.height);
+            gl.uniform1f(gl.getUniformLocation(program, 'u_blockSize'), filter.blockSize || 10);
+          }
+          break;
+
+        case 'edgedetect':
+          program = this.shaders.edgedetect;
+          if (program) {
+            gl.useProgram(program);
+            gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), this.glCanvas.width, this.glCanvas.height);
+          }
+          break;
+
+        case 'posterize':
+          program = this.shaders.posterize;
+          if (program) {
+            gl.useProgram(program);
+            gl.uniform1f(gl.getUniformLocation(program, 'u_levels'), filter.levels || 8);
+          }
+          break;
+      }
+
+      if (program) {
+        // Bind attributes
+        const posLoc = gl.getAttribLocation(program, 'a_position');
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const texLoc = gl.getAttribLocation(program, 'a_texCoord');
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        gl.enableVertexAttribArray(texLoc);
+        gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
+
+        // Draw
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+    }
+
+    // Copy result back to source canvas
+    const srcCtx = sourceCanvas.getContext('2d');
+    srcCtx.drawImage(this.glCanvas, 0, 0);
+
+    // Cleanup
+    gl.deleteTexture(texture);
+    gl.deleteBuffer(positionBuffer);
+    gl.deleteBuffer(texCoordBuffer);
+  }
+
+  // Apply blend mode
+  applyBlendMode(ctx, blendMode) {
+    ctx.globalCompositeOperation = blendMode || 'normal';
+  }
+
+  // Cleanup
+  destroy() {
+    if (this.gl) {
+      const gl = this.gl;
+      for (const key in this.shaders) {
+        if (this.shaders[key]) {
+          gl.deleteProgram(this.shaders[key]);
+        }
+      }
+    }
+    this.glCanvas = null;
+    this.gl = null;
+    this.initialized = false;
+  }
+}
+
+// Global video effect processors
+const videoProcessors = {
+  main: new VideoEffectProcessor('main'),
+  bgVideo: new VideoEffectProcessor('bgVideo')
+};
+
+// EFFECT PRESETS
+// ============================================================
+// Predefined audio and video effect configurations
+
+const AUDIO_PRESETS = {
+  podcast: {
+    name: 'Podcast Voice',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: -2, mid: 3, high: 5 },
+      compressor: {
+        enabled: true,
+        threshold: -18,
+        ratio: 4,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+
+  music: {
+    name: 'Music Enhancement',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: 3, mid: 0, high: 2 },
+      compressor: {
+        enabled: true,
+        threshold: -12,
+        ratio: 2,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+
+  bass: {
+    name: 'Bass Boost',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: 8, mid: -2, high: 0 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+
+  vocal: {
+    name: 'Vocal Clarity',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: -3, mid: 5, high: 3 },
+      compressor: {
+        enabled: true,
+        threshold: -15,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+
+  radio: {
+    name: 'Radio Effect',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: -8, mid: 6, high: -4 },
+      compressor: {
+        enabled: true,
+        threshold: -12,
+        ratio: 8,
+        attack: 0.001,
+        release: 0.1
+      },
+      reverb: { enabled: false, mix: 0.3, decay: 2 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  },
+
+  spacious: {
+    name: 'Spacious Reverb',
+    effects: {
+      volume: 1.0,
+      pan: 0,
+      eq: { low: 0, mid: 0, high: 2 },
+      compressor: {
+        enabled: false,
+        threshold: -24,
+        ratio: 3,
+        attack: 0.003,
+        release: 0.25
+      },
+      reverb: { enabled: true, mix: 0.5, decay: 3 },
+      echo: { enabled: false, delay: 0.5, feedback: 0.3, mix: 0.5 }
+    }
+  }
+};
+
+const VIDEO_PRESETS = {
+  cinematic: {
+    name: 'Cinematic',
+    effects: {
+      brightness: -5,
+      contrast: 15,
+      saturation: -10,
+      hue: 0,
+      temperature: 5,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.1,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  vibrant: {
+    name: 'Vibrant Pop',
+    effects: {
+      brightness: 5,
+      contrast: 20,
+      saturation: 40,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  vintage: {
+    name: 'Vintage Film',
+    effects: {
+      brightness: -10,
+      contrast: 5,
+      saturation: -20,
+      hue: 0,
+      temperature: 25,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.05,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [
+        { type: 'sepia', amount: 30 }
+      ],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  bwContrast: {
+    name: 'B&W High Contrast',
+    effects: {
+      brightness: 0,
+      contrast: 40,
+      saturation: -100,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.2,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  cool: {
+    name: 'Cool Tone',
+    effects: {
+      brightness: 0,
+      contrast: 10,
+      saturation: 10,
+      hue: 0,
+      temperature: -30,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  warm: {
+    name: 'Warm Tone',
+    effects: {
+      brightness: 5,
+      contrast: 5,
+      saturation: 10,
+      hue: 0,
+      temperature: 30,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  fade: {
+    name: 'Faded Look',
+    effects: {
+      brightness: 10,
+      contrast: -15,
+      saturation: -20,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 20,
+        inputMax: 235,
+        gamma: 1.0,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  },
+
+  dramatic: {
+    name: 'Dramatic',
+    effects: {
+      brightness: -10,
+      contrast: 50,
+      saturation: 20,
+      hue: 0,
+      temperature: 0,
+      tint: 0,
+      levels: {
+        inputMin: 0,
+        inputMax: 255,
+        gamma: 1.3,
+        outputMin: 0,
+        outputMax: 255
+      },
+      filters: [],
+      blendMode: 'normal',
+      crop: { enabled: false, x: 0, y: 0, w: 1, h: 1 }
+    }
+  }
+};
+
+// Load audio preset
+function loadAudioPreset(trackName, presetName) {
+  const preset = AUDIO_PRESETS[presetName];
+  if (!preset || !state.audioEffects) return;
+
+  // Update state
+  Object.assign(state.audioEffects[trackName], preset.effects);
+
+  // Update audio chain
+  updateAudioEffects(trackName);
+
+  // Update UI
+  updateAudioEffectUI(trackName);
+}
+
+// Load video preset
+function loadVideoPreset(trackName, presetName) {
+  const preset = VIDEO_PRESETS[presetName];
+  if (!preset || !state.videoEffects) return;
+
+  // Update state
+  Object.assign(state.videoEffects[trackName], preset.effects);
+
+  // Update UI
+  updateVideoEffectUI(trackName);
+}
+
+// Save custom preset to localStorage
+function saveCustomPreset(type, trackName, presetName, config) {
+  const key = `customPresets_${type}`;
+  let presets = {};
+
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) presets = JSON.parse(stored);
+  } catch (e) {
+    console.error('Error loading custom presets:', e);
+  }
+
+  presets[presetName] = {
+    name: presetName,
+    effects: config
+  };
+
+  try {
+    localStorage.setItem(key, JSON.stringify(presets));
+    showToast(`Saved custom preset: ${presetName}`, 'success');
+  } catch (e) {
+    console.error('Error saving custom preset:', e);
+    showToast('Failed to save preset', 'error');
+  }
+}
+
+// Get custom presets
+function getCustomPresets(type) {
+  const key = `customPresets_${type}`;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : {};
+  } catch (e) {
+    console.error('Error loading custom presets:', e);
+    return {};
+  }
+}
 
 // ============================================================
 // BEAT DETECTOR — Real-time audio onset detection
@@ -11819,9 +13661,9 @@ function initEnhancedTimeline() {
     timelineSystem.classList.add('visible');
   }
 
-  // Show background video track when background video is loaded
+  // Mark background video track as loaded when media is loaded
   if (state.bgVideo.enabled && bgVideo && bgVideo.src) {
-    bgVideoTrack.classList.add('active');
+    bgVideoTrack.classList.add('loaded');
   }
 }
 
@@ -12034,36 +13876,29 @@ function updateTimelineVisibility() {
 
   if (!timelineSystem) return;
 
-  // Show timeline system if ANY media is loaded
-  const hasBgVideo = state.bgVideo.enabled && bgVideo && bgVideo.src;
-  const hasBgAudio = state.bgAudio.enabled && bgAudio && bgAudio.src;
+  // Timeline always visible once ANY media is loaded
+  const hasBgVideo = state.bgVideo.enabled && bgVideo?.src;
+  const hasBgAudio = state.bgAudio.enabled && bgAudio?.src;
   const shouldShowTimeline = hasVideo || hasBgVideo || hasBgAudio;
 
   if (shouldShowTimeline) {
     timelineSystem.classList.add('visible');
-  } else {
-    timelineSystem.classList.remove('visible');
   }
 
-  // Show/hide background video track
+  // Mark tracks as loaded (for opacity change, not visibility)
   if (hasBgVideo) {
-    setTimeout(() => bgVideoTrack?.classList.add('active'), 50);
+    bgVideoTrack?.classList.add('loaded');
   } else {
-    bgVideoTrack?.classList.remove('active');
+    bgVideoTrack?.classList.remove('loaded');
   }
 
-  // Show/hide background audio track
   if (hasBgAudio) {
-    setTimeout(() => {
-      bgAudioTrack?.classList.add('active');
-      updateStageSpacing();
-    }, 50);
+    bgAudioTrack?.classList.add('loaded');
   } else {
-    bgAudioTrack?.classList.remove('active');
+    bgAudioTrack?.classList.remove('loaded');
   }
 
-  // Update stage spacing
-  setTimeout(() => updateStageSpacing(), 100);
+  updateStageSpacing();
 }
 
 // ============================================================
@@ -12178,34 +14013,46 @@ function toggleVideoLoop() {
   scheduleSave();
 }
 
-// Toggle loop controls dropdown
-document.getElementById('audioLoopMarkerBtn')?.addEventListener('click', () => {
+// Toggle loop controls with CSS classes
+document.getElementById('audioLoopMarkerBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
   const dropdown = document.getElementById('audioLoopControls');
-  if (dropdown) {
-    dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all dropdowns
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first input
+    setTimeout(() => {
+      dropdown.querySelector('input')?.focus();
+    }, 50);
   }
 });
 
-document.getElementById('videoLoopMarkerBtn')?.addEventListener('click', () => {
+document.getElementById('videoLoopMarkerBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
   const dropdown = document.getElementById('videoLoopControls');
-  if (dropdown) {
-    dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
-  }
-});
+  const isOpen = dropdown.classList.contains('is-open');
 
-// Close loop controls when clicking outside
-document.addEventListener('click', (e) => {
-  const audioLoopBtn = document.getElementById('audioLoopMarkerBtn');
-  const audioLoopControls = document.getElementById('audioLoopControls');
-  const videoLoopBtn = document.getElementById('videoLoopMarkerBtn');
-  const videoLoopControls = document.getElementById('videoLoopControls');
+  // Close all dropdowns
+  closeAllDropdowns();
 
-  if (audioLoopControls && !audioLoopBtn?.contains(e.target) && !audioLoopControls.contains(e.target)) {
-    audioLoopControls.style.display = 'none';
-  }
+  if (!isOpen) {
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
 
-  if (videoLoopControls && !videoLoopBtn?.contains(e.target) && !videoLoopControls.contains(e.target)) {
-    videoLoopControls.style.display = 'none';
+    // Focus first input
+    setTimeout(() => {
+      dropdown.querySelector('input')?.focus();
+    }, 50);
   }
 });
 
@@ -12568,8 +14415,8 @@ function updateStageSpacing() {
   if (!stage) return;
 
   // Check if any tracks are expanded
-  const hasBgVideo = bgVideoTrack?.classList.contains('active') && !bgVideoTrack?.classList.contains('collapsed');
-  const hasBgAudio = bgAudioTrack?.classList.contains('active') && !bgAudioTrack?.classList.contains('collapsed');
+  const hasBgVideo = bgVideoTrack?.classList.contains('loaded') && !bgVideoTrack?.classList.contains('collapsed');
+  const hasBgAudio = bgAudioTrack?.classList.contains('loaded') && !bgAudioTrack?.classList.contains('collapsed');
   const hasMainVideo = mainVideoTrack && !mainVideoTrack?.classList.contains('collapsed');
 
   // Count total expanded tracks to adjust spacing
@@ -12612,35 +14459,124 @@ document.getElementById('bgVideoInput')?.addEventListener('change', () => {
 // ACTION DROPDOWN TOGGLES
 // ============================================================
 
-// Toggle background video actions dropdown
+// Helper function to close all dropdowns
+function closeAllDropdowns() {
+  // Close action dropdowns
+  const dropdowns = document.querySelectorAll('.track-actions-dropdown, .track-loop-controls');
+  const buttons = document.querySelectorAll('.track-action-btn, .track-loop-btn');
+
+  dropdowns.forEach(dd => dd.classList.remove('is-open'));
+  buttons.forEach(btn => {
+    btn.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+// Toggle background video actions dropdown with CSS classes
 document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
   e.stopPropagation();
+  const btn = e.currentTarget;
   const dropdown = document.getElementById('bgVideoActionsDropdown');
-  const isVisible = dropdown.style.display !== 'none';
-  dropdown.style.display = isVisible ? 'none' : 'block';
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all other dropdowns first
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    // Open this dropdown
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first button in dropdown
+    setTimeout(() => {
+      const firstButton = dropdown.querySelector('button:not([disabled])');
+      firstButton?.focus();
+    }, 50);
+  }
 });
 
-// Toggle background audio actions dropdown
+// Toggle background audio actions dropdown with CSS classes
 document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
   e.stopPropagation();
+  const btn = e.currentTarget;
   const dropdown = document.getElementById('bgAudioActionsDropdown');
-  const isVisible = dropdown.style.display !== 'none';
-  dropdown.style.display = isVisible ? 'none' : 'block';
+  const isOpen = dropdown.classList.contains('is-open');
+
+  // Close all other dropdowns first
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    // Open this dropdown
+    dropdown.classList.add('is-open');
+    btn.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // Focus first button in dropdown
+    setTimeout(() => {
+      const firstButton = dropdown.querySelector('button:not([disabled])');
+      firstButton?.focus();
+    }, 50);
+  }
 });
 
-// Close dropdowns when clicking outside
+// Close all dropdowns when clicking outside (generic class-based detection)
 document.addEventListener('click', (e) => {
-  const videoDropdown = document.getElementById('bgVideoActionsDropdown');
-  const audioDropdown = document.getElementById('bgAudioActionsDropdown');
-  const videoBtnElement = document.getElementById('bgVideoActionsBtn');
-  const audioBtnElement = document.getElementById('bgAudioActionsBtn');
+  // Check if click is inside any dropdown or its trigger button
+  const clickedDropdown = e.target.closest('.track-actions-dropdown, .track-loop-controls');
+  const clickedButton = e.target.closest('.track-action-btn, .track-loop-btn');
 
-  if (videoDropdown && !videoBtnElement?.contains(e.target) && !videoDropdown?.contains(e.target)) {
-    videoDropdown.style.display = 'none';
+  // If clicked outside both dropdown and button, close all
+  if (!clickedDropdown && !clickedButton) {
+    closeAllDropdowns();
   }
+});
 
-  if (audioDropdown && !audioBtnElement?.contains(e.target) && !audioDropdown?.contains(e.target)) {
-    audioDropdown.style.display = 'none';
+// ============================================================
+// KEYBOARD NAVIGATION FOR TRACK ACTIONS
+// ============================================================
+
+// Close dropdowns on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const openDropdowns = document.querySelectorAll('.track-actions-dropdown.is-open, .track-loop-controls.is-open');
+    if (openDropdowns.length > 0) {
+      e.preventDefault();
+
+      // Return focus to the button that opened the dropdown
+      const activeButton = document.querySelector('.track-action-btn.is-open, .track-loop-btn.is-open');
+
+      closeAllDropdowns();
+
+      if (activeButton) {
+        activeButton.focus();
+      }
+    }
+  }
+});
+
+// Navigate dropdown items with Arrow keys
+document.addEventListener('keydown', (e) => {
+  const openDropdown = document.querySelector('.track-actions-dropdown.is-open');
+  if (!openDropdown) return;
+
+  const items = Array.from(openDropdown.querySelectorAll('button:not([disabled])'));
+  const currentIndex = items.findIndex(item => item === document.activeElement);
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const nextIndex = (currentIndex + 1) % items.length;
+    items[nextIndex]?.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prevIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+    items[prevIndex]?.focus();
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    // Space or Enter activates focused button
+    if (document.activeElement && items.includes(document.activeElement)) {
+      e.preventDefault();
+      document.activeElement.click();
+    }
   }
 });
 
@@ -12651,6 +14587,599 @@ if (typeof requestAnimationFrame !== 'undefined') {
     requestAnimationFrame(enhancedTimelineRenderLoop);
   }
   enhancedTimelineRenderLoop();
+}
+
+// EFFECT UI EVENT HANDLERS
+// ============================================================
+// UI event handlers for audio and video effects
+
+// ============================================================
+// INITIALIZE EFFECTS ON VIDEO/AUDIO LOAD
+// ============================================================
+
+// Initialize audio effects when audio element is loaded
+function initializeAudioEffectsForTrack(trackName) {
+  const chain = initAudioChain(trackName);
+  if (chain) {
+    updateAudioEffects(trackName);
+    showToast(`Audio effects ready for ${trackName}`, 'success');
+  }
+}
+
+// ============================================================
+// TOGGLE EFFECTS PANELS
+// ============================================================
+
+// Background Audio Effects Toggle
+document.getElementById('bgAudioEffectsToggle')?.addEventListener('click', () => {
+  const section = document.getElementById('bgAudioEffectsSection');
+  section.classList.toggle('collapsed');
+});
+
+// Background Video Effects Toggle
+document.getElementById('bgVideoEffectsToggle')?.addEventListener('click', () => {
+  const section = document.getElementById('bgVideoEffectsSection');
+  section.classList.toggle('collapsed');
+});
+
+// Main Video Effects Toggle
+document.getElementById('mainVideoEffectsToggle')?.addEventListener('click', () => {
+  const section = document.getElementById('mainVideoEffectsSection');
+  section.classList.toggle('collapsed');
+});
+
+// ============================================================
+// AUDIO EFFECT CONTROLS - Background Audio
+// ============================================================
+
+// Volume
+document.getElementById('bgAudioVolumeFX')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value) / 100;
+  state.audioEffects.bgAudio.volume = value;
+  updateAudioEffects('bgAudio');
+  e.target.nextElementSibling.textContent = Math.round(value * 100) + '%';
+  scheduleSave();
+});
+
+// Pan
+document.getElementById('bgAudioPan')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value) / 100;
+  state.audioEffects.bgAudio.pan = value;
+  updateAudioEffects('bgAudio');
+  const label = value < -0.1 ? `L ${Math.abs(Math.round(value * 100))}` :
+                value > 0.1 ? `R ${Math.round(value * 100)}` : 'Center';
+  e.target.nextElementSibling.textContent = label;
+  scheduleSave();
+});
+
+// EQ Low
+document.getElementById('bgAudioEQLow')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value);
+  state.audioEffects.bgAudio.eq.low = value;
+  updateAudioEffects('bgAudio');
+  e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
+  drawEQGraph('bgAudio');
+  scheduleSave();
+});
+
+// EQ Mid
+document.getElementById('bgAudioEQMid')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value);
+  state.audioEffects.bgAudio.eq.mid = value;
+  updateAudioEffects('bgAudio');
+  e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
+  drawEQGraph('bgAudio');
+  scheduleSave();
+});
+
+// EQ High
+document.getElementById('bgAudioEQHigh')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value);
+  state.audioEffects.bgAudio.eq.high = value;
+  updateAudioEffects('bgAudio');
+  e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
+  drawEQGraph('bgAudio');
+  scheduleSave();
+});
+
+// Compressor Enable
+document.getElementById('bgAudioCompressorEnable')?.addEventListener('change', (e) => {
+  state.audioEffects.bgAudio.compressor.enabled = e.target.checked;
+  updateAudioEffects('bgAudio');
+  document.getElementById('bgAudioCompressorControls').style.display = e.target.checked ? 'block' : 'none';
+  scheduleSave();
+});
+
+// Compressor Threshold
+document.getElementById('bgAudioCompThreshold')?.addEventListener('input', (e) => {
+  const value = parseFloat(e.target.value);
+  state.audioEffects.bgAudio.compressor.threshold = value;
+  updateAudioEffects('bgAudio');
+  e.target.nextElementSibling.textContent = value + ' dB';
+  scheduleSave();
+});
+
+// Compressor Ratio
+document.getElementById('bgAudioCompRatio')?.addEventListener('change', (e) => {
+  const value = parseFloat(e.target.value);
+  state.audioEffects.bgAudio.compressor.ratio = value;
+  updateAudioEffects('bgAudio');
+  scheduleSave();
+});
+
+// Reverb Enable
+document.getElementById('bgAudioReverbEnable')?.addEventListener('change', (e) => {
+  state.audioEffects.bgAudio.reverb.enabled = e.target.checked;
+  updateAudioEffects('bgAudio');
+  scheduleSave();
+});
+
+// Echo Enable
+document.getElementById('bgAudioEchoEnable')?.addEventListener('change', (e) => {
+  state.audioEffects.bgAudio.echo.enabled = e.target.checked;
+  updateAudioEffects('bgAudio');
+  scheduleSave();
+});
+
+// Presets
+document.getElementById('bgAudioPreset')?.addEventListener('change', (e) => {
+  if (e.target.value) {
+    pushUndoState();
+    loadAudioPreset('bgAudio', e.target.value);
+    showToast(`Loaded preset: ${e.target.value}`, 'success');
+    e.target.value = '';
+  }
+});
+
+// Save Custom Preset
+document.getElementById('bgAudioSavePreset')?.addEventListener('click', () => {
+  const name = prompt('Enter preset name:');
+  if (name) {
+    saveCustomPreset('audio', 'bgAudio', name, state.audioEffects.bgAudio);
+  }
+});
+
+// Solo/Mute Buttons
+document.querySelectorAll('.solo-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const track = e.target.dataset.track;
+    const isSolo = btn.classList.toggle('active');
+    state.audioEffects[track].solo = isSolo;
+
+    if (isSolo) {
+      // Mute all other tracks
+      Object.keys(state.audioEffects).forEach(t => {
+        if (t !== track) {
+          const chain = audioChains[t];
+          if (chain) chain.setVolume(0);
+        }
+      });
+    } else {
+      // Restore volumes
+      Object.keys(state.audioEffects).forEach(t => {
+        const chain = audioChains[t];
+        if (chain) chain.setVolume(state.audioEffects[t].volume);
+      });
+    }
+  });
+});
+
+document.querySelectorAll('.mute-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const track = e.target.dataset.track;
+    const isMuted = btn.classList.toggle('active');
+    state.audioEffects[track].mute = isMuted;
+
+    const chain = audioChains[track];
+    if (chain) {
+      chain.setVolume(isMuted ? 0 : state.audioEffects[track].volume);
+    }
+  });
+});
+
+// ============================================================
+// VIDEO EFFECT CONTROLS - Background Video
+// ============================================================
+
+// Brightness
+document.getElementById('bgVideoBrightness')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.bgVideo.brightness = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('bgVideo');
+  scheduleSave();
+});
+
+// Contrast
+document.getElementById('bgVideoContrast')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.bgVideo.contrast = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('bgVideo');
+  scheduleSave();
+});
+
+// Saturation
+document.getElementById('bgVideoSaturation')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.bgVideo.saturation = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('bgVideo');
+  scheduleSave();
+});
+
+// Hue
+document.getElementById('bgVideoHue')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.bgVideo.hue = value;
+  e.target.nextElementSibling.textContent = value + '°';
+  applyVideoEffectsToElement('bgVideo');
+  scheduleSave();
+});
+
+// Temperature
+document.getElementById('bgVideoTemp')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.bgVideo.temperature = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('bgVideo');
+  scheduleSave();
+});
+
+// Add Effect
+document.getElementById('bgVideoAddEffect')?.addEventListener('change', (e) => {
+  if (e.target.value) {
+    pushUndoState();
+    addVideoEffect('bgVideo', e.target.value);
+    e.target.value = '';
+    scheduleSave();
+  }
+});
+
+// Blend Mode
+document.getElementById('bgVideoBlendMode')?.addEventListener('change', (e) => {
+  state.videoEffects.bgVideo.blendMode = e.target.value;
+  scheduleSave();
+});
+
+// Preset
+document.getElementById('bgVideoPreset')?.addEventListener('change', (e) => {
+  if (e.target.value) {
+    pushUndoState();
+    loadVideoPreset('bgVideo', e.target.value);
+    showToast(`Loaded preset: ${e.target.value}`, 'success');
+    e.target.value = '';
+  }
+});
+
+// Save Custom Preset
+document.getElementById('bgVideoSavePreset')?.addEventListener('click', () => {
+  const name = prompt('Enter preset name:');
+  if (name) {
+    saveCustomPreset('video', 'bgVideo', name, state.videoEffects.bgVideo);
+  }
+});
+
+// ============================================================
+// VIDEO EFFECT CONTROLS - Main Video
+// ============================================================
+
+// Brightness
+document.getElementById('mainVideoBrightness')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.main.brightness = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('main');
+  scheduleSave();
+});
+
+// Contrast
+document.getElementById('mainVideoContrast')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.main.contrast = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('main');
+  scheduleSave();
+});
+
+// Saturation
+document.getElementById('mainVideoSaturation')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.main.saturation = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('main');
+  scheduleSave();
+});
+
+// Hue
+document.getElementById('mainVideoHue')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.main.hue = value;
+  e.target.nextElementSibling.textContent = value + '°';
+  applyVideoEffectsToElement('main');
+  scheduleSave();
+});
+
+// Temperature
+document.getElementById('mainVideoTemp')?.addEventListener('input', (e) => {
+  const value = parseInt(e.target.value);
+  state.videoEffects.main.temperature = value;
+  e.target.nextElementSibling.textContent = value;
+  applyVideoEffectsToElement('main');
+  scheduleSave();
+});
+
+// Add Effect
+document.getElementById('mainVideoAddEffect')?.addEventListener('change', (e) => {
+  if (e.target.value) {
+    pushUndoState();
+    addVideoEffect('main', e.target.value);
+    e.target.value = '';
+    scheduleSave();
+  }
+});
+
+// Preset
+document.getElementById('mainVideoPreset')?.addEventListener('change', (e) => {
+  if (e.target.value) {
+    pushUndoState();
+    loadVideoPreset('main', e.target.value);
+    showToast(`Loaded preset: ${e.target.value}`, 'success');
+    e.target.value = '';
+  }
+});
+
+// Save Custom Preset
+document.getElementById('mainVideoSavePreset')?.addEventListener('click', () => {
+  const name = prompt('Enter preset name:');
+  if (name) {
+    saveCustomPreset('video', 'main', name, state.videoEffects.main);
+  }
+});
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+// Apply video effects to element (CSS filters)
+function applyVideoEffectsToElement(trackName) {
+  let videoEl = null;
+
+  if (trackName === 'main') {
+    videoEl = document.getElementById('srcVideo');
+  } else if (trackName === 'bgVideo') {
+    videoEl = document.getElementById('bgVideo');
+  }
+
+  if (!videoEl) return;
+
+  const effects = state.videoEffects[trackName];
+  const processor = videoProcessors[trackName];
+
+  processor.applyCSSFilters(videoEl, effects);
+}
+
+// Add video effect to stack
+function addVideoEffect(trackName, effectType) {
+  const effects = state.videoEffects[trackName];
+
+  const newEffect = { type: effectType, id: Date.now() };
+
+  switch (effectType) {
+    case 'blur':
+      newEffect.amount = 5;
+      break;
+    case 'pixelate':
+      newEffect.blockSize = 10;
+      break;
+    case 'posterize':
+      newEffect.levels = 8;
+      break;
+    case 'sepia':
+      newEffect.amount = 100;
+      break;
+  }
+
+  effects.filters.push(newEffect);
+  updateVideoEffectStack(trackName);
+  applyVideoEffectsToElement(trackName);
+  showToast(`Added ${effectType} effect`, 'success');
+}
+
+// Remove video effect from stack
+function removeVideoEffect(trackName, effectId) {
+  const effects = state.videoEffects[trackName];
+  effects.filters = effects.filters.filter(f => f.id !== effectId);
+  updateVideoEffectStack(trackName);
+  applyVideoEffectsToElement(trackName);
+}
+
+// Update video effect stack UI
+function updateVideoEffectStack(trackName) {
+  const stackEl = document.getElementById(`${trackName}VideoEffectStack`);
+  if (!stackEl) return;
+
+  const effects = state.videoEffects[trackName].filters;
+
+  if (effects.length === 0) {
+    stackEl.innerHTML = '<span style="font-size: 10px; color: #666;">No effects added</span>';
+    return;
+  }
+
+  stackEl.innerHTML = effects.map(effect => `
+    <div class="effect-stack-item">
+      <span class="effect-name">${effect.type}</span>
+      <div class="effect-controls">
+        <button onclick="removeVideoEffect('${trackName}', ${effect.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Draw EQ graph
+function drawEQGraph(trackName) {
+  const canvas = document.getElementById(`${trackName}EQGraph`);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const eq = state.audioEffects[trackName].eq;
+  const bands = [
+    { freq: 'Low', gain: eq.low, x: w * 0.25 },
+    { freq: 'Mid', gain: eq.mid, x: w * 0.5 },
+    { freq: 'High', gain: eq.high, x: w * 0.75 }
+  ];
+
+  // Draw zero line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2);
+  ctx.lineTo(w, h / 2);
+  ctx.stroke();
+
+  // Draw EQ curve
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  for (let i = 0; i < bands.length; i++) {
+    const band = bands[i];
+    const y = h / 2 - (band.gain / 12) * (h / 2);
+
+    if (i === 0) {
+      ctx.moveTo(band.x, y);
+    } else {
+      ctx.lineTo(band.x, y);
+    }
+  }
+
+  ctx.stroke();
+
+  // Draw points
+  bands.forEach(band => {
+    const y = h / 2 - (band.gain / 12) * (h / 2);
+    ctx.fillStyle = '#60a5fa';
+    ctx.beginPath();
+    ctx.arc(band.x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// Update audio effect UI from state
+function updateAudioEffectUI(trackName) {
+  const effects = state.audioEffects[trackName];
+  const prefix = trackName === 'bgAudio' ? 'bgAudio' : 'mainAudio';
+
+  // Volume
+  const volumeFx = document.getElementById(`${prefix}VolumeFX`);
+  if (volumeFx) {
+    volumeFx.value = effects.volume * 100;
+    volumeFx.nextElementSibling.textContent = Math.round(effects.volume * 100) + '%';
+  }
+
+  // Pan
+  const pan = document.getElementById(`${prefix}Pan`);
+  if (pan) {
+    pan.value = effects.pan * 100;
+    const label = effects.pan < -0.1 ? `L ${Math.abs(Math.round(effects.pan * 100))}` :
+                  effects.pan > 0.1 ? `R ${Math.round(effects.pan * 100)}` : 'Center';
+    pan.nextElementSibling.textContent = label;
+  }
+
+  // EQ
+  const eqLow = document.getElementById(`${prefix}EQLow`);
+  if (eqLow) {
+    eqLow.value = effects.eq.low;
+    eqLow.nextElementSibling.textContent = effects.eq.low.toFixed(1) + ' dB';
+  }
+
+  const eqMid = document.getElementById(`${prefix}EQMid`);
+  if (eqMid) {
+    eqMid.value = effects.eq.mid;
+    eqMid.nextElementSibling.textContent = effects.eq.mid.toFixed(1) + ' dB';
+  }
+
+  const eqHigh = document.getElementById(`${prefix}EQHigh`);
+  if (eqHigh) {
+    eqHigh.value = effects.eq.high;
+    eqHigh.nextElementSibling.textContent = effects.eq.high.toFixed(1) + ' dB';
+  }
+
+  drawEQGraph(trackName);
+
+  // Compressor
+  const compEnable = document.getElementById(`${prefix}CompressorEnable`);
+  if (compEnable) {
+    compEnable.checked = effects.compressor.enabled;
+    const compControls = document.getElementById(`${prefix}CompressorControls`);
+    if (compControls) {
+      compControls.style.display = effects.compressor.enabled ? 'block' : 'none';
+    }
+  }
+
+  // Reverb
+  const reverbEnable = document.getElementById(`${prefix}ReverbEnable`);
+  if (reverbEnable) {
+    reverbEnable.checked = effects.reverb.enabled;
+  }
+
+  // Echo
+  const echoEnable = document.getElementById(`${prefix}EchoEnable`);
+  if (echoEnable) {
+    echoEnable.checked = effects.echo.enabled;
+  }
+}
+
+// Update video effect UI from state
+function updateVideoEffectUI(trackName) {
+  const effects = state.videoEffects[trackName];
+  const prefix = trackName === 'bgVideo' ? 'bgVideo' : 'mainVideo';
+
+  // Brightness
+  const brightness = document.getElementById(`${prefix}Brightness`);
+  if (brightness) {
+    brightness.value = effects.brightness;
+    brightness.nextElementSibling.textContent = effects.brightness;
+  }
+
+  // Contrast
+  const contrast = document.getElementById(`${prefix}Contrast`);
+  if (contrast) {
+    contrast.value = effects.contrast;
+    contrast.nextElementSibling.textContent = effects.contrast;
+  }
+
+  // Saturation
+  const saturation = document.getElementById(`${prefix}Saturation`);
+  if (saturation) {
+    saturation.value = effects.saturation;
+    saturation.nextElementSibling.textContent = effects.saturation;
+  }
+
+  // Hue
+  const hue = document.getElementById(`${prefix}Hue`);
+  if (hue) {
+    hue.value = effects.hue;
+    hue.nextElementSibling.textContent = effects.hue + '°';
+  }
+
+  // Temperature
+  const temp = document.getElementById(`${prefix}Temp`);
+  if (temp) {
+    temp.value = effects.temperature;
+    temp.nextElementSibling.textContent = effects.temperature;
+  }
+
+  // Update effect stack
+  updateVideoEffectStack(trackName);
+
+  // Apply effects
+  applyVideoEffectsToElement(trackName);
 }
 
 
