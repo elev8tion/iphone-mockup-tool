@@ -962,8 +962,15 @@ body {
   justify-content: center;
   background: #1e1e1e;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
+  padding-bottom: 150px; /* Account for timeline height */
+}
+
+/* Adjust padding when timeline has more tracks */
+.stage.timeline-expanded {
+  padding-bottom: 300px;
 }
 
 .canvas-wrap {
@@ -1279,6 +1286,38 @@ body {
   padding: 8px 16px 6px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   min-height: 36px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.track-header:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.track-collapse-btn {
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.track-collapse-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.track-collapse-btn.collapsed {
+  transform: rotate(-90deg);
 }
 
 .track-label {
@@ -1318,11 +1357,13 @@ body {
 .bg-audio-track {
   background: rgba(255,255,255,0.02);
   border-bottom: 1px solid rgba(255,255,255,0.04);
-  padding: 0 16px;
+  padding: 0;
   display: none;
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  max-height: 0;
+  overflow: hidden;
 }
 
 .bg-video-track.active,
@@ -1330,6 +1371,17 @@ body {
   display: block;
   opacity: 1;
   transform: translateY(0);
+  max-height: 200px;
+}
+
+.bg-video-track.collapsed .bg-track-content,
+.bg-audio-track.collapsed .bg-track-content {
+  display: none;
+}
+
+.bg-video-track.collapsed,
+.bg-audio-track.collapsed {
+  max-height: 36px;
 }
 
 .bg-track-content {
@@ -1337,7 +1389,7 @@ body {
   grid-template-columns: 140px 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 0;
+  padding: 10px 16px;
 }
 
 .bg-video-controls {
@@ -1532,8 +1584,19 @@ body {
 
 /* Main Device Video Track (Enhanced) */
 .main-video-track {
-  padding: 10px 16px;
+  padding: 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
+  max-height: 500px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.main-video-track.collapsed {
+  max-height: 36px;
+}
+
+.main-video-track.collapsed .main-track-content {
+  display: none;
 }
 
 .main-track-content {
@@ -1541,6 +1604,7 @@ body {
   grid-template-columns: 140px 1fr auto;
   gap: 12px;
   align-items: center;
+  padding: 10px 16px;
 }
 
 /* Unified Playback Controls */
@@ -1711,6 +1775,111 @@ body {
 
 .bg-video-track:hover .track-label::before {
   opacity: 1;
+}
+
+/* Light Theme Overrides */
+:root[data-theme="light"] .timeline-system {
+  background: linear-gradient(180deg, rgba(250,250,252,0.98) 0%, rgba(245,245,247,0.98) 100%);
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+:root[data-theme="light"] .track-header {
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .track-header:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+:root[data-theme="light"] .track-collapse-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] .track-collapse-btn:hover {
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.8);
+  border-color: rgba(0,0,0,0.2);
+}
+
+:root[data-theme="light"] .bg-video-track,
+:root[data-theme="light"] .bg-audio-track {
+  background: rgba(0,0,0,0.01);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .track-label {
+  color: rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] .track-play-btn {
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+:root[data-theme="light"] .track-play-btn:hover {
+  background: rgba(0,0,0,0.1);
+  border-color: rgba(0,0,0,0.18);
+}
+
+:root[data-theme="light"] .track-play-btn svg {
+  fill: rgba(0,0,0,0.7);
+}
+
+:root[data-theme="light"] .unified-controls {
+  background: rgba(0,0,0,0.04);
+}
+
+:root[data-theme="light"] .main-video-track {
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .bg-progress-track {
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+:root[data-theme="light"] .bg-progress-track:hover {
+  border-color: rgba(142,92,219,0.3);
+  box-shadow: 0 0 12px rgba(142,92,219,0.15);
+}
+
+:root[data-theme="light"] .bg-time-display,
+:root[data-theme="light"] .master-time-display {
+  color: rgba(0,0,0,0.6);
+}
+
+:root[data-theme="light"] .track-speed-select {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.7);
+}
+
+:root[data-theme="light"] .track-speed-select:hover {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.18);
+}
+
+:root[data-theme="light"] .track-sync-btn {
+  background: rgba(0,113,227,0.12);
+  border: 1px solid rgba(0,113,227,0.25);
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .track-sync-btn:hover {
+  background: rgba(0,113,227,0.2);
+}
+
+:root[data-theme="light"] .zoom-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.6);
+}
+
+:root[data-theme="light"] .zoom-btn:hover {
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.9);
 }
 
 /* ---- Asset Browser Modal ---- */
@@ -3825,7 +3994,7 @@ input[type="range"]:hover::-moz-range-thumb {
 
   <!-- Background Audio Track -->
   <div class="bg-audio-track" id="bgAudioTrack">
-    <div class="track-header">
+    <div class="track-header" id="audioTrackHeader">
       <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
       <div class="track-label">
         <span class="track-label-icon">🎵</span>
@@ -3835,6 +4004,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
+      <button class="track-collapse-btn" id="audioCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="bg-track-content">
@@ -3873,7 +4043,7 @@ input[type="range"]:hover::-moz-range-thumb {
 
   <!-- Background Video Track -->
   <div class="bg-video-track" id="bgVideoTrack">
-    <div class="track-header">
+    <div class="track-header" id="bgVideoTrackHeader">
       <div class="track-indicator bg-video"></div>
       <div class="track-label">
         <span class="track-label-icon">🎬</span>
@@ -3883,6 +4053,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
+      <button class="track-collapse-btn" id="bgVideoCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="bg-track-content">
@@ -3918,13 +4089,15 @@ input[type="range"]:hover::-moz-range-thumb {
   </div>
 
   <!-- Main Device Video Track -->
-  <div class="main-video-track">
-    <div class="track-header">
+  <div class="main-video-track" id="mainVideoTrack">
+    <div class="track-header" id="mainVideoTrackHeader">
       <div class="track-indicator"></div>
       <div class="track-label">
         <span class="track-label-icon">📱</span>
         Device Content
       </div>
+      <div style="flex: 1"></div>
+      <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="main-track-content">
@@ -10905,10 +11078,16 @@ function updateTimelineVisibility() {
 
   // Show/hide background audio track
   if (state.bgAudio.enabled && bgAudio && bgAudio.src) {
-    setTimeout(() => bgAudioTrack?.classList.add('active'), 50);
+    setTimeout(() => {
+      bgAudioTrack?.classList.add('active');
+      updateStageSpacing();
+    }, 50);
   } else {
     bgAudioTrack?.classList.remove('active');
   }
+
+  // Update stage spacing
+  setTimeout(() => updateStageSpacing(), 100);
 }
 
 // ============================================================
@@ -11198,6 +11377,117 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('audioLoopBtn')?.click();
   }
 });
+
+// ============================================================
+// TRACK COLLAPSE/EXPAND CONTROLS
+// ============================================================
+
+// Background Video Track Collapse
+document.getElementById('bgVideoCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('bgVideoTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Background Audio Track Collapse
+document.getElementById('audioCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('bgAudioTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Main Video Track Collapse
+document.getElementById('mainVideoCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('mainVideoTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Also toggle on track header click
+document.getElementById('bgVideoTrackHeader')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('track-sync-btn') || e.target.closest('.track-sync-btn')) {
+    return; // Don't toggle if clicking sync button
+  }
+  document.getElementById('bgVideoCollapseBtn')?.click();
+});
+
+document.getElementById('audioTrackHeader')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('track-sync-btn') || e.target.closest('.track-sync-btn')) {
+    return; // Don't toggle if clicking sync button
+  }
+  document.getElementById('audioCollapseBtn')?.click();
+});
+
+document.getElementById('mainVideoTrackHeader')?.addEventListener('click', (e) => {
+  // Don't toggle if clicking on interactive elements
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') {
+    return;
+  }
+  if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input')) {
+    return;
+  }
+  document.getElementById('mainVideoCollapseBtn')?.click();
+});
+
+// Update stage spacing based on timeline height
+function updateStageSpacing() {
+  const stage = document.getElementById('stage');
+  const bgVideoTrack = document.getElementById('bgVideoTrack');
+  const bgAudioTrack = document.getElementById('bgAudioTrack');
+  const mainVideoTrack = document.getElementById('mainVideoTrack');
+
+  if (!stage) return;
+
+  // Check if any tracks are expanded
+  const hasBgVideo = bgVideoTrack?.classList.contains('active') && !bgVideoTrack?.classList.contains('collapsed');
+  const hasBgAudio = bgAudioTrack?.classList.contains('active') && !bgAudioTrack?.classList.contains('collapsed');
+  const hasMainVideo = mainVideoTrack && !mainVideoTrack?.classList.contains('collapsed');
+
+  // Count total expanded tracks to adjust spacing
+  let expandedCount = 0;
+  if (hasBgVideo) expandedCount++;
+  if (hasBgAudio) expandedCount++;
+  if (hasMainVideo) expandedCount++;
+
+  if (expandedCount >= 2) {
+    stage.classList.add('timeline-expanded');
+  } else {
+    stage.classList.remove('timeline-expanded');
+  }
+}
 
 // ============================================================
 // INITIALIZATION

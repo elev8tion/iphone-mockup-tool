@@ -639,7 +639,7 @@
 
   <!-- Background Audio Track -->
   <div class="bg-audio-track" id="bgAudioTrack">
-    <div class="track-header">
+    <div class="track-header" id="audioTrackHeader">
       <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
       <div class="track-label">
         <span class="track-label-icon">🎵</span>
@@ -649,6 +649,7 @@
       <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
+      <button class="track-collapse-btn" id="audioCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="bg-track-content">
@@ -687,7 +688,7 @@
 
   <!-- Background Video Track -->
   <div class="bg-video-track" id="bgVideoTrack">
-    <div class="track-header">
+    <div class="track-header" id="bgVideoTrackHeader">
       <div class="track-indicator bg-video"></div>
       <div class="track-label">
         <span class="track-label-icon">🎬</span>
@@ -697,6 +698,7 @@
       <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
+      <button class="track-collapse-btn" id="bgVideoCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="bg-track-content">
@@ -732,13 +734,15 @@
   </div>
 
   <!-- Main Device Video Track -->
-  <div class="main-video-track">
-    <div class="track-header">
+  <div class="main-video-track" id="mainVideoTrack">
+    <div class="track-header" id="mainVideoTrackHeader">
       <div class="track-indicator"></div>
       <div class="track-label">
         <span class="track-label-icon">📱</span>
         Device Content
       </div>
+      <div style="flex: 1"></div>
+      <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
     </div>
 
     <div class="main-track-content">

@@ -260,10 +260,16 @@ function updateTimelineVisibility() {
 
   // Show/hide background audio track
   if (state.bgAudio.enabled && bgAudio && bgAudio.src) {
-    setTimeout(() => bgAudioTrack?.classList.add('active'), 50);
+    setTimeout(() => {
+      bgAudioTrack?.classList.add('active');
+      updateStageSpacing();
+    }, 50);
   } else {
     bgAudioTrack?.classList.remove('active');
   }
+
+  // Update stage spacing
+  setTimeout(() => updateStageSpacing(), 100);
 }
 
 // ============================================================
@@ -553,6 +559,117 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('audioLoopBtn')?.click();
   }
 });
+
+// ============================================================
+// TRACK COLLAPSE/EXPAND CONTROLS
+// ============================================================
+
+// Background Video Track Collapse
+document.getElementById('bgVideoCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('bgVideoTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Background Audio Track Collapse
+document.getElementById('audioCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('bgAudioTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Main Video Track Collapse
+document.getElementById('mainVideoCollapseBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const track = document.getElementById('mainVideoTrack');
+  const btn = e.target.closest('.track-collapse-btn');
+
+  if (track.classList.contains('collapsed')) {
+    track.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    track.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+  updateStageSpacing();
+});
+
+// Also toggle on track header click
+document.getElementById('bgVideoTrackHeader')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('track-sync-btn') || e.target.closest('.track-sync-btn')) {
+    return; // Don't toggle if clicking sync button
+  }
+  document.getElementById('bgVideoCollapseBtn')?.click();
+});
+
+document.getElementById('audioTrackHeader')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('track-sync-btn') || e.target.closest('.track-sync-btn')) {
+    return; // Don't toggle if clicking sync button
+  }
+  document.getElementById('audioCollapseBtn')?.click();
+});
+
+document.getElementById('mainVideoTrackHeader')?.addEventListener('click', (e) => {
+  // Don't toggle if clicking on interactive elements
+  if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') {
+    return;
+  }
+  if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input')) {
+    return;
+  }
+  document.getElementById('mainVideoCollapseBtn')?.click();
+});
+
+// Update stage spacing based on timeline height
+function updateStageSpacing() {
+  const stage = document.getElementById('stage');
+  const bgVideoTrack = document.getElementById('bgVideoTrack');
+  const bgAudioTrack = document.getElementById('bgAudioTrack');
+  const mainVideoTrack = document.getElementById('mainVideoTrack');
+
+  if (!stage) return;
+
+  // Check if any tracks are expanded
+  const hasBgVideo = bgVideoTrack?.classList.contains('active') && !bgVideoTrack?.classList.contains('collapsed');
+  const hasBgAudio = bgAudioTrack?.classList.contains('active') && !bgAudioTrack?.classList.contains('collapsed');
+  const hasMainVideo = mainVideoTrack && !mainVideoTrack?.classList.contains('collapsed');
+
+  // Count total expanded tracks to adjust spacing
+  let expandedCount = 0;
+  if (hasBgVideo) expandedCount++;
+  if (hasBgAudio) expandedCount++;
+  if (hasMainVideo) expandedCount++;
+
+  if (expandedCount >= 2) {
+    stage.classList.add('timeline-expanded');
+  } else {
+    stage.classList.remove('timeline-expanded');
+  }
+}
 
 // ============================================================
 // INITIALIZATION

@@ -29,6 +29,38 @@
   padding: 8px 16px 6px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   min-height: 36px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.track-header:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.track-collapse-btn {
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.track-collapse-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.track-collapse-btn.collapsed {
+  transform: rotate(-90deg);
 }
 
 .track-label {
@@ -68,11 +100,13 @@
 .bg-audio-track {
   background: rgba(255,255,255,0.02);
   border-bottom: 1px solid rgba(255,255,255,0.04);
-  padding: 0 16px;
+  padding: 0;
   display: none;
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  max-height: 0;
+  overflow: hidden;
 }
 
 .bg-video-track.active,
@@ -80,6 +114,17 @@
   display: block;
   opacity: 1;
   transform: translateY(0);
+  max-height: 200px;
+}
+
+.bg-video-track.collapsed .bg-track-content,
+.bg-audio-track.collapsed .bg-track-content {
+  display: none;
+}
+
+.bg-video-track.collapsed,
+.bg-audio-track.collapsed {
+  max-height: 36px;
 }
 
 .bg-track-content {
@@ -87,7 +132,7 @@
   grid-template-columns: 140px 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 0;
+  padding: 10px 16px;
 }
 
 .bg-video-controls {
@@ -282,8 +327,19 @@
 
 /* Main Device Video Track (Enhanced) */
 .main-video-track {
-  padding: 10px 16px;
+  padding: 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
+  max-height: 500px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.main-video-track.collapsed {
+  max-height: 36px;
+}
+
+.main-video-track.collapsed .main-track-content {
+  display: none;
 }
 
 .main-track-content {
@@ -291,6 +347,7 @@
   grid-template-columns: 140px 1fr auto;
   gap: 12px;
   align-items: center;
+  padding: 10px 16px;
 }
 
 /* Unified Playback Controls */
@@ -461,4 +518,109 @@
 
 .bg-video-track:hover .track-label::before {
   opacity: 1;
+}
+
+/* Light Theme Overrides */
+:root[data-theme="light"] .timeline-system {
+  background: linear-gradient(180deg, rgba(250,250,252,0.98) 0%, rgba(245,245,247,0.98) 100%);
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+:root[data-theme="light"] .track-header {
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .track-header:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+:root[data-theme="light"] .track-collapse-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] .track-collapse-btn:hover {
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.8);
+  border-color: rgba(0,0,0,0.2);
+}
+
+:root[data-theme="light"] .bg-video-track,
+:root[data-theme="light"] .bg-audio-track {
+  background: rgba(0,0,0,0.01);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .track-label {
+  color: rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] .track-play-btn {
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+:root[data-theme="light"] .track-play-btn:hover {
+  background: rgba(0,0,0,0.1);
+  border-color: rgba(0,0,0,0.18);
+}
+
+:root[data-theme="light"] .track-play-btn svg {
+  fill: rgba(0,0,0,0.7);
+}
+
+:root[data-theme="light"] .unified-controls {
+  background: rgba(0,0,0,0.04);
+}
+
+:root[data-theme="light"] .main-video-track {
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+:root[data-theme="light"] .bg-progress-track {
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+:root[data-theme="light"] .bg-progress-track:hover {
+  border-color: rgba(142,92,219,0.3);
+  box-shadow: 0 0 12px rgba(142,92,219,0.15);
+}
+
+:root[data-theme="light"] .bg-time-display,
+:root[data-theme="light"] .master-time-display {
+  color: rgba(0,0,0,0.6);
+}
+
+:root[data-theme="light"] .track-speed-select {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.7);
+}
+
+:root[data-theme="light"] .track-speed-select:hover {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(0,0,0,0.18);
+}
+
+:root[data-theme="light"] .track-sync-btn {
+  background: rgba(0,113,227,0.12);
+  border: 1px solid rgba(0,113,227,0.25);
+  color: #0071e3;
+}
+
+:root[data-theme="light"] .track-sync-btn:hover {
+  background: rgba(0,113,227,0.2);
+}
+
+:root[data-theme="light"] .zoom-btn {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.6);
+}
+
+:root[data-theme="light"] .zoom-btn:hover {
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.9);
 }
