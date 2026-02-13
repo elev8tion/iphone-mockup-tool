@@ -9,6 +9,10 @@ class VideoEffectProcessor {
     this.gl = null;
     this.shaders = {};
     this.initialized = false;
+    this._activeBuffers = new Set();
+    this._activeTextures = new Set();
+    this._lastUsed = Date.now();
+    this._frameCount = 0;
   }
 
   // Apply CSS filters (fast, GPU-accelerated)
@@ -210,6 +214,9 @@ class VideoEffectProcessor {
   applyWebGLEffects(sourceCanvas, effects) {
     if (!this.initWebGL()) return;
 
+    this._lastUsed = Date.now();
+    this._frameCount++;
+
     const gl = this.gl;
     const filters = effects.filters || [];
 
@@ -222,6 +229,7 @@ class VideoEffectProcessor {
 
     // Create texture from source
     const texture = gl.createTexture();
+    this._activeTextures.add(texture);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -231,6 +239,7 @@ class VideoEffectProcessor {
 
     // Setup geometry (full-screen quad)
     const positionBuffer = gl.createBuffer();
+    this._activeBuffers.add(positionBuffer);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
       -1, -1,  1, -1,  -1, 1,
@@ -238,6 +247,7 @@ class VideoEffectProcessor {
     ]), gl.STATIC_DRAW);
 
     const texCoordBuffer = gl.createBuffer();
+    this._activeBuffers.add(texCoordBuffer);
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
       0, 1,  1, 1,  0, 0,
@@ -296,10 +306,24 @@ class VideoEffectProcessor {
     const srcCtx = sourceCanvas.getContext('2d');
     srcCtx.drawImage(this.glCanvas, 0, 0);
 
-    // Cleanup
-    gl.deleteTexture(texture);
-    gl.deleteBuffer(positionBuffer);
-    gl.deleteBuffer(texCoordBuffer);
+    // Cleanup resources immediately
+    if (texture) {
+      gl.deleteTexture(texture);
+      this._activeTextures.delete(texture);
+    }
+    if (positionBuffer) {
+      gl.deleteBuffer(positionBuffer);
+      this._activeBuffers.delete(positionBuffer);
+    }
+    if (texCoordBuffer) {
+      gl.deleteBuffer(texCoordBuffer);
+      this._activeBuffers.delete(texCoordBuffer);
+    }
+
+    // Periodic memory cleanup every 300 frames
+    if (this._frameCount % 300 === 0) {
+      this.cleanupUnusedResources();
+    }
   }
 
   // Apply blend mode
@@ -307,19 +331,83 @@ class VideoEffectProcessor {
     ctx.globalCompositeOperation = blendMode || 'normal';
   }
 
+  // Clean up unused resources
+  cleanupUnusedResources() {
+    if (!this.gl) return;
+
+    const gl = this.gl;
+
+    // Clean up orphaned textures
+    for (const texture of this._activeTextures) {
+      if (texture && gl.isTexture(texture)) {
+        gl.deleteTexture(texture);
+      }
+    }
+    this._activeTextures.clear();
+
+    // Clean up orphaned buffers
+    for (const buffer of this._activeBuffers) {
+      if (buffer && gl.isBuffer(buffer)) {
+        gl.deleteBuffer(buffer);
+      }
+    }
+    this._activeBuffers.clear();
+  }
+
+  // Monitor memory usage
+  monitorMemoryUsage() {
+    if (window.performance?.memory) {
+      const memory = window.performance.memory;
+      const usedMB = memory.usedJSHeapSize / (1024 * 1024);
+      const limitMB = memory.jsHeapSizeLimit / (1024 * 1024);
+
+      // Warn if using more than 100MB
+      if (usedMB > 100) {
+        console.warn(`High memory usage: ${usedMB.toFixed(2)}MB / ${limitMB.toFixed(2)}MB`);
+        this.cleanupUnusedResources();
+      }
+
+      // Force cleanup if using more than 70% of available memory
+      if (usedMB > limitMB * 0.7) {
+        console.warn('Critical memory usage - forcing cleanup');
+        this.destroy();
+        this.initialized = false;
+      }
+    }
+  }
+
+  // Check if processor is stale (not used in 30 seconds)
+  isStale() {
+    return Date.now() - this._lastUsed > 30000;
+  }
+
   // Cleanup
   destroy() {
     if (this.gl) {
       const gl = this.gl;
+
+      // Clean up shaders
       for (const key in this.shaders) {
-        if (this.shaders[key]) {
+        if (this.shaders[key] && gl.isProgram(this.shaders[key])) {
           gl.deleteProgram(this.shaders[key]);
         }
       }
+      this.shaders = {};
+
+      // Clean up remaining resources
+      this.cleanupUnusedResources();
+
+      // Force WebGL context loss to free GPU memory
+      const loseContextExt = gl.getExtension('WEBGL_lose_context');
+      if (loseContextExt) {
+        loseContextExt.loseContext();
+      }
     }
+
     this.glCanvas = null;
     this.gl = null;
     this.initialized = false;
+    this._frameCount = 0;
   }
 }
 
@@ -327,4 +415,55 @@ class VideoEffectProcessor {
 const videoProcessors = {
   main: new VideoEffectProcessor('main'),
   bgVideo: new VideoEffectProcessor('bgVideo')
+};
+
+// ============================================================
+// MEMORY MANAGEMENT
+// ============================================================
+
+// Monitor memory usage every 5 seconds
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    for (const key in videoProcessors) {
+      const processor = videoProcessors[key];
+      if (processor.initialized) {
+        processor.monitorMemoryUsage();
+
+        // Clean up stale processors
+        if (processor.isStale()) {
+          console.log(`Cleaning up stale video processor: ${key}`);
+          processor.destroy();
+        }
+      }
+    }
+  }, 5000);
+}
+
+// Cleanup all processors on page unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    for (const key in videoProcessors) {
+      videoProcessors[key].destroy();
+    }
+  });
+
+  // Also cleanup on visibility change (tab switch)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      for (const key in videoProcessors) {
+        const processor = videoProcessors[key];
+        if (processor.initialized && processor.isStale()) {
+          processor.cleanupUnusedResources();
+        }
+      }
+    }
+  });
+}
+
+// Export cleanup function for manual use
+window.cleanupVideoProcessors = () => {
+  for (const key in videoProcessors) {
+    videoProcessors[key].destroy();
+  }
+  console.log('All video processors cleaned up');
 };

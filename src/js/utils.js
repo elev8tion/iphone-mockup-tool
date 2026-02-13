@@ -66,3 +66,46 @@ function pillPath(c, x, y, w, h) {
 }
 
 // ============================================================
+// PERFORMANCE OPTIMIZATION UTILITIES
+// ============================================================
+
+// Debounce function for expensive operations
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func.apply(this, args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Throttle function for scroll/resize events
+function throttle(func, limit) {
+  let inThrottle;
+  return function executedFunction(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+}
+
+// Memoization for expensive calculations
+function memoize(fn) {
+  const cache = new Map();
+  return function memoizedFunction(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      return cache.get(key);
+    }
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
+// ============================================================

@@ -224,22 +224,101 @@ function drawAppleWatch(c, S, dev, pal) {
 }
 
 // ============================================================
-// FRAME CACHE
+// FRAME CACHE with LRU Management
 // ============================================================
 let frameCache = {};
+let frameCacheMetadata = {}; // Track usage for LRU
+const MAX_FRAME_CACHE_SIZE = 20; // Limit cache size
+
 function getDeviceFrame(deviceId, colorKey) {
   const key = deviceId + '_' + colorKey;
-  if (frameCache[key]) return frameCache[key];
 
+  // Cache hit - update last used time
+  if (frameCache[key]) {
+    if (frameCacheMetadata[key]) {
+      frameCacheMetadata[key].lastUsed = Date.now();
+      frameCacheMetadata[key].useCount++;
+    }
+    return frameCache[key];
+  }
+
+  // Enforce cache size limit using LRU eviction
+  if (Object.keys(frameCache).length >= MAX_FRAME_CACHE_SIZE) {
+    evictLeastRecentlyUsedFrame();
+  }
+
+  // Cache miss - create new frame
   const dev = DEVICES[deviceId];
+  if (!dev) {
+    console.warn(`Device not found: ${deviceId}`);
+    return null;
+  }
+
   const pal = dev.colors[colorKey];
+  if (!pal) {
+    console.warn(`Color not found for device ${deviceId}: ${colorKey}`);
+    return null;
+  }
+
   const fc = document.createElement('canvas');
   fc.width = dev.baseW * RENDER_SCALE;
   fc.height = dev.baseH * RENDER_SCALE;
   const fCtx = fc.getContext('2d');
-  dev.draw(fCtx, RENDER_SCALE, pal);
-  frameCache[key] = fc;
-  return fc;
+
+  try {
+    dev.draw(fCtx, RENDER_SCALE, pal);
+    frameCache[key] = fc;
+    frameCacheMetadata[key] = {
+      created: Date.now(),
+      lastUsed: Date.now(),
+      useCount: 1,
+      size: fc.width * fc.height * 4 // Approximate memory in bytes
+    };
+    return fc;
+  } catch (error) {
+    console.error(`Error drawing device frame ${deviceId}:`, error);
+    return null;
+  }
+}
+
+// Evict least recently used frame
+function evictLeastRecentlyUsedFrame() {
+  const entries = Object.entries(frameCacheMetadata);
+  if (entries.length === 0) return;
+
+  // Sort by last used time (oldest first)
+  entries.sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+
+  // Remove oldest frame
+  const [keyToRemove] = entries[0];
+  delete frameCache[keyToRemove];
+  delete frameCacheMetadata[keyToRemove];
+}
+
+// Clear entire frame cache (call when device changes)
+function clearFrameCache() {
+  frameCache = {};
+  frameCacheMetadata = {};
+}
+
+// Get cache statistics
+function getFrameCacheStats() {
+  const entries = Object.values(frameCacheMetadata);
+  const totalSize = entries.reduce((sum, meta) => sum + meta.size, 0);
+  const totalUses = entries.reduce((sum, meta) => sum + meta.useCount, 0);
+
+  return {
+    entries: entries.length,
+    totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+    totalUses,
+    avgUsesPerFrame: entries.length > 0 ? (totalUses / entries.length).toFixed(1) : 0
+  };
+}
+
+// Export cleanup for external use
+if (typeof window !== 'undefined') {
+  window.clearFrameCache = clearFrameCache;
+  window.getFrameCacheStats = getFrameCacheStats;
 }
 
 // ============================================================

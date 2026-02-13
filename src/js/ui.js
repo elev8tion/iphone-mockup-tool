@@ -776,6 +776,16 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
     document.getElementById('bgVideoControls').style.display = 'block';
     document.getElementById('removeBgVideoBtn').style.display = '';
     document.getElementById('loadBgVideoBtn').style.display = 'none';
+
+    // Update timeline visibility to show the background video track
+    updateTimelineVisibility();
+
+    // Enable loop by default
+    const bgLoopBtn = document.getElementById('bgLoopBtn');
+    if (bgLoopBtn) {
+      bgLoopBtn.classList.add('active');
+    }
+
     // Auto-play synced with main video
     if (hasVideo && vtPlaying) bgVid.play();
     else bgVid.play(); // play anyway for preview
@@ -793,6 +803,9 @@ document.getElementById('removeBgVideoBtn').addEventListener('click', () => {
   document.getElementById('bgVideoControls').style.display = 'none';
   document.getElementById('removeBgVideoBtn').style.display = 'none';
   document.getElementById('loadBgVideoBtn').style.display = 'block';
+
+  // Update timeline visibility to hide the background video track
+  updateTimelineVisibility();
 });
 
 document.getElementById('bgVideoOpacity').addEventListener('input', e => {
@@ -1564,16 +1577,27 @@ function updateDeviceKeyframesList() {
     return;
   }
 
-  list.innerHTML = keyframes.map((kf, i) => `
-    <div class="keyframe-item" style="display:flex;align-items:center;gap:8px;padding:6px;background:rgba(255,255,255,0.05);border-radius:4px;margin-bottom:4px">
-      <span style="flex:1;font-size:11px">
-        ${kf.time.toFixed(2)}s:
-        pos(${kf.x.toFixed(0)}, ${kf.y.toFixed(0)})
-        scale(${kf.scale.toFixed(2)})
-      </span>
-      <button class="btn-icon" onclick="deleteDeviceKeyframe(${i})" title="Delete" style="background:rgba(255,0,0,0.2);border:none;color:#fff;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:12px">🗑</button>
-    </div>
-  `).join('');
+  list.innerHTML = '';
+  keyframes.forEach((kf, i) => {
+    const item = document.createElement('div');
+    item.className = 'keyframe-item';
+    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;background:rgba(255,255,255,0.05);border-radius:4px;margin-bottom:4px';
+
+    const info = document.createElement('span');
+    info.style.cssText = 'flex:1;font-size:11px';
+    info.textContent = `${kf.time.toFixed(2)}s: pos(${kf.x.toFixed(0)}, ${kf.y.toFixed(0)}) scale(${kf.scale.toFixed(2)})`;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-icon';
+    deleteBtn.title = 'Delete';
+    deleteBtn.style.cssText = 'background:rgba(255,0,0,0.2);border:none;color:#fff;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:12px';
+    deleteBtn.textContent = '🗑';
+    deleteBtn.addEventListener('click', () => deleteDeviceKeyframe(i));
+
+    item.appendChild(info);
+    item.appendChild(deleteBtn);
+    list.appendChild(item);
+  });
 }
 
 // Delete specific device keyframe
@@ -1584,6 +1608,9 @@ function deleteDeviceKeyframe(index) {
   scheduleSave();
   showToast('Keyframe deleted', 'info');
 }
+
+// Make function globally accessible for compatibility
+window.deleteDeviceKeyframe = deleteDeviceKeyframe;
 
 // ============================================================
 // STANDSTILL MODE CONTROLS
@@ -1626,6 +1653,26 @@ if (setFreezeTimeBtn) {
     showToast(`Freeze time set to ${vtTime.toFixed(2)}s`, 'success');
   });
 }
+
+// Freeze time input manual control
+document.getElementById('freezeTimeInput')?.addEventListener('input', (e) => {
+  if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+  state.standstill.freezeTime = parseFloat(e.target.value);
+  scheduleSave();
+});
+
+// Content loop controls for standstill mode
+document.getElementById('contentLoopStart')?.addEventListener('input', (e) => {
+  if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+  state.standstill.contentLoop.start = parseFloat(e.target.value);
+  scheduleSave();
+});
+
+document.getElementById('contentLoopEnd')?.addEventListener('input', (e) => {
+  if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
+  state.standstill.contentLoop.end = parseFloat(e.target.value);
+  scheduleSave();
+});
 
 // ============================================================
 // LUCIDE ICONS INITIALIZATION

@@ -108,7 +108,67 @@ const beatDetector = {
     }
 
     this.timeSinceLastBeat = now - this._lastBeatTime;
+  },
+
+  // Reset detector state
+  reset: function() {
+    this.isBeat = false;
+    this.beatIntensity = 0;
+    this.energy = 0;
+    this.kickBeat = false;
+    this.snareBeat = false;
+    this.hihatBeat = false;
+    this.timeSinceLastBeat = 999;
+    this.estimatedBPM = 120;
+    this._lastBeatTime = 0;
+    this._kickAvg = 0;
+    this._snareAvg = 0;
+    this._hihatAvg = 0;
+    this._overallAvg = 0;
+    this._beatIntervals = [];
+  },
+
+  // Adjust sensitivity
+  setSensitivity: function(level) {
+    // level: 'low' | 'medium' | 'high'
+    switch (level) {
+      case 'low':
+        this._kickThreshold = 1.6;
+        this._snareThreshold = 1.5;
+        this._hihatThreshold = 1.5;
+        break;
+      case 'high':
+        this._kickThreshold = 1.2;
+        this._snareThreshold = 1.1;
+        this._hihatThreshold = 1.1;
+        break;
+      default: // medium
+        this._kickThreshold = 1.4;
+        this._snareThreshold = 1.3;
+        this._hihatThreshold = 1.3;
+    }
+  },
+
+  // Get performance metrics
+  getMetrics: function() {
+    return {
+      energy: this.energy.toFixed(2),
+      bpm: this.estimatedBPM,
+      timeSinceLastBeat: this.timeSinceLastBeat.toFixed(2),
+      beatIntensity: this.beatIntensity.toFixed(2),
+      intervalsTracked: this._beatIntervals.length,
+      avgKick: this._kickAvg.toFixed(3),
+      avgSnare: this._snareAvg.toFixed(3),
+      avgHihat: this._hihatAvg.toFixed(3)
+    };
   }
 };
+
+// Export beat detector methods
+if (typeof window !== 'undefined') {
+  window.resetBeatDetector = () => beatDetector.reset();
+  window.setBeatSensitivity = (level) => beatDetector.setSensitivity(level);
+  window.getBeatMetrics = () => beatDetector.getMetrics();
+}
 
 // ============================================================

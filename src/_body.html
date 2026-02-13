@@ -703,7 +703,7 @@
       <div style="flex: 1"></div>
       <div class="track-actions">
         <button class="track-action-btn" id="bgAudioActionsBtn" title="Quick Actions" aria-label="Background audio quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
-        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" role="menu" aria-labelledby="bgAudioActionsBtn" style="display:none">
+        <div class="track-actions-dropdown" id="bgAudioActionsDropdown" role="menu" aria-labelledby="bgAudioActionsBtn">
           <button onclick="applyBgAudioAction('fadeInAudio', 2000)">↗️ Fade In (2s)</button>
           <button onclick="applyBgAudioAction('fadeOutAudio', 2000)">↘️ Fade Out (2s)</button>
           <button onclick="applyBgAudioAction('fadeInSlow')">↗️ Fade In (5s)</button>
@@ -719,7 +719,7 @@
         </div>
       </div>
       <button class="track-loop-btn" id="audioLoopMarkerBtn" title="Loop Region" aria-label="Configure audio loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
-      <div class="track-loop-controls" id="audioLoopControls" style="display:none">
+      <div class="track-loop-controls" id="audioLoopControls">
         <label style="font-size:10px">Loop Start:</label>
         <input type="number" id="audioLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
         <label style="font-size:10px">End:</label>
@@ -876,7 +876,7 @@
       <div style="flex: 1"></div>
       <div class="track-actions">
         <button class="track-action-btn" id="bgVideoActionsBtn" title="Quick Actions" aria-label="Background video quick actions" aria-expanded="false" aria-haspopup="true">⚡</button>
-        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" role="menu" aria-labelledby="bgVideoActionsBtn" style="display:none">
+        <div class="track-actions-dropdown" id="bgVideoActionsDropdown" role="menu" aria-labelledby="bgVideoActionsBtn">
           <button onclick="applyBgVideoAction('fadeIn', 2000)">↗️ Fade In (2s)</button>
           <button onclick="applyBgVideoAction('fadeOut', 2000)">↘️ Fade Out (2s)</button>
           <button onclick="applyBgVideoAction('overlayMode')">🎨 Overlay Mode (50%)</button>
@@ -892,7 +892,7 @@
         </div>
       </div>
       <button class="track-loop-btn" id="videoLoopMarkerBtn" title="Loop Region" aria-label="Configure video loop region" aria-expanded="false" aria-haspopup="true">🔁</button>
-      <div class="track-loop-controls" id="videoLoopControls" style="display:none">
+      <div class="track-loop-controls" id="videoLoopControls">
         <label style="font-size:10px">Loop Start:</label>
         <input type="number" id="videoLoopStart" min="0" max="1" step="0.1" value="0" style="width:60px">
         <label style="font-size:10px">End:</label>

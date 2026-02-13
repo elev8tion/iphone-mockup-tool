@@ -322,17 +322,41 @@ function makeClipTrimDraggable(handle, clipIdx, side) {
 }
 
 function updateTimelineScrubber() {
-  const totalDuration = vtGetTotalDuration();
-  if (!totalDuration) return;
-  const pct = vtTime / totalDuration * 100;
-  timelineScrubber.style.left = Math.min(100, pct) + '%';
-  // Update active clip highlight
-  const info = vtGetClipAt(vtTime);
-  if (info) {
-    timelineTrack.querySelectorAll('.clip-block').forEach((b, i) => {
-      b.classList.toggle('active', i === info.index);
-    });
+  // Add null check for scrubber element
+  if (!timelineScrubber) {
+    console.warn('Timeline scrubber element not found');
+    return;
   }
+
+  const totalDuration = vtGetTotalDuration();
+  if (!totalDuration || typeof totalDuration !== 'number' || isNaN(totalDuration)) return;
+
+  // Use requestAnimationFrame for smooth animations
+  requestAnimationFrame(() => {
+    try {
+      const pct = (vtTime / totalDuration) * 100;
+
+      // Validate percentage before applying
+      if (typeof pct === 'number' && !isNaN(pct)) {
+        const clampedPct = Math.max(0, Math.min(100, pct));
+        timelineScrubber.style.transform = `translateX(${clampedPct}%)`;
+        timelineScrubber.style.left = '0';
+      }
+
+      // Update active clip highlight with null check
+      if (!timelineTrack) return;
+
+      const info = vtGetClipAt(vtTime);
+      if (info) {
+        const clipBlocks = timelineTrack.querySelectorAll('.clip-block');
+        clipBlocks.forEach((b, i) => {
+          b.classList.toggle('active', i === info.index);
+        });
+      }
+    } catch (error) {
+      console.error('Error updating timeline scrubber:', error);
+    }
+  });
 }
 
 // ============================================================
