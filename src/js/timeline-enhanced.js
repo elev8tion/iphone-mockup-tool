@@ -322,14 +322,24 @@ const BG_AUDIO_ACTIONS = {
     name: 'Bass Boost',
     apply: () => {
       pushUndoState();
-      showToast('Bass boost applied (placeholder)', 'info');
+      const effects = state.audioEffects.bgAudio;
+      effects.eq.low = 8;
+      effects.eq.mid = -2;
+      updateAudioEffects('bgAudio');
+      updateAudioEffectUI('bgAudio');
+      showToast('Bass boost applied', 'success');
     }
   },
   reverb: {
     name: 'Add Reverb',
     apply: () => {
       pushUndoState();
-      showToast('Reverb applied (placeholder)', 'info');
+      const effects = state.audioEffects.bgAudio;
+      effects.reverb.enabled = true;
+      effects.reverb.mix = 0.4;
+      updateAudioEffects('bgAudio');
+      updateAudioEffectUI('bgAudio');
+      showToast('Reverb applied', 'success');
     }
   },
 };

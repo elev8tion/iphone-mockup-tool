@@ -191,12 +191,24 @@ function startExport() {
   if (includeAudio) {
     try {
       var _actx = getSharedAudioContext();
-      var _srcNode = getSharedSourceNode();
       destNode = _actx.createMediaStreamDestination();
-      _srcNode.disconnect();
-      _srcNode.connect(destNode);
-      _srcNode.connect(_actx.destination);
-      if (audioAnalyser) _srcNode.connect(audioAnalyser);
+      
+      // Connect all active audio chains to the destination node
+      Object.keys(audioChains).forEach(track => {
+        const chain = audioChains[track];
+        if (chain && chain.initialized) {
+          chain.setDestination(destNode);
+        }
+      });
+
+      // If main video doesn't have a chain yet, connect its source directly
+      if (!audioChains.main || !audioChains.main.initialized) {
+        var _srcNode = getSharedSourceNode();
+        _srcNode.disconnect();
+        _srcNode.connect(destNode);
+        _srcNode.connect(_actx.destination);
+      }
+
       for (const t of destNode.stream.getAudioTracks()) expStream.addTrack(t);
     } catch (err) { console.log('Audio capture skipped:', err.message); }
   }
@@ -220,9 +232,14 @@ function startExport() {
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
     updateExportButtonState(false);
-    // Remove cancel button if present
-    document.getElementById('exportCancelBtn')?.remove();
-    if (exportRAF) cancelAnimationFrame(exportRAF);
+    // Reset audio chain destinations
+    Object.keys(audioChains).forEach(track => {
+      const chain = audioChains[track];
+      if (chain && chain.initialized) {
+        chain.setDestination(null);
+      }
+    });
+
     reconnectAudioGraph();
     showToast('Export complete — WebM downloaded', 'success');
 
@@ -368,12 +385,24 @@ async function startMp4Export() {
 
       scriptProcessor = mp4AudioCtx.createScriptProcessor(4096, 2, 2);
 
-      // Connect audio source (shared singleton)
-      var mp4SrcNode = getSharedSourceNode();
-      mp4SrcNode.disconnect();
-      mp4SrcNode.connect(scriptProcessor);
-      mp4SrcNode.connect(mp4AudioCtx.destination);
-      if (audioAnalyser) mp4SrcNode.connect(audioAnalyser);
+      // Connect all active audio chains to the script processor
+      let chainsConnected = false;
+      Object.keys(audioChains).forEach(track => {
+        const chain = audioChains[track];
+        if (chain && chain.initialized) {
+          chain.setDestination(scriptProcessor);
+          chainsConnected = true;
+        }
+      });
+
+      // If no chains were connected, fall back to direct source
+      if (!chainsConnected) {
+        var mp4SrcNode = getSharedSourceNode();
+        mp4SrcNode.disconnect();
+        mp4SrcNode.connect(scriptProcessor);
+        mp4SrcNode.connect(mp4AudioCtx.destination);
+      }
+
       scriptProcessor.connect(mp4AudioCtx.destination);
 
       audioTimestamp = 0;
@@ -472,6 +501,15 @@ async function startMp4Export() {
         scriptProcessor.disconnect();
         scriptProcessor.onaudioprocess = null;
       }
+
+      // Reset audio chain destinations
+      Object.keys(audioChains).forEach(track => {
+        const chain = audioChains[track];
+        if (chain && chain.initialized) {
+          chain.setDestination(null);
+        }
+      });
+
       reconnectAudioGraph();
       muxer.finalize();
 

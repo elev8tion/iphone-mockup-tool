@@ -128,11 +128,21 @@ class AudioEffectChain {
       this.delayGainNode.connect(this.analyserNode);
 
       // Final output
-      this.analyserNode.connect(this.ctx.destination);
+      if (this.customDestination) {
+        this.analyserNode.connect(this.customDestination);
+      } else {
+        this.analyserNode.connect(this.ctx.destination);
+      }
 
     } catch (e) {
       console.error(`AudioEffectChain rebuild error (${this.trackName}):`, e);
     }
+  }
+
+  // Set a custom destination node (e.g. for export)
+  setDestination(node) {
+    this.customDestination = node;
+    this.rebuild();
   }
 
   // Volume control (0-2 for 0-200%)

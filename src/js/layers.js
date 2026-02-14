@@ -167,6 +167,7 @@ function getContentLayerIcon(layer) {
 
 // Build flat display list from render stack
 function buildDisplayList() {
+  const query = document.getElementById('layerSearch')?.value?.toLowerCase() || '';
   const list = [];
   for (let i = state.renderStack.length - 1; i >= 0; i--) {
     const group = state.renderStack[i];
@@ -175,9 +176,11 @@ function buildDisplayList() {
     if (group.id === 'content') {
       // Expand individual content layers
       for (let j = state.layers.length - 1; j >= 0; j--) {
+        const name = getContentLayerName(state.layers[j]);
+        if (query && !name.toLowerCase().includes(query)) continue;
         list.push({
           kind: 'content', groupIdx: i, layerIdx: j,
-          name: getContentLayerName(state.layers[j]),
+          name: name,
           icon: getContentLayerIcon(state.layers[j]),
           hidden: group.hidden || state.layers[j].visible === false,
         });
@@ -186,17 +189,21 @@ function buildDisplayList() {
       // Expand individual overlays
       for (let j = state.videoOverlays.length - 1; j >= 0; j--) {
         const ov = state.videoOverlays[j];
+        const name = ov.name || ov.builtin || 'Overlay';
+        if (query && !name.toLowerCase().includes(query)) continue;
         list.push({
           kind: 'overlay', groupIdx: i, overlayIdx: j,
-          name: ov.name || ov.builtin || 'Overlay',
+          name: name,
           icon: '🎞',
           hidden: group.hidden || ov.hidden === true,
         });
       }
     } else {
+      const name = getSystemLayerName(group);
+      if (query && !name.toLowerCase().includes(query)) continue;
       list.push({
         kind: 'system', groupIdx: i, groupId: group.id,
-        name: getSystemLayerName(group),
+        name: name,
         icon: group.icon,
         isMain: group.id === 'device',
         hidden: group.hidden,
@@ -205,6 +212,11 @@ function buildDisplayList() {
   }
   return list;
 }
+
+// Bind search input
+document.getElementById('layerSearch')?.addEventListener('input', () => {
+  rebuildUnifiedLayers();
+});
 
 function rebuildUnifiedLayers() {
   const list = buildDisplayList();

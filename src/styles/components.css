@@ -125,7 +125,7 @@ input[type="range"]:hover::-moz-range-thumb {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s ease;
-  z-index: 1000;
+  z-index: var(--z-tooltips);
   max-width: 200px;
   white-space: nowrap;
 }
@@ -165,7 +165,7 @@ input[type="range"]:hover::-moz-range-thumb {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 500;
+  z-index: var(--z-notifications);
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;

@@ -192,11 +192,11 @@
         <div class="preset-card" data-fp="cleanProduct"><span class="pc-icon">✨</span><span class="pc-name">Clean Product</span><span class="pc-desc">Minimal white showcase</span></div>
         <div class="preset-card" data-fp="darkCinematic"><span class="pc-icon">🎬</span><span class="pc-name">Dark Cinema</span><span class="pc-desc">Moody film look</span></div>
         <div class="preset-card" data-fp="neonPop"><span class="pc-icon">💜</span><span class="pc-name">Neon Pop</span><span class="pc-desc">Neon glow effects</span></div>
-        <div class="preset-card" data-fp="cleanSocial"><span class="pc-icon">📸</span><span class="pc-name">Clean Social</span><span class="pc-desc">No device, video only</span></div>
+        <div class="preset-card" data-fp="minimalistWhite"><span class="pc-icon">⚪</span><span class="pc-name">Minimalist</span><span class="pc-desc">Pure white & soft shadows</span></div>
+        <div class="preset-card" data-fp="gamingPro"><span class="pc-icon">🎮</span><span class="pc-name">Gaming Pro</span><span class="pc-desc">RGB glow & dark theme</span></div>
+        <div class="preset-card" data-fp="corporatePro"><span class="pc-icon">👔</span><span class="pc-name">Corporate</span><span class="pc-desc">Clean blue-toned professional</span></div>
         <div class="preset-card" data-fp="retroFilm"><span class="pc-icon">🎞</span><span class="pc-name">Retro Film</span><span class="pc-desc">Vintage film grain</span></div>
         <div class="preset-card" data-fp="laptopReview"><span class="pc-icon">💻</span><span class="pc-name">Laptop Review</span><span class="pc-desc">MacBook ocean vibe</span></div>
-        <div class="preset-card" data-fp="rawVideo"><span class="pc-icon">▶️</span><span class="pc-name">Raw Video</span><span class="pc-desc">No device, no effects</span></div>
-        <div class="preset-card" data-fp="ipadPresent"><span class="pc-icon">📲</span><span class="pc-name">iPad Present</span><span class="pc-desc">iPad Pro minimal</span></div>
       </div>
     </div>
 
@@ -207,11 +207,11 @@
       </div>
       <div class="collapsible-content" id="deviceContent">
         <div class="device-grid" id="deviceGrid">
-          <div class="dev-btn" data-device="none"><span class="icon"><i data-lucide="x"></i></span>None</div>
-          <div class="dev-btn active" data-device="iphone16"><span class="icon"><i data-lucide="smartphone"></i></span>iPhone 16</div>
-          <div class="dev-btn" data-device="ipadpro"><span class="icon"><i data-lucide="tablet"></i></span>iPad Pro</div>
-          <div class="dev-btn" data-device="macbookpro"><span class="icon"><i data-lucide="monitor"></i></span>MacBook</div>
-          <div class="dev-btn" data-device="applewatch"><span class="icon"><i data-lucide="watch"></i></span>Watch</div>
+          <div class="dev-btn" data-device="none" data-tooltip="No device frame - video only"><span class="icon"><i data-lucide="square"></i></span>None</div>
+          <div class="dev-btn active" data-device="iphone16" data-tooltip="Apple iPhone 16 Pro"><span class="icon"><i data-lucide="smartphone"></i></span>iPhone 16</div>
+          <div class="dev-btn" data-device="ipadpro" data-tooltip="Apple iPad Pro 13-inch"><span class="icon"><i data-lucide="tablet"></i></span>iPad Pro</div>
+          <div class="dev-btn" data-device="macbookpro" data-tooltip="Apple MacBook Pro 16-inch"><span class="icon"><i data-lucide="monitor"></i></span>MacBook</div>
+          <div class="dev-btn" data-device="applewatch" data-tooltip="Apple Watch Series 10"><span class="icon"><i data-lucide="watch"></i></span>Watch</div>
         </div>
         <div id="colorSwatches" class="color-swatches"></div>
         <div class="toggle-row" id="deviceToggles">
@@ -297,6 +297,10 @@
       <div class="section-header">
         <h3>Layers</h3>
         <button class="btn btn-danger" id="clearLayersBtn">Clear</button>
+      </div>
+      <div class="prop-row" style="margin-bottom: 10px;">
+        <i data-lucide="search" style="width: 12px; height: 12px; color: var(--text-tertiary);"></i>
+        <input type="text" id="layerSearch" placeholder="Search layers..." style="flex: 1; font-size: 11px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; padding: 4px 8px;">
       </div>
       <div class="unified-layers" id="unifiedLayers"></div>
       <div class="layer-actions">
