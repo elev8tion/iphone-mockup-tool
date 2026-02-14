@@ -62,6 +62,40 @@ const DEVICES = {
 };
 
 // ============================================================
+// DEVICE SELECTION VISUAL FEEDBACK
+// ============================================================
+
+(function enhanceDeviceSelectionFeedback() {
+  if (typeof document === 'undefined') return;
+
+  function syncSelected() {
+    const grid = document.getElementById('deviceGrid');
+    if (!grid) return;
+    grid.querySelectorAll('.dev-btn.device-selected').forEach(el => el.classList.remove('device-selected'));
+    const active = grid.querySelector('.dev-btn.active');
+    if (active) active.classList.add('device-selected');
+  }
+
+  function init() {
+    const grid = document.getElementById('deviceGrid');
+    if (!grid) return;
+    // Initial sync
+    syncSelected();
+    // Sync after clicks (ui.js toggles .active)
+    grid.addEventListener('click', () => requestAnimationFrame(syncSelected));
+    // Observe class changes to keep in sync even if changed programmatically
+    const mo = new MutationObserver(() => syncSelected());
+    mo.observe(grid, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+// ============================================================
 // SOCIAL MEDIA PRESETS
 // ============================================================
 const PRESETS = {

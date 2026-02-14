@@ -485,6 +485,15 @@ body {
     0 0 0 1px rgba(96, 165, 250, 0.2),
     inset 0 1px 0 rgba(96, 165, 250, 0.1);
 }
+
+/* Stronger visual feedback for selected device */
+.device-grid .dev-btn.device-selected {
+  border-width: 2px;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.3), 0 4px 16px rgba(0,0,0,0.25);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
 .device-grid .dev-btn .icon { font-size: 20px; display: block; margin-bottom: 3px; }
 
 .color-swatches {
@@ -953,7 +962,6 @@ body {
 :root[data-theme="light"] .collapse-toggle:hover {
   color: var(--text-secondary);
 }
-
 
 /* ---- Canvas Stage ---- */
 .stage {
@@ -5384,6 +5392,40 @@ const DEVICES = {
     draw: function() {}
   }
 };
+
+// ============================================================
+// DEVICE SELECTION VISUAL FEEDBACK
+// ============================================================
+
+(function enhanceDeviceSelectionFeedback() {
+  if (typeof document === 'undefined') return;
+
+  function syncSelected() {
+    const grid = document.getElementById('deviceGrid');
+    if (!grid) return;
+    grid.querySelectorAll('.dev-btn.device-selected').forEach(el => el.classList.remove('device-selected'));
+    const active = grid.querySelector('.dev-btn.active');
+    if (active) active.classList.add('device-selected');
+  }
+
+  function init() {
+    const grid = document.getElementById('deviceGrid');
+    if (!grid) return;
+    // Initial sync
+    syncSelected();
+    // Sync after clicks (ui.js toggles .active)
+    grid.addEventListener('click', () => requestAnimationFrame(syncSelected));
+    // Observe class changes to keep in sync even if changed programmatically
+    const mo = new MutationObserver(() => syncSelected());
+    mo.observe(grid, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 
 // ============================================================
 // SOCIAL MEDIA PRESETS
@@ -10813,6 +10855,111 @@ canvas.addEventListener('dblclick', e => {
 let annoDrawing = false;
 let annoPoints = [];
 
+// ------------------------------------------------------------
+// Undo/Redo for annotations (local history)
+// ------------------------------------------------------------
+const annotationHistory = {
+  undoStack: [],
+  redoStack: [],
+  saveState(annotations) {
+    try {
+      this.undoStack.push(JSON.stringify(annotations));
+      this.redoStack = [];
+      if (this.undoStack.length > 50) this.undoStack.shift();
+    } catch (e) { /* ignore serialization errors */ }
+  },
+  undo() {
+    if (this.undoStack.length > 1) {
+      const current = this.undoStack.pop();
+      this.redoStack.push(current);
+      return JSON.parse(this.undoStack[this.undoStack.length - 1]);
+    }
+    return null;
+  },
+  redo() {
+    if (this.redoStack.length > 0) {
+      const state = this.redoStack.pop();
+      this.undoStack.push(state);
+      return JSON.parse(state);
+    }
+    return null;
+  }
+};
+
+function getCurrentAnnotations() {
+  return state.layers.filter(l => l.type === 'annotation').map(a => ({ ...a, points: a.points ? [...a.points] : [] }));
+}
+
+function loadAnnotations(annotations) {
+  const others = state.layers.filter(l => l.type !== 'annotation');
+  state.layers = others.concat(annotations.map(a => ({ ...a, points: a.points ? [...a.points] : [] })));
+  // Keep nextLayerId ahead of any restored ids
+  const maxId = state.layers.reduce((m, l) => Math.max(m, l.id || 0), 0);
+  if (maxId >= state.nextLayerId) state.nextLayerId = maxId + 1;
+  rebuildLayerList?.();
+  rebuildTimeline?.();
+}
+
+function addUndoRedoControls() {
+  const existing = document.getElementById('annotationUndoRedoControls');
+  if (existing) return;
+  const host = document.getElementById('annoToolbar')?.parentElement;
+  if (!host) return;
+  const controls = document.createElement('div');
+  controls.id = 'annotationUndoRedoControls';
+  controls.className = 'annotation-controls';
+  controls.style.display = 'flex';
+  controls.style.gap = '6px';
+  controls.style.margin = '6px 0';
+
+  const undoBtn = document.createElement('button');
+  undoBtn.innerHTML = '↶';
+  undoBtn.title = 'Undo (Ctrl/Cmd+Z)';
+  undoBtn.className = 'btn';
+  undoBtn.style.fontSize = '11px';
+  undoBtn.addEventListener('click', () => {
+    const state = annotationHistory.undo();
+    if (state) loadAnnotations(state);
+  });
+
+  const redoBtn = document.createElement('button');
+  redoBtn.innerHTML = '↷';
+  redoBtn.title = 'Redo (Ctrl/Cmd+Shift+Z)';
+  redoBtn.className = 'btn';
+  redoBtn.style.fontSize = '11px';
+  redoBtn.addEventListener('click', () => {
+    const state = annotationHistory.redo();
+    if (state) loadAnnotations(state);
+  });
+
+  controls.append(undoBtn, redoBtn);
+  host.insertBefore(controls, host.querySelector('#annoTimingControls'));
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Avoid while typing in inputs
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+    const zKey = e.key && e.key.toLowerCase() === 'z';
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && zKey && !e.shiftKey) {
+      const s = annotationHistory.undo();
+      if (s) { e.preventDefault(); loadAnnotations(s); }
+    } else if (mod && zKey && e.shiftKey) {
+      const s = annotationHistory.redo();
+      if (s) { e.preventDefault(); loadAnnotations(s); }
+    }
+  });
+}
+
+// Seed initial history after DOM ready
+if (typeof document !== 'undefined') {
+  const seed = () => {
+    annotationHistory.saveState(getCurrentAnnotations());
+    addUndoRedoControls();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', seed); else seed();
+}
+
 document.getElementById('annoToolbar').addEventListener('click', e => {
   const btn = e.target.closest('.anno-btn');
   if (!btn) return;
@@ -10887,6 +11034,8 @@ canvas.addEventListener('mouseup', e => {
   state.layers.push(layer);
   rebuildLayerList();
   annoPoints = [];
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 }, true);
 
 // ---- Annotation timing controls ----
@@ -10922,6 +11071,8 @@ annoStartInput.addEventListener('change', () => {
   const dur = annoTimingLayer.endTime === Infinity ? 'Full' : (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
   annoDurationEl.textContent = dur;
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 });
 
 annoEndInput.addEventListener('change', () => {
@@ -10931,6 +11082,8 @@ annoEndInput.addEventListener('change', () => {
   const dur = (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
   annoDurationEl.textContent = dur;
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 });
 
 annoFullVideoCb.addEventListener('change', () => {
@@ -10946,6 +11099,14 @@ annoFullVideoCb.addEventListener('change', () => {
   }
   updateAnnoTimingControls(annoTimingLayer);
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
+});
+
+// Record clear action into annotation history
+document.getElementById('clearAnnotationsBtn')?.addEventListener('click', () => {
+  // Defer snapshot until after UI handler clears layers
+  setTimeout(() => annotationHistory.saveState(getCurrentAnnotations()), 0);
 });
 
 // ============================================================
@@ -11205,6 +11366,22 @@ function startExport() {
   exportText.textContent = 'Preparing...';
   exportBarFill.style.width = '0%';
 
+  // Inject a cancel button into the export status UI (if not present)
+  (function ensureCancelButton() {
+    let btn = document.getElementById('exportCancelBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'exportCancelBtn';
+      btn.className = 'btn btn-danger';
+      btn.style.marginLeft = '8px';
+      btn.style.fontSize = '10px';
+      btn.textContent = 'Cancel';
+      btn.title = 'Cancel export';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stopExport(); });
+      exportStatus.appendChild(btn);
+    }
+  })();
+
   // Read settings from dialog
   const bitrate = parseInt(edQuality.value);
   const fps = parseInt(edFramerate.value);
@@ -11268,6 +11445,8 @@ function startExport() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    // Remove cancel button if present
+    document.getElementById('exportCancelBtn')?.remove();
     if (exportRAF) cancelAnimationFrame(exportRAF);
     reconnectAudioGraph();
     showToast('Export complete — WebM downloaded', 'success');
@@ -11321,6 +11500,22 @@ async function startMp4Export() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing MP4...';
   exportBarFill.style.width = '0%';
+
+  // Inject a cancel button into the export status UI (if not present)
+  (function ensureCancelButton() {
+    let btn = document.getElementById('exportCancelBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'exportCancelBtn';
+      btn.className = 'btn btn-danger';
+      btn.style.marginLeft = '8px';
+      btn.style.fontSize = '10px';
+      btn.textContent = 'Cancel';
+      btn.title = 'Cancel export';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stopExport(); });
+      exportStatus.appendChild(btn);
+    }
+  })();
 
   const bitrate = parseInt(edQuality.value);
   const fps = parseInt(edFramerate.value);
@@ -11529,6 +11724,8 @@ async function startMp4Export() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    // Remove cancel button if present
+    document.getElementById('exportCancelBtn')?.remove();
     vtPause();
   }
 }
@@ -14309,6 +14506,10 @@ function updateTimelineVisibility() {
 function updateEnhancedTimelineDisplays() {
   if (!hasVideo) return;
 
+  // Keep master play/pause button in sync with playback state
+  // Ensures UI reflects changes triggered outside this module (e.g., keyboard, clip transitions)
+  updateMasterPlayButtonState();
+
   updateMasterTimeDisplay();
   updateBgVideoDisplay();
   updateAudioDisplay();
@@ -15388,6 +15589,66 @@ function initializeAudioEffectsForTrack(trackName) {
 }
 
 // ============================================================
+// SLIDER VALIDATION HELPERS
+// ============================================================
+
+function clampRangeValue(inputEl) {
+  if (!inputEl) return 0;
+  let val = parseFloat(inputEl.value);
+  const hasMin = inputEl.min !== undefined && inputEl.min !== '' && !isNaN(parseFloat(inputEl.min));
+  const hasMax = inputEl.max !== undefined && inputEl.max !== '' && !isNaN(parseFloat(inputEl.max));
+  const min = hasMin ? parseFloat(inputEl.min) : -Infinity;
+  const max = hasMax ? parseFloat(inputEl.max) : Infinity;
+  if (isNaN(val)) val = hasMin ? min : 0;
+  if (val < min) val = min;
+  if (val > max) val = max;
+  inputEl.value = String(val);
+  return val;
+}
+
+function applyExtremeValueFeedback(inputEl, isExtreme) {
+  const valueLabel = inputEl?.nextElementSibling;
+  if (valueLabel && valueLabel.classList && valueLabel.classList.contains('value')) {
+    valueLabel.style.color = isExtreme ? '#ff6b6b' : '';
+  }
+}
+
+function addResetButtonForSlider(inputEl) {
+  if (!inputEl || inputEl.dataset.resetAttached === '1') return;
+  const defaultVal = inputEl.getAttribute('value') ?? inputEl.value;
+  inputEl.dataset.defaultVal = defaultVal;
+
+  const btn = document.createElement('button');
+  btn.textContent = '↺';
+  btn.title = 'Reset to default';
+  btn.className = 'slider-reset-btn';
+  btn.style.marginLeft = '6px';
+  btn.style.fontSize = '11px';
+  btn.style.lineHeight = '1';
+  btn.style.padding = '0 4px';
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    inputEl.value = inputEl.dataset.defaultVal ?? defaultVal;
+    // Trigger existing handlers to update state and labels
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  const valueLabel = inputEl.nextElementSibling;
+  if (valueLabel && valueLabel.classList && valueLabel.classList.contains('value')) {
+    valueLabel.after(btn);
+  } else {
+    inputEl.after(btn);
+  }
+
+  inputEl.dataset.resetAttached = '1';
+}
+
+function augmentEffectSliders() {
+  const panels = document.querySelectorAll('.effects-panel input[type="range"]');
+  panels.forEach(addResetButtonForSlider);
+}
+
+// ============================================================
 // TOGGLE EFFECTS PANELS
 // ============================================================
 
@@ -15415,51 +15676,61 @@ document.getElementById('mainVideoEffectsToggle')?.addEventListener('click', () 
 
 // Volume
 document.getElementById('bgAudioVolumeFX')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value) / 100;
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v) / 100;
   state.audioEffects.bgAudio.volume = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = Math.round(value * 100) + '%';
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Pan
 document.getElementById('bgAudioPan')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value) / 100;
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v) / 100;
   state.audioEffects.bgAudio.pan = value;
   updateAudioEffects('bgAudio');
   const label = value < -0.1 ? `L ${Math.abs(Math.round(value * 100))}` :
                 value > 0.1 ? `R ${Math.round(value * 100)}` : 'Center';
   e.target.nextElementSibling.textContent = label;
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ Low
 document.getElementById('bgAudioEQLow')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.low = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ Mid
 document.getElementById('bgAudioEQMid')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.mid = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ High
 document.getElementById('bgAudioEQHigh')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.high = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -15473,10 +15744,12 @@ document.getElementById('bgAudioCompressorEnable')?.addEventListener('change', (
 
 // Compressor Threshold
 document.getElementById('bgAudioCompThreshold')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.compressor.threshold = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value + ' dB';
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -15564,46 +15837,56 @@ document.querySelectorAll('.mute-btn').forEach(btn => {
 
 // Brightness
 document.getElementById('bgVideoBrightness')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.brightness = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Contrast
 document.getElementById('bgVideoContrast')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.contrast = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Saturation
 document.getElementById('bgVideoSaturation')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.saturation = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Hue
 document.getElementById('bgVideoHue')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.hue = value;
   e.target.nextElementSibling.textContent = value + '°';
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Temperature
 document.getElementById('bgVideoTemp')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.temperature = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -15647,46 +15930,56 @@ document.getElementById('bgVideoSavePreset')?.addEventListener('click', () => {
 
 // Brightness
 document.getElementById('mainVideoBrightness')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.brightness = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Contrast
 document.getElementById('mainVideoContrast')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.contrast = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Saturation
 document.getElementById('mainVideoSaturation')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.saturation = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Hue
 document.getElementById('mainVideoHue')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.hue = value;
   e.target.nextElementSibling.textContent = value + '°';
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Temperature
 document.getElementById('mainVideoTemp')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.temperature = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -15961,6 +16254,15 @@ function updateVideoEffectUI(trackName) {
 
   // Apply effects
   applyVideoEffectsToElement(trackName);
+}
+
+// Initialize slider augmentation after DOM is ready
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', augmentEffectSliders);
+  } else {
+    augmentEffectSliders();
+  }
 }
 
 

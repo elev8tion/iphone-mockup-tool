@@ -16,6 +16,66 @@ function initializeAudioEffectsForTrack(trackName) {
 }
 
 // ============================================================
+// SLIDER VALIDATION HELPERS
+// ============================================================
+
+function clampRangeValue(inputEl) {
+  if (!inputEl) return 0;
+  let val = parseFloat(inputEl.value);
+  const hasMin = inputEl.min !== undefined && inputEl.min !== '' && !isNaN(parseFloat(inputEl.min));
+  const hasMax = inputEl.max !== undefined && inputEl.max !== '' && !isNaN(parseFloat(inputEl.max));
+  const min = hasMin ? parseFloat(inputEl.min) : -Infinity;
+  const max = hasMax ? parseFloat(inputEl.max) : Infinity;
+  if (isNaN(val)) val = hasMin ? min : 0;
+  if (val < min) val = min;
+  if (val > max) val = max;
+  inputEl.value = String(val);
+  return val;
+}
+
+function applyExtremeValueFeedback(inputEl, isExtreme) {
+  const valueLabel = inputEl?.nextElementSibling;
+  if (valueLabel && valueLabel.classList && valueLabel.classList.contains('value')) {
+    valueLabel.style.color = isExtreme ? '#ff6b6b' : '';
+  }
+}
+
+function addResetButtonForSlider(inputEl) {
+  if (!inputEl || inputEl.dataset.resetAttached === '1') return;
+  const defaultVal = inputEl.getAttribute('value') ?? inputEl.value;
+  inputEl.dataset.defaultVal = defaultVal;
+
+  const btn = document.createElement('button');
+  btn.textContent = '↺';
+  btn.title = 'Reset to default';
+  btn.className = 'slider-reset-btn';
+  btn.style.marginLeft = '6px';
+  btn.style.fontSize = '11px';
+  btn.style.lineHeight = '1';
+  btn.style.padding = '0 4px';
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    inputEl.value = inputEl.dataset.defaultVal ?? defaultVal;
+    // Trigger existing handlers to update state and labels
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  const valueLabel = inputEl.nextElementSibling;
+  if (valueLabel && valueLabel.classList && valueLabel.classList.contains('value')) {
+    valueLabel.after(btn);
+  } else {
+    inputEl.after(btn);
+  }
+
+  inputEl.dataset.resetAttached = '1';
+}
+
+function augmentEffectSliders() {
+  const panels = document.querySelectorAll('.effects-panel input[type="range"]');
+  panels.forEach(addResetButtonForSlider);
+}
+
+// ============================================================
 // TOGGLE EFFECTS PANELS
 // ============================================================
 
@@ -43,51 +103,61 @@ document.getElementById('mainVideoEffectsToggle')?.addEventListener('click', () 
 
 // Volume
 document.getElementById('bgAudioVolumeFX')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value) / 100;
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v) / 100;
   state.audioEffects.bgAudio.volume = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = Math.round(value * 100) + '%';
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Pan
 document.getElementById('bgAudioPan')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value) / 100;
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v) / 100;
   state.audioEffects.bgAudio.pan = value;
   updateAudioEffects('bgAudio');
   const label = value < -0.1 ? `L ${Math.abs(Math.round(value * 100))}` :
                 value > 0.1 ? `R ${Math.round(value * 100)}` : 'Center';
   e.target.nextElementSibling.textContent = label;
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ Low
 document.getElementById('bgAudioEQLow')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.low = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ Mid
 document.getElementById('bgAudioEQMid')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.mid = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // EQ High
 document.getElementById('bgAudioEQHigh')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.eq.high = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value.toFixed(1) + ' dB';
   drawEQGraph('bgAudio');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -101,10 +171,12 @@ document.getElementById('bgAudioCompressorEnable')?.addEventListener('change', (
 
 // Compressor Threshold
 document.getElementById('bgAudioCompThreshold')?.addEventListener('input', (e) => {
-  const value = parseFloat(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseFloat(v);
   state.audioEffects.bgAudio.compressor.threshold = value;
   updateAudioEffects('bgAudio');
   e.target.nextElementSibling.textContent = value + ' dB';
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -192,46 +264,56 @@ document.querySelectorAll('.mute-btn').forEach(btn => {
 
 // Brightness
 document.getElementById('bgVideoBrightness')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.brightness = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Contrast
 document.getElementById('bgVideoContrast')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.contrast = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Saturation
 document.getElementById('bgVideoSaturation')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.saturation = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Hue
 document.getElementById('bgVideoHue')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.hue = value;
   e.target.nextElementSibling.textContent = value + '°';
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Temperature
 document.getElementById('bgVideoTemp')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.bgVideo.temperature = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('bgVideo');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -275,46 +357,56 @@ document.getElementById('bgVideoSavePreset')?.addEventListener('click', () => {
 
 // Brightness
 document.getElementById('mainVideoBrightness')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.brightness = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Contrast
 document.getElementById('mainVideoContrast')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.contrast = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Saturation
 document.getElementById('mainVideoSaturation')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.saturation = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Hue
 document.getElementById('mainVideoHue')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.hue = value;
   e.target.nextElementSibling.textContent = value + '°';
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
 // Temperature
 document.getElementById('mainVideoTemp')?.addEventListener('input', (e) => {
-  const value = parseInt(e.target.value);
+  const v = clampRangeValue(e.target);
+  const value = parseInt(v);
   state.videoEffects.main.temperature = value;
   e.target.nextElementSibling.textContent = value;
   applyVideoEffectsToElement('main');
+  applyExtremeValueFeedback(e.target, v === parseFloat(e.target.min) || v === parseFloat(e.target.max));
   scheduleSave();
 });
 
@@ -589,4 +681,13 @@ function updateVideoEffectUI(trackName) {
 
   // Apply effects
   applyVideoEffectsToElement(trackName);
+}
+
+// Initialize slider augmentation after DOM is ready
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', augmentEffectSliders);
+  } else {
+    augmentEffectSliders();
+  }
 }

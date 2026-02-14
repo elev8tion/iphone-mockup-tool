@@ -124,6 +124,22 @@ function startExport() {
   exportText.textContent = 'Preparing...';
   exportBarFill.style.width = '0%';
 
+  // Inject a cancel button into the export status UI (if not present)
+  (function ensureCancelButton() {
+    let btn = document.getElementById('exportCancelBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'exportCancelBtn';
+      btn.className = 'btn btn-danger';
+      btn.style.marginLeft = '8px';
+      btn.style.fontSize = '10px';
+      btn.textContent = 'Cancel';
+      btn.title = 'Cancel export';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stopExport(); });
+      exportStatus.appendChild(btn);
+    }
+  })();
+
   // Read settings from dialog
   const bitrate = parseInt(edQuality.value);
   const fps = parseInt(edFramerate.value);
@@ -187,6 +203,8 @@ function startExport() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    // Remove cancel button if present
+    document.getElementById('exportCancelBtn')?.remove();
     if (exportRAF) cancelAnimationFrame(exportRAF);
     reconnectAudioGraph();
     showToast('Export complete — WebM downloaded', 'success');
@@ -240,6 +258,22 @@ async function startMp4Export() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing MP4...';
   exportBarFill.style.width = '0%';
+
+  // Inject a cancel button into the export status UI (if not present)
+  (function ensureCancelButton() {
+    let btn = document.getElementById('exportCancelBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'exportCancelBtn';
+      btn.className = 'btn btn-danger';
+      btn.style.marginLeft = '8px';
+      btn.style.fontSize = '10px';
+      btn.textContent = 'Cancel';
+      btn.title = 'Cancel export';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); stopExport(); });
+      exportStatus.appendChild(btn);
+    }
+  })();
 
   const bitrate = parseInt(edQuality.value);
   const fps = parseInt(edFramerate.value);
@@ -448,6 +482,8 @@ async function startMp4Export() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    // Remove cancel button if present
+    document.getElementById('exportCancelBtn')?.remove();
     vtPause();
   }
 }

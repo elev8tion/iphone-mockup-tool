@@ -606,6 +606,10 @@ function updateTimelineVisibility() {
 function updateEnhancedTimelineDisplays() {
   if (!hasVideo) return;
 
+  // Keep master play/pause button in sync with playback state
+  // Ensures UI reflects changes triggered outside this module (e.g., keyboard, clip transitions)
+  updateMasterPlayButtonState();
+
   updateMasterTimeDisplay();
   updateBgVideoDisplay();
   updateAudioDisplay();

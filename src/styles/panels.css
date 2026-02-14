@@ -165,6 +165,15 @@
     0 0 0 1px rgba(96, 165, 250, 0.2),
     inset 0 1px 0 rgba(96, 165, 250, 0.1);
 }
+
+/* Stronger visual feedback for selected device */
+.device-grid .dev-btn.device-selected {
+  border-width: 2px;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.3), 0 4px 16px rgba(0,0,0,0.25);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
 .device-grid .dev-btn .icon { font-size: 20px; display: block; margin-bottom: 3px; }
 
 .color-swatches {
@@ -633,4 +642,3 @@
 :root[data-theme="light"] .collapse-toggle:hover {
   color: var(--text-secondary);
 }
-

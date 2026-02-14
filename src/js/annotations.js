@@ -3,6 +3,111 @@
 let annoDrawing = false;
 let annoPoints = [];
 
+// ------------------------------------------------------------
+// Undo/Redo for annotations (local history)
+// ------------------------------------------------------------
+const annotationHistory = {
+  undoStack: [],
+  redoStack: [],
+  saveState(annotations) {
+    try {
+      this.undoStack.push(JSON.stringify(annotations));
+      this.redoStack = [];
+      if (this.undoStack.length > 50) this.undoStack.shift();
+    } catch (e) { /* ignore serialization errors */ }
+  },
+  undo() {
+    if (this.undoStack.length > 1) {
+      const current = this.undoStack.pop();
+      this.redoStack.push(current);
+      return JSON.parse(this.undoStack[this.undoStack.length - 1]);
+    }
+    return null;
+  },
+  redo() {
+    if (this.redoStack.length > 0) {
+      const state = this.redoStack.pop();
+      this.undoStack.push(state);
+      return JSON.parse(state);
+    }
+    return null;
+  }
+};
+
+function getCurrentAnnotations() {
+  return state.layers.filter(l => l.type === 'annotation').map(a => ({ ...a, points: a.points ? [...a.points] : [] }));
+}
+
+function loadAnnotations(annotations) {
+  const others = state.layers.filter(l => l.type !== 'annotation');
+  state.layers = others.concat(annotations.map(a => ({ ...a, points: a.points ? [...a.points] : [] })));
+  // Keep nextLayerId ahead of any restored ids
+  const maxId = state.layers.reduce((m, l) => Math.max(m, l.id || 0), 0);
+  if (maxId >= state.nextLayerId) state.nextLayerId = maxId + 1;
+  rebuildLayerList?.();
+  rebuildTimeline?.();
+}
+
+function addUndoRedoControls() {
+  const existing = document.getElementById('annotationUndoRedoControls');
+  if (existing) return;
+  const host = document.getElementById('annoToolbar')?.parentElement;
+  if (!host) return;
+  const controls = document.createElement('div');
+  controls.id = 'annotationUndoRedoControls';
+  controls.className = 'annotation-controls';
+  controls.style.display = 'flex';
+  controls.style.gap = '6px';
+  controls.style.margin = '6px 0';
+
+  const undoBtn = document.createElement('button');
+  undoBtn.innerHTML = '↶';
+  undoBtn.title = 'Undo (Ctrl/Cmd+Z)';
+  undoBtn.className = 'btn';
+  undoBtn.style.fontSize = '11px';
+  undoBtn.addEventListener('click', () => {
+    const state = annotationHistory.undo();
+    if (state) loadAnnotations(state);
+  });
+
+  const redoBtn = document.createElement('button');
+  redoBtn.innerHTML = '↷';
+  redoBtn.title = 'Redo (Ctrl/Cmd+Shift+Z)';
+  redoBtn.className = 'btn';
+  redoBtn.style.fontSize = '11px';
+  redoBtn.addEventListener('click', () => {
+    const state = annotationHistory.redo();
+    if (state) loadAnnotations(state);
+  });
+
+  controls.append(undoBtn, redoBtn);
+  host.insertBefore(controls, host.querySelector('#annoTimingControls'));
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Avoid while typing in inputs
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+    const zKey = e.key && e.key.toLowerCase() === 'z';
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && zKey && !e.shiftKey) {
+      const s = annotationHistory.undo();
+      if (s) { e.preventDefault(); loadAnnotations(s); }
+    } else if (mod && zKey && e.shiftKey) {
+      const s = annotationHistory.redo();
+      if (s) { e.preventDefault(); loadAnnotations(s); }
+    }
+  });
+}
+
+// Seed initial history after DOM ready
+if (typeof document !== 'undefined') {
+  const seed = () => {
+    annotationHistory.saveState(getCurrentAnnotations());
+    addUndoRedoControls();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', seed); else seed();
+}
+
 document.getElementById('annoToolbar').addEventListener('click', e => {
   const btn = e.target.closest('.anno-btn');
   if (!btn) return;
@@ -77,6 +182,8 @@ canvas.addEventListener('mouseup', e => {
   state.layers.push(layer);
   rebuildLayerList();
   annoPoints = [];
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 }, true);
 
 // ---- Annotation timing controls ----
@@ -112,6 +219,8 @@ annoStartInput.addEventListener('change', () => {
   const dur = annoTimingLayer.endTime === Infinity ? 'Full' : (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
   annoDurationEl.textContent = dur;
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 });
 
 annoEndInput.addEventListener('change', () => {
@@ -121,6 +230,8 @@ annoEndInput.addEventListener('change', () => {
   const dur = (annoTimingLayer.endTime - annoTimingLayer.startTime).toFixed(1) + 's';
   annoDurationEl.textContent = dur;
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
 });
 
 annoFullVideoCb.addEventListener('change', () => {
@@ -136,6 +247,14 @@ annoFullVideoCb.addEventListener('change', () => {
   }
   updateAnnoTimingControls(annoTimingLayer);
   rebuildTimeline();
+  // Save annotation history state
+  annotationHistory.saveState(getCurrentAnnotations());
+});
+
+// Record clear action into annotation history
+document.getElementById('clearAnnotationsBtn')?.addEventListener('click', () => {
+  // Defer snapshot until after UI handler clears layers
+  setTimeout(() => annotationHistory.saveState(getCurrentAnnotations()), 0);
 });
 
 // ============================================================
