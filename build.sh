@@ -20,6 +20,7 @@ CSS_FILES=(
   "$SRC/styles/stage.css"
   "$SRC/styles/timeline.css"
   "$SRC/styles/timeline-enhanced.css"
+  "$SRC/styles/templates.css"
   "$SRC/styles/effects-panel.css"
   "$SRC/styles/modals.css"
   "$SRC/styles/components.css"
@@ -61,6 +62,7 @@ JS_FILES=(
   "$SRC/js/ui.js"
   "$SRC/js/timeline-enhanced.js"
   "$SRC/js/effect-ui.js"
+  "$SRC/js/templates.js"
 )
 
 BODY="$SRC/_body.html"
