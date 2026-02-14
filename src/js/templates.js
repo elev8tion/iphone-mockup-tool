@@ -20,6 +20,88 @@ function attachTemplateEvents() {
     });
 }
 
+// Wire previews to existing Full Preset grid without changing click-to-apply
+function attachFullPresetPreviewEvents() {
+    const grid = document.getElementById('fullPresetGrid');
+    if (!grid) return;
+    grid.querySelectorAll('.preset-card').forEach(card => {
+        // Right-click (context menu) to preview a preset
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const key = card.dataset.fp;
+            const nameEl = card.querySelector('.pc-name');
+            const displayName = nameEl ? nameEl.textContent : key;
+            showPresetPreview(key, displayName);
+        });
+        // Shift+Click to preview (keeps normal click to apply intact)
+        card.addEventListener('click', (e) => {
+            if (e.shiftKey) {
+                e.preventDefault();
+                const key = card.dataset.fp;
+                const nameEl = card.querySelector('.pc-name');
+                const displayName = nameEl ? nameEl.textContent : key;
+                showPresetPreview(key, displayName);
+            }
+        });
+    });
+}
+
+function showPresetPreview(presetKey, displayName) {
+    try {
+        if (typeof FULL_PRESETS === 'undefined' || !FULL_PRESETS[presetKey]) {
+            // Fallback to generic template preview if available
+            if (typeof showTemplatePreview === 'function') showTemplatePreview(presetKey);
+            return;
+        }
+        const fp = FULL_PRESETS[presetKey];
+        const presetLabel = fp.preset || 'custom';
+        let aspect = '';
+        try {
+            const p = (typeof PRESETS !== 'undefined' && PRESETS[presetLabel]) ? PRESETS[presetLabel] : null;
+            aspect = p ? `${p.w}×${p.h}` : presetLabel;
+        } catch (_) { aspect = presetLabel; }
+        const effects = [];
+        if (fp.lut) effects.push(`LUT: ${fp.lut}`);
+        if (fp.overlays && fp.overlays.length) effects.push(`Overlays: ${fp.overlays.join(', ')}`);
+        if (fp.particles && fp.particles.enabled) effects.push(`Particles: ${fp.particles.type}`);
+        if (fp.animPreset && fp.animPreset !== 'none') effects.push(`Anim: ${fp.animPreset}`);
+
+        // Build a light-weight modal reusing the preview UI
+        const modal = document.createElement('div');
+        modal.className = 'template-preview-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${displayName}</h3>
+                    <button class="modal-close">×</button>
+                </div>
+                <div class="modal-body">
+                    <img src="assets/placeholder-template.jpg" alt="${displayName}" onerror="this.style.display='none'">
+                    <div class="template-details">
+                        <p><strong>Aspect:</strong> ${aspect}</p>
+                        <p><strong>Device:</strong> ${fp.device?.type || 'mixed'}</p>
+                        <p><strong>Effects:</strong> ${effects.length ? effects.join(' · ') : 'None'}</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" id="closePresetPreview">Close</button>
+                    <button class="btn btn-primary" id="applyPresetPreview">Apply Preset</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const handleEsc = (e) => { if (e.key === 'Escape') close(); };
+        const close = () => { document.removeEventListener('keydown', handleEsc); modal.style.opacity='0'; setTimeout(()=>modal.remove(),300); };
+        modal.querySelector('.modal-close').addEventListener('click', close);
+        modal.querySelector('#closePresetPreview').addEventListener('click', close);
+        modal.querySelector('#applyPresetPreview').addEventListener('click', () => { close(); if (typeof applyFullPreset === 'function') { applyFullPreset(presetKey); showNotification(`Preset "${displayName}" applied`, 'success'); } });
+        document.addEventListener('keydown', handleEsc);
+        setTimeout(()=> modal.style.opacity='1', 10);
+    } catch (err) {
+        console.warn('Preset preview failed:', err);
+    }
+}
+
 function showTemplatePreview(templateId) {
     // Find template
     let template = null;
@@ -90,6 +172,12 @@ function applyTemplate(templateId) {
     }
     
     if (!template) {
+        // Fallback: treat templateId as a full preset key
+        if (typeof FULL_PRESETS !== 'undefined' && FULL_PRESETS[templateId] && typeof applyFullPreset === 'function') {
+            applyFullPreset(templateId);
+            showNotification(`Preset "${templateId}" applied`, 'success');
+            return;
+        }
         console.error('Template not found:', templateId);
         return;
     }
@@ -158,9 +246,10 @@ function applyTemplate(templateId) {
 // Auto-attach events when DOM is ready
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', attachTemplateEvents);
+        document.addEventListener('DOMContentLoaded', () => { attachTemplateEvents(); attachFullPresetPreviewEvents(); });
     } else {
         attachTemplateEvents();
+        attachFullPresetPreviewEvents();
     }
 }
 
