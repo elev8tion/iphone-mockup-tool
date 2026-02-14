@@ -60,7 +60,9 @@ function showTemplatePreview(templateId) {
     document.body.appendChild(modal);
     
     // Event listeners for modal
+    const handleEsc = (e) => { if (e.key === 'Escape') closeModal(); };
     const closeModal = () => {
+        document.removeEventListener('keydown', handleEsc);
         modal.style.opacity = '0';
         setTimeout(() => modal.remove(), 300);
     };
@@ -73,15 +75,7 @@ function showTemplatePreview(templateId) {
     });
     
     // Close on ESC key
-    const handleEsc = (e) => {
-        if (e.key === 'Escape') closeModal();
-    };
     document.addEventListener('keydown', handleEsc);
-    
-    // Remove event listener when modal closes
-    modal.addEventListener('remove', () => {
-        document.removeEventListener('keydown', handleEsc);
-    });
     
     // Add fade-in animation
     setTimeout(() => modal.style.opacity = '1', 10);
@@ -140,9 +134,17 @@ function applyTemplate(templateId) {
         
         // 5. Close left panel after applying
         const leftPanel = document.getElementById('leftPanel');
+        const leftPanelToggle = document.getElementById('leftPanelToggle');
+        const panelBackdrop = document.getElementById('panelBackdrop');
         if (leftPanel) {
-            leftPanel.classList.remove('open');
+            // Close overlay states on mobile/tablet
+            leftPanel.classList.remove('mobile-open', 'tablet-open');
+            // Collapse on desktop
+            leftPanel.classList.add('collapsed');
+            if (leftPanelToggle) leftPanelToggle.textContent = '»';
+            if (typeof savePanelState === 'function') savePanelState();
         }
+        if (panelBackdrop) panelBackdrop.classList.remove('visible');
         
         // Show success message
         showNotification(`"${template.name}" template applied successfully!`, 'success');
@@ -150,6 +152,15 @@ function applyTemplate(templateId) {
     } catch (error) {
         console.error('Error applying template:', error);
         showNotification('Failed to apply template. Please try again.', 'error');
+    }
+}
+
+// Auto-attach events when DOM is ready
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachTemplateEvents);
+    } else {
+        attachTemplateEvents();
     }
 }
 
@@ -169,4 +180,3 @@ function showNotification(message, type = 'info') {
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
-
