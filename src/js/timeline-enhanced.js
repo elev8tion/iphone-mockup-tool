@@ -1241,12 +1241,14 @@ function closeAllDropdowns() {
   // Close action dropdowns
   const dropdowns = document.querySelectorAll('.track-actions-dropdown, .track-loop-controls');
   const buttons = document.querySelectorAll('.track-action-btn, .track-loop-btn');
+  const tracks = document.querySelectorAll('.bg-video-track, .bg-audio-track, .main-video-track');
 
   dropdowns.forEach(dd => dd.classList.remove('is-open'));
   buttons.forEach(btn => {
     btn.classList.remove('is-open');
     btn.setAttribute('aria-expanded', 'false');
   });
+  tracks.forEach(t => t.classList.remove('is-focused'));
 }
 
 // Toggle background video actions dropdown with CSS classes
@@ -1254,6 +1256,7 @@ document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
   e.stopPropagation();
   const btn = e.currentTarget;
   const dropdown = document.getElementById('bgVideoActionsDropdown');
+  const track = document.getElementById('bgVideoTrack');
   const isOpen = dropdown.classList.contains('is-open');
 
   // Close all other dropdowns first
@@ -1263,6 +1266,7 @@ document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
     // Open this dropdown
     dropdown.classList.add('is-open');
     btn.classList.add('is-open');
+    track?.classList.add('is-focused');
     btn.setAttribute('aria-expanded', 'true');
 
     // Focus first button in dropdown
@@ -1278,6 +1282,7 @@ document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
   e.stopPropagation();
   const btn = e.currentTarget;
   const dropdown = document.getElementById('bgAudioActionsDropdown');
+  const track = document.getElementById('bgAudioTrack');
   const isOpen = dropdown.classList.contains('is-open');
 
   // Close all other dropdowns first
@@ -1287,6 +1292,7 @@ document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
     // Open this dropdown
     dropdown.classList.add('is-open');
     btn.classList.add('is-open');
+    track?.classList.add('is-focused');
     btn.setAttribute('aria-expanded', 'true');
 
     // Focus first button in dropdown

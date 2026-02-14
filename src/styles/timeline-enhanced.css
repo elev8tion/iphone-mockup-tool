@@ -174,15 +174,23 @@
   transform: translateY(0);
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   max-height: 240px;
-  overflow: hidden;
+  /* overflow: hidden; -- REMOVED to allow dropdowns to pop out */
+  position: relative;
 }
 
-/* Tracks always visible, dimmed when no media loaded */
-.bg-video-track .bg-track-content,
-.bg-audio-track .bg-track-content {
+/* Ensure track content still clips its own internal elements like waveforms */
+.bg-track-content {
   display: block;
   opacity: 0.4;
   transition: opacity 0.3s ease;
+  overflow: hidden; /* Content inside can be hidden, but parent must be visible */
+}
+
+/* High-Z Focus State: Brings track to front when menu is open */
+.bg-video-track.is-focused,
+.bg-audio-track.is-focused,
+.main-video-track.is-focused {
+  z-index: 10;
 }
 
 .bg-video-track.loaded .bg-track-content,
@@ -771,17 +779,16 @@
 
 .track-actions-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   right: 0;
-  margin-top: 4px;
-  background: rgba(26,26,26,0.98);
+  background: rgba(20, 20, 22, 0.98);
   border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 6px;
-  padding: 4px;
-  min-width: 200px;
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 220px;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+  backdrop-filter: blur(24px) saturate(180%);
 
   /* Hidden by default */
   opacity: 0;
