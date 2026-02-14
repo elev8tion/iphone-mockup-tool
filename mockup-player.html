@@ -12412,11 +12412,59 @@ function setActivePanel(panelId) {
 }
 
 // Optionally wire active state to known buttons if present
-document.getElementById('addDeviceBtn')?.addEventListener('click', () => setActivePanel('addDeviceBtn'));
-document.getElementById('addAnnotationBtn')?.addEventListener('click', () => setActivePanel('addAnnotationBtn'));
-document.getElementById('showEffectsBtn')?.addEventListener('click', () => setActivePanel('showEffectsBtn'));
-document.getElementById('showLayersBtn')?.addEventListener('click', () => setActivePanel('showLayersBtn'));
-document.getElementById('showTimelineBtn')?.addEventListener('click', () => setActivePanel('showTimelineBtn'));
+// Helpers to open panels and scroll to sections
+function openLeftPanel() {
+  // Desktop
+  leftPanel?.classList.remove('collapsed');
+  if (leftPanelToggle) leftPanelToggle.textContent = '«';
+  savePanelState?.();
+  // Tablet/mobile overlay
+  if (window.innerWidth < 1024) {
+    leftPanel?.classList.add(window.innerWidth < 768 ? 'mobile-open' : 'tablet-open');
+    panelBackdrop?.classList.add('visible');
+    // Close the other panel overlay if open
+    rightPanel?.classList.remove('mobile-open', 'tablet-open');
+  }
+}
+
+function openRightPanel() {
+  rightPanel?.classList.remove('collapsed');
+  if (rightPanelToggle) rightPanelToggle.textContent = '»';
+  savePanelState?.();
+  if (window.innerWidth < 1024) {
+    rightPanel?.classList.add(window.innerWidth < 768 ? 'mobile-open' : 'tablet-open');
+    panelBackdrop?.classList.add('visible');
+    leftPanel?.classList.remove('mobile-open', 'tablet-open');
+  }
+}
+
+function openPanelAndScroll(side, targetId) {
+  if (side === 'left') openLeftPanel(); else if (side === 'right') openRightPanel();
+  if (targetId) {
+    setTimeout(() => { document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+  }
+}
+
+document.getElementById('addDeviceBtn')?.addEventListener('click', () => {
+  setActivePanel('addDeviceBtn');
+  openPanelAndScroll('left', 'deviceSection');
+});
+document.getElementById('addAnnotationBtn')?.addEventListener('click', () => {
+  setActivePanel('addAnnotationBtn');
+  openPanelAndScroll('right', 'annoToolbar');
+});
+document.getElementById('showEffectsBtn')?.addEventListener('click', () => {
+  setActivePanel('showEffectsBtn');
+  openPanelAndScroll('right', 'rightPanel');
+});
+document.getElementById('showLayersBtn')?.addEventListener('click', () => {
+  setActivePanel('showLayersBtn');
+  openPanelAndScroll('left', 'unifiedLayers');
+});
+document.getElementById('showTimelineBtn')?.addEventListener('click', () => {
+  setActivePanel('showTimelineBtn');
+  document.getElementById('timelineSystem')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
 
 // ============================================================
 // FULL PRESET TEMPLATE CONTROLS
