@@ -1786,48 +1786,44 @@ body {
   box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), 0 0 15px rgba(167,139,250,0.1);
 }
 
-.bg-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg,
-    rgba(167,139,250,0.4) 0%,
-    rgba(167,139,250,0.25) 100%
-  );
-  border-right: 2px solid #a78bfa;
-  width: 0%;
-  position: relative;
-  transition: width 0.1s linear;
-}
-
-.bg-progress-waveform {
+.bg-progress-waveform-canvas {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(167,139,250,0.05) 0px,
-    rgba(167,139,250,0.05) 2px,
-    transparent 2px,
-    transparent 8px
-  );
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+  opacity: 0.6;
+  mix-blend-mode: screen;
+}
+
+.bg-progress-fill {
+  height: 100%;
+  background: rgba(245, 158, 11, 0.2); /* Subtle tint for played portion */
+  border-right: 2px solid #f59e0b;
+  width: 0%;
+  position: relative;
+  transition: width 0.1s linear;
+  z-index: 2; /* Above waveform */
+}
+
+.track-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.15);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.bg-video-track:not(.loaded) .bg-progress-waveform::after {
-  content: 'Drop Video to Load';
-}
-
-.bg-audio-track:not(.loaded) .bg-progress-waveform::after {
-  content: 'Drop Audio to Load';
+.bg-audio-track.loaded .track-placeholder {
+  display: none;
 }
 
 .bg-progress-handle {
@@ -5331,8 +5327,9 @@ input[type="range"]:hover::-moz-range-thumb {
       <div class="bg-progress-track" id="audioProgressTrack">
         <div class="bg-progress-fill" id="audioProgressFill" style="background: linear-gradient(90deg, rgba(245,158,11,0.3) 0%, rgba(245,158,11,0.2) 100%); border-right-color: rgba(245,158,11,0.8);">
           <div class="bg-progress-handle" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 2px 8px rgba(245,158,11,0.4), 0 0 0 3px rgba(245,158,11,0.2);"></div>
-          <div class="bg-progress-waveform"></div>
         </div>
+        <canvas class="bg-progress-waveform-canvas" id="audioWaveformCanvas" width="800" height="32"></canvas>
+        <div class="track-placeholder">Drop Audio to Load</div>
       </div>
 
       <div class="bg-video-options">
@@ -5873,6 +5870,39 @@ function pillPath(c, x, y, w, h) {
   c.lineTo(x + r, y + h);
   c.arc(x + r, y + r, r, Math.PI/2, -Math.PI/2);
   c.closePath();
+}
+
+// ============================================================
+// WAVEFORM GENERATOR
+// ============================================================
+function generateWaveform(audioBuffer, canvas, color = '#a78bfa') {
+  if (!audioBuffer || !canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const data = audioBuffer.getChannelData(0); // Use first channel
+  const step = Math.ceil(data.length / width);
+  const amp = height / 2;
+  
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  
+  for (let i = 0; i < width; i++) {
+    let min = 1.0;
+    let max = -1.0;
+    
+    // Find min/max in this step window
+    for (let j = 0; j < step; j++) {
+      const datum = data[(i * step) + j];
+      if (datum < min) min = datum;
+      if (datum > max) max = datum;
+    }
+    
+    // Draw bar
+    ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+  }
 }
 
 // ============================================================
@@ -7080,12 +7110,60 @@ function makeClipTrimDraggable(handle, clipIdx, side) {
     const block = handle.parentElement;
     const rect = block.getBoundingClientRect();
     let pct = (e.clientX - rect.left) / rect.width;
-    pct = Math.max(0, Math.min(1, pct));
+    
+    // Calculate potential new trim values
+    let newTrimIn = clip.trimIn || 0;
+    let newTrimOut = clip.trimOut || 1;
+    
     if (side === 'left') {
-      clip.trimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
+      newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
     } else {
-      clip.trimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
+      newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
     }
+
+    // Snap to Playhead
+    // Calculate where this clip starts and ends in the timeline
+    let clipStartGlobal = 0;
+    for(let i=0; i<clipIdx; i++) {
+        const c = state.timeline.clips[i];
+        clipStartGlobal += c.duration * ((c.trimOut||1) - (c.trimIn||0));
+    }
+    
+    // Current proposed duration
+    const currentDur = clip.duration * (newTrimOut - newTrimIn);
+    const proposedGlobalEnd = clipStartGlobal + currentDur;
+    const proposedGlobalStart = clipStartGlobal; // Start doesn't move with trim, only duration changes relative to offset? 
+    // Wait, trimming left handle shifts the visual start time if we keep offset constant?
+    // In this model, trimming left just changes what part of video plays, effectively shifting "start" point visually if block size changes?
+    // Actually, css width changes. 
+    
+    // Let's simplify: Snap the Handle's screen X to Playhead's screen X
+    // Playhead X pct = vtTime / totalDur
+    // Handle X pct = ... complicated because block width changes.
+    
+    // Alternative: Snap the resulting *Time* to vtTime.
+    const totalDur = vtGetTotalDuration();
+    if (totalDur > 0) {
+        const snapThresh = 0.1; // seconds
+        
+        if (side === 'right') {
+            const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn||0));
+            if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
+                // Snap! Adjust newTrimOut
+                // vtTime = clipStartGlobal + clip.duration * (newTrimOut - trimIn)
+                // newTrimOut = (vtTime - clipStartGlobal) / clip.duration + trimIn
+                newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn||0);
+            }
+        }
+        // Left trim logic is tricky because it shifts the timeline. Skip for now to be safe.
+    }
+
+    if (side === 'left') {
+        clip.trimIn = Math.min(Math.max(0, newTrimIn), (clip.trimOut || 1) - 0.02);
+    } else {
+        clip.trimOut = Math.max(Math.min(1, newTrimOut), (clip.trimIn || 0) + 0.02);
+    }
+    
     rebuildTimeline();
   });
   document.addEventListener('mouseup', () => {
@@ -13185,10 +13263,41 @@ function scrubToX(clientX) {
   const r = progressTrack.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   const totalDur = vtGetTotalDuration() || 1;
-  const t = pct * totalDur;
+  let t = pct * totalDur;
+
+  // Magnetic Snapping
+  const snapThreshold = 0.15; // seconds
+  const snapPoints = [0, totalDur];
+  
+  // Add clip boundaries
+  let offset = 0;
+  state.timeline.clips.forEach(clip => {
+    snapPoints.push(offset);
+    const duration = clip.duration * ((clip.trimOut || 1) - (clip.trimIn || 0));
+    offset += duration;
+    snapPoints.push(offset);
+  });
+
+  // Find closest snap point
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of snapPoints) {
+    const dist = Math.abs(t - p);
+    if (dist < snapThreshold && dist < minDist) {
+      minDist = dist;
+      closest = p;
+    }
+  }
+
+  if (closest !== null) {
+    t = closest;
+    // Haptic feedback if supported (optional)
+    if (navigator.vibrate && minDist < 0.05) navigator.vibrate(5);
+  }
+
   vtSeek(t);
   progressTooltip.textContent = fmt(t);
-  progressFill.style.width = (pct * 100) + '%';
+  progressFill.style.width = (t / totalDur * 100) + '%';
 }
 
 progressTrack.addEventListener('mousedown', e => {
@@ -15593,6 +15702,28 @@ document.getElementById('bgAudioInput')?.addEventListener('change', (e) => {
     if (status) {
       const duration = formatTime(bgAudio.duration);
       status.textContent = `${file.name} (${duration})`;
+    }
+
+    // Generate waveform
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const ctx = getSharedAudioContext();
+          const buffer = await ctx.decodeAudioData(ev.target.result);
+          const canvas = document.getElementById('audioWaveformCanvas');
+          if (canvas) {
+            // Match canvas size to display size for sharpness
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            generateWaveform(buffer, canvas, '#f59e0b');
+          }
+        } catch (e) {
+          console.error('Waveform generation failed:', e);
+        }
+      };
+      reader.readAsArrayBuffer(file);
     }
 
     // Show audio track in timeline

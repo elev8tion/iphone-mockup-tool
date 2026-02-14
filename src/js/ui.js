@@ -273,10 +273,41 @@ function scrubToX(clientX) {
   const r = progressTrack.getBoundingClientRect();
   const pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   const totalDur = vtGetTotalDuration() || 1;
-  const t = pct * totalDur;
+  let t = pct * totalDur;
+
+  // Magnetic Snapping
+  const snapThreshold = 0.15; // seconds
+  const snapPoints = [0, totalDur];
+  
+  // Add clip boundaries
+  let offset = 0;
+  state.timeline.clips.forEach(clip => {
+    snapPoints.push(offset);
+    const duration = clip.duration * ((clip.trimOut || 1) - (clip.trimIn || 0));
+    offset += duration;
+    snapPoints.push(offset);
+  });
+
+  // Find closest snap point
+  let closest = null;
+  let minDist = Infinity;
+  for (const p of snapPoints) {
+    const dist = Math.abs(t - p);
+    if (dist < snapThreshold && dist < minDist) {
+      minDist = dist;
+      closest = p;
+    }
+  }
+
+  if (closest !== null) {
+    t = closest;
+    // Haptic feedback if supported (optional)
+    if (navigator.vibrate && minDist < 0.05) navigator.vibrate(5);
+  }
+
   vtSeek(t);
   progressTooltip.textContent = fmt(t);
-  progressFill.style.width = (pct * 100) + '%';
+  progressFill.style.width = (t / totalDur * 100) + '%';
 }
 
 progressTrack.addEventListener('mousedown', e => {

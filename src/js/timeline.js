@@ -308,12 +308,60 @@ function makeClipTrimDraggable(handle, clipIdx, side) {
     const block = handle.parentElement;
     const rect = block.getBoundingClientRect();
     let pct = (e.clientX - rect.left) / rect.width;
-    pct = Math.max(0, Math.min(1, pct));
+    
+    // Calculate potential new trim values
+    let newTrimIn = clip.trimIn || 0;
+    let newTrimOut = clip.trimOut || 1;
+    
     if (side === 'left') {
-      clip.trimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
+      newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
     } else {
-      clip.trimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
+      newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
     }
+
+    // Snap to Playhead
+    // Calculate where this clip starts and ends in the timeline
+    let clipStartGlobal = 0;
+    for(let i=0; i<clipIdx; i++) {
+        const c = state.timeline.clips[i];
+        clipStartGlobal += c.duration * ((c.trimOut||1) - (c.trimIn||0));
+    }
+    
+    // Current proposed duration
+    const currentDur = clip.duration * (newTrimOut - newTrimIn);
+    const proposedGlobalEnd = clipStartGlobal + currentDur;
+    const proposedGlobalStart = clipStartGlobal; // Start doesn't move with trim, only duration changes relative to offset? 
+    // Wait, trimming left handle shifts the visual start time if we keep offset constant?
+    // In this model, trimming left just changes what part of video plays, effectively shifting "start" point visually if block size changes?
+    // Actually, css width changes. 
+    
+    // Let's simplify: Snap the Handle's screen X to Playhead's screen X
+    // Playhead X pct = vtTime / totalDur
+    // Handle X pct = ... complicated because block width changes.
+    
+    // Alternative: Snap the resulting *Time* to vtTime.
+    const totalDur = vtGetTotalDuration();
+    if (totalDur > 0) {
+        const snapThresh = 0.1; // seconds
+        
+        if (side === 'right') {
+            const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn||0));
+            if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
+                // Snap! Adjust newTrimOut
+                // vtTime = clipStartGlobal + clip.duration * (newTrimOut - trimIn)
+                // newTrimOut = (vtTime - clipStartGlobal) / clip.duration + trimIn
+                newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn||0);
+            }
+        }
+        // Left trim logic is tricky because it shifts the timeline. Skip for now to be safe.
+    }
+
+    if (side === 'left') {
+        clip.trimIn = Math.min(Math.max(0, newTrimIn), (clip.trimOut || 1) - 0.02);
+    } else {
+        clip.trimOut = Math.max(Math.min(1, newTrimOut), (clip.trimIn || 0) + 0.02);
+    }
+    
     rebuildTimeline();
   });
   document.addEventListener('mouseup', () => {

@@ -872,6 +872,28 @@ document.getElementById('bgAudioInput')?.addEventListener('change', (e) => {
       status.textContent = `${file.name} (${duration})`;
     }
 
+    // Generate waveform
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const ctx = getSharedAudioContext();
+          const buffer = await ctx.decodeAudioData(ev.target.result);
+          const canvas = document.getElementById('audioWaveformCanvas');
+          if (canvas) {
+            // Match canvas size to display size for sharpness
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            generateWaveform(buffer, canvas, '#f59e0b');
+          }
+        } catch (e) {
+          console.error('Waveform generation failed:', e);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
     // Show audio track in timeline
     updateTimelineVisibility();
 

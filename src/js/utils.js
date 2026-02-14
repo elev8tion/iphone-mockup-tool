@@ -66,6 +66,39 @@ function pillPath(c, x, y, w, h) {
 }
 
 // ============================================================
+// WAVEFORM GENERATOR
+// ============================================================
+function generateWaveform(audioBuffer, canvas, color = '#a78bfa') {
+  if (!audioBuffer || !canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const data = audioBuffer.getChannelData(0); // Use first channel
+  const step = Math.ceil(data.length / width);
+  const amp = height / 2;
+  
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  
+  for (let i = 0; i < width; i++) {
+    let min = 1.0;
+    let max = -1.0;
+    
+    // Find min/max in this step window
+    for (let j = 0; j < step; j++) {
+      const datum = data[(i * step) + j];
+      if (datum < min) min = datum;
+      if (datum > max) max = datum;
+    }
+    
+    // Draw bar
+    ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+  }
+}
+
+// ============================================================
 // PERFORMANCE OPTIMIZATION UTILITIES
 // ============================================================
 

@@ -774,8 +774,9 @@
       <div class="bg-progress-track" id="audioProgressTrack">
         <div class="bg-progress-fill" id="audioProgressFill" style="background: linear-gradient(90deg, rgba(245,158,11,0.3) 0%, rgba(245,158,11,0.2) 100%); border-right-color: rgba(245,158,11,0.8);">
           <div class="bg-progress-handle" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 2px 8px rgba(245,158,11,0.4), 0 0 0 3px rgba(245,158,11,0.2);"></div>
-          <div class="bg-progress-waveform"></div>
         </div>
+        <canvas class="bg-progress-waveform-canvas" id="audioWaveformCanvas" width="800" height="32"></canvas>
+        <div class="track-placeholder">Drop Audio to Load</div>
       </div>
 
       <div class="bg-video-options">
