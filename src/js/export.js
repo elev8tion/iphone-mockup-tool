@@ -34,6 +34,21 @@ thumbBtn.addEventListener('click', () => {
 let recorder = null;
 let destNode = null;
 
+// UI state helper for export button feedback
+let exportInProgress = false;
+function updateExportButtonState(isExporting) {
+  const exportBtnEl = document.getElementById('exportBtn');
+  if (!exportBtnEl) return;
+  exportInProgress = isExporting;
+  if (isExporting) {
+    exportBtnEl.classList.add('exporting');
+    exportBtnEl.disabled = true;
+  } else {
+    exportBtnEl.classList.remove('exporting');
+    exportBtnEl.disabled = false;
+  }
+}
+
 const exportDialog = document.getElementById('exportDialog');
 const edResolution = document.getElementById('edResolution');
 const edQuality = document.getElementById('edQuality');
@@ -123,6 +138,7 @@ function startExport() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing...';
   exportBarFill.style.width = '0%';
+  updateExportButtonState(true);
 
   // Inject a cancel button into the export status UI (if not present)
   (function ensureCancelButton() {
@@ -203,6 +219,7 @@ function startExport() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    updateExportButtonState(false);
     // Remove cancel button if present
     document.getElementById('exportCancelBtn')?.remove();
     if (exportRAF) cancelAnimationFrame(exportRAF);
@@ -258,6 +275,7 @@ async function startMp4Export() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing MP4...';
   exportBarFill.style.width = '0%';
+  updateExportButtonState(true);
 
   // Inject a cancel button into the export status UI (if not present)
   (function ensureCancelButton() {
@@ -482,6 +500,7 @@ async function startMp4Export() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    updateExportButtonState(false);
     // Remove cancel button if present
     document.getElementById('exportCancelBtn')?.remove();
     vtPause();

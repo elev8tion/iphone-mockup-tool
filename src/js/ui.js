@@ -58,6 +58,38 @@ deviceGrid.addEventListener('click', e => {
 updateColorSwatches();
 
 // ============================================================
+// ACTIVE PANEL STATE (header/toolbar buttons)
+// ============================================================
+
+let activePanel = null;
+
+function setActivePanel(panelId) {
+  const panelButtons = [
+    'addDeviceBtn',
+    'addAnnotationBtn',
+    'showEffectsBtn',
+    'showLayersBtn',
+    'showTimelineBtn'
+  ];
+  panelButtons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  const clickedBtn = document.getElementById(panelId);
+  if (clickedBtn) {
+    clickedBtn.classList.add('active');
+    activePanel = panelId;
+  }
+}
+
+// Optionally wire active state to known buttons if present
+document.getElementById('addDeviceBtn')?.addEventListener('click', () => setActivePanel('addDeviceBtn'));
+document.getElementById('addAnnotationBtn')?.addEventListener('click', () => setActivePanel('addAnnotationBtn'));
+document.getElementById('showEffectsBtn')?.addEventListener('click', () => setActivePanel('showEffectsBtn'));
+document.getElementById('showLayersBtn')?.addEventListener('click', () => setActivePanel('showLayersBtn'));
+document.getElementById('showTimelineBtn')?.addEventListener('click', () => setActivePanel('showTimelineBtn'));
+
+// ============================================================
 // FULL PRESET TEMPLATE CONTROLS
 // ============================================================
 document.getElementById('fullPresetGrid').addEventListener('click', e => {
@@ -301,6 +333,29 @@ document.addEventListener('keydown', e => {
   if (e.key === ']') { togglePanel('right'); return; }
   if (e.code === 'ArrowLeft') vtSeek(vtTime - 5);
   if (e.code === 'ArrowRight') vtSeek(vtTime + 5);
+
+  // Panel shortcuts (Alt+1..5)
+  if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+    const map = { '1': 'addDeviceBtn', '2': 'addAnnotationBtn', '3': 'showEffectsBtn', '4': 'showLayersBtn', '5': 'showTimelineBtn' };
+    if (map[e.key]) {
+      e.preventDefault();
+      const btn = document.getElementById(map[e.key]);
+      if (btn) btn.click();
+      return;
+    }
+  }
+  // Export shortcut (Ctrl/Cmd+E)
+  if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'e') {
+    e.preventDefault();
+    document.getElementById('exportBtn')?.click();
+    return;
+  }
+  // Escape to clear active panel state
+  if (e.key === 'Escape' && activePanel) {
+    const activeBtn = document.getElementById(activePanel);
+    if (activeBtn) activeBtn.classList.remove('active');
+    activePanel = null;
+  }
 });
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('redoBtn').addEventListener('click', redo);
@@ -309,6 +364,30 @@ document.getElementById('redoBtn').addEventListener('click', redo);
 document.addEventListener('mousedown', e => {
   if (e.target.type === 'range' || e.target.type === 'color') pushUndoState();
 }, true);
+
+// Add shortcut hints to button titles (if present)
+function addShortcutLabels() {
+  const shortcutLabels = {
+    'addDeviceBtn': 'Alt+1',
+    'addAnnotationBtn': 'Alt+2',
+    'showEffectsBtn': 'Alt+3',
+    'showLayersBtn': 'Alt+4',
+    'showTimelineBtn': 'Alt+5',
+    'exportBtn': 'Ctrl+E'
+  };
+  Object.entries(shortcutLabels).forEach(([id, hint]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const current = btn.getAttribute('title') || '';
+    if (!current.includes(hint)) {
+      btn.setAttribute('title', (current ? current + ' ' : '') + '(' + hint + ')');
+    }
+  });
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addShortcutLabels); else addShortcutLabels();
+}
 
 // ============================================================
 // COLLAPSIBLE SIDEBAR PANELS & MOBILE MENU
@@ -1681,4 +1760,3 @@ document.getElementById('contentLoopEnd')?.addEventListener('input', (e) => {
 if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
-

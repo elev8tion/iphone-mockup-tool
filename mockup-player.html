@@ -3580,6 +3580,84 @@ input[type="range"]:hover::-moz-range-thumb {
   }
 }
 
+/* ------------------------------------------------------------
+   Toolbar improvements and active/feedback states
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  /* Better touch targets */
+  .top-bar .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+  }
+  /* Visual feedback for touch */
+  .top-bar .btn:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+    background-color: rgba(0, 122, 255, 0.1);
+  }
+  /* Stronger active on mobile */
+  .top-bar .btn.active {
+    box-shadow: 0 0 0 2px var(--accent-primary);
+  }
+}
+
+@media (max-width: 480px) {
+  /* Optional label/icon helpers if used */
+  .top-bar-center .btn-text { display: none; }
+  .top-bar-center .btn-icon { font-size: 1.2em; margin-right: 0; }
+
+  /* Allow wrapping of right-side controls if grouped */
+  .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+
+  #exportBtn {
+    order: -1;
+    flex: 1 0 100%;
+    margin-bottom: 4px;
+    justify-content: center;
+  }
+
+  @media (max-width: 360px) {
+    #settingsBtn, #helpBtn { display: none; }
+  }
+}
+
+/* Active state styling (all screens) */
+.top-bar .btn.active {
+  background-color: var(--accent-primary);
+  color: #fff;
+  border-color: rgba(96, 165, 250, 0.5);
+  position: relative;
+}
+.top-bar .btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background-color: #fff;
+  border-radius: 2px;
+}
+
+/* Export button loading spinner utility */
+.top-bar .btn.exporting {
+  position: relative;
+  color: transparent;
+}
+.top-bar .btn.exporting::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 16px; height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ---- Tablet: Toggleable Overlays (768px - 1023px) ---- */
 @media (min-width: 768px) and (max-width: 1023px) {
   /* Panels can overlay or be hidden */
@@ -11276,6 +11354,21 @@ thumbBtn.addEventListener('click', () => {
 let recorder = null;
 let destNode = null;
 
+// UI state helper for export button feedback
+let exportInProgress = false;
+function updateExportButtonState(isExporting) {
+  const exportBtnEl = document.getElementById('exportBtn');
+  if (!exportBtnEl) return;
+  exportInProgress = isExporting;
+  if (isExporting) {
+    exportBtnEl.classList.add('exporting');
+    exportBtnEl.disabled = true;
+  } else {
+    exportBtnEl.classList.remove('exporting');
+    exportBtnEl.disabled = false;
+  }
+}
+
 const exportDialog = document.getElementById('exportDialog');
 const edResolution = document.getElementById('edResolution');
 const edQuality = document.getElementById('edQuality');
@@ -11365,6 +11458,7 @@ function startExport() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing...';
   exportBarFill.style.width = '0%';
+  updateExportButtonState(true);
 
   // Inject a cancel button into the export status UI (if not present)
   (function ensureCancelButton() {
@@ -11445,6 +11539,7 @@ function startExport() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    updateExportButtonState(false);
     // Remove cancel button if present
     document.getElementById('exportCancelBtn')?.remove();
     if (exportRAF) cancelAnimationFrame(exportRAF);
@@ -11500,6 +11595,7 @@ async function startMp4Export() {
   exportStatus.classList.add('visible');
   exportText.textContent = 'Preparing MP4...';
   exportBarFill.style.width = '0%';
+  updateExportButtonState(true);
 
   // Inject a cancel button into the export status UI (if not present)
   (function ensureCancelButton() {
@@ -11724,6 +11820,7 @@ async function startMp4Export() {
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
     exportStatus.classList.remove('visible');
+    updateExportButtonState(false);
     // Remove cancel button if present
     document.getElementById('exportCancelBtn')?.remove();
     vtPause();
@@ -12273,6 +12370,38 @@ deviceGrid.addEventListener('click', e => {
 updateColorSwatches();
 
 // ============================================================
+// ACTIVE PANEL STATE (header/toolbar buttons)
+// ============================================================
+
+let activePanel = null;
+
+function setActivePanel(panelId) {
+  const panelButtons = [
+    'addDeviceBtn',
+    'addAnnotationBtn',
+    'showEffectsBtn',
+    'showLayersBtn',
+    'showTimelineBtn'
+  ];
+  panelButtons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  const clickedBtn = document.getElementById(panelId);
+  if (clickedBtn) {
+    clickedBtn.classList.add('active');
+    activePanel = panelId;
+  }
+}
+
+// Optionally wire active state to known buttons if present
+document.getElementById('addDeviceBtn')?.addEventListener('click', () => setActivePanel('addDeviceBtn'));
+document.getElementById('addAnnotationBtn')?.addEventListener('click', () => setActivePanel('addAnnotationBtn'));
+document.getElementById('showEffectsBtn')?.addEventListener('click', () => setActivePanel('showEffectsBtn'));
+document.getElementById('showLayersBtn')?.addEventListener('click', () => setActivePanel('showLayersBtn'));
+document.getElementById('showTimelineBtn')?.addEventListener('click', () => setActivePanel('showTimelineBtn'));
+
+// ============================================================
 // FULL PRESET TEMPLATE CONTROLS
 // ============================================================
 document.getElementById('fullPresetGrid').addEventListener('click', e => {
@@ -12516,6 +12645,29 @@ document.addEventListener('keydown', e => {
   if (e.key === ']') { togglePanel('right'); return; }
   if (e.code === 'ArrowLeft') vtSeek(vtTime - 5);
   if (e.code === 'ArrowRight') vtSeek(vtTime + 5);
+
+  // Panel shortcuts (Alt+1..5)
+  if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+    const map = { '1': 'addDeviceBtn', '2': 'addAnnotationBtn', '3': 'showEffectsBtn', '4': 'showLayersBtn', '5': 'showTimelineBtn' };
+    if (map[e.key]) {
+      e.preventDefault();
+      const btn = document.getElementById(map[e.key]);
+      if (btn) btn.click();
+      return;
+    }
+  }
+  // Export shortcut (Ctrl/Cmd+E)
+  if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'e') {
+    e.preventDefault();
+    document.getElementById('exportBtn')?.click();
+    return;
+  }
+  // Escape to clear active panel state
+  if (e.key === 'Escape' && activePanel) {
+    const activeBtn = document.getElementById(activePanel);
+    if (activeBtn) activeBtn.classList.remove('active');
+    activePanel = null;
+  }
 });
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('redoBtn').addEventListener('click', redo);
@@ -12524,6 +12676,30 @@ document.getElementById('redoBtn').addEventListener('click', redo);
 document.addEventListener('mousedown', e => {
   if (e.target.type === 'range' || e.target.type === 'color') pushUndoState();
 }, true);
+
+// Add shortcut hints to button titles (if present)
+function addShortcutLabels() {
+  const shortcutLabels = {
+    'addDeviceBtn': 'Alt+1',
+    'addAnnotationBtn': 'Alt+2',
+    'showEffectsBtn': 'Alt+3',
+    'showLayersBtn': 'Alt+4',
+    'showTimelineBtn': 'Alt+5',
+    'exportBtn': 'Ctrl+E'
+  };
+  Object.entries(shortcutLabels).forEach(([id, hint]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const current = btn.getAttribute('title') || '';
+    if (!current.includes(hint)) {
+      btn.setAttribute('title', (current ? current + ' ' : '') + '(' + hint + ')');
+    }
+  });
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addShortcutLabels); else addShortcutLabels();
+}
 
 // ============================================================
 // COLLAPSIBLE SIDEBAR PANELS & MOBILE MENU
@@ -13896,7 +14072,6 @@ document.getElementById('contentLoopEnd')?.addEventListener('input', (e) => {
 if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
-
 
 // ============================================================
 // ENHANCED TIMELINE SYSTEM

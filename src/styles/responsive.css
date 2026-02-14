@@ -179,6 +179,84 @@
   }
 }
 
+/* ------------------------------------------------------------
+   Toolbar improvements and active/feedback states
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  /* Better touch targets */
+  .top-bar .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+  }
+  /* Visual feedback for touch */
+  .top-bar .btn:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+    background-color: rgba(0, 122, 255, 0.1);
+  }
+  /* Stronger active on mobile */
+  .top-bar .btn.active {
+    box-shadow: 0 0 0 2px var(--accent-primary);
+  }
+}
+
+@media (max-width: 480px) {
+  /* Optional label/icon helpers if used */
+  .top-bar-center .btn-text { display: none; }
+  .top-bar-center .btn-icon { font-size: 1.2em; margin-right: 0; }
+
+  /* Allow wrapping of right-side controls if grouped */
+  .top-bar-right { flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+
+  #exportBtn {
+    order: -1;
+    flex: 1 0 100%;
+    margin-bottom: 4px;
+    justify-content: center;
+  }
+
+  @media (max-width: 360px) {
+    #settingsBtn, #helpBtn { display: none; }
+  }
+}
+
+/* Active state styling (all screens) */
+.top-bar .btn.active {
+  background-color: var(--accent-primary);
+  color: #fff;
+  border-color: rgba(96, 165, 250, 0.5);
+  position: relative;
+}
+.top-bar .btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background-color: #fff;
+  border-radius: 2px;
+}
+
+/* Export button loading spinner utility */
+.top-bar .btn.exporting {
+  position: relative;
+  color: transparent;
+}
+.top-bar .btn.exporting::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 16px; height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ---- Tablet: Toggleable Overlays (768px - 1023px) ---- */
 @media (min-width: 768px) and (max-width: 1023px) {
   /* Panels can overlay or be hidden */
