@@ -100,6 +100,74 @@ function restoreAllTracks() {
 }
 
 // ============================================================
+// BG TRACK TRIMMING LOGIC
+// ============================================================
+
+function makeBgTrimDraggable(handleId, trackId, type) {
+  const handle = document.getElementById(handleId);
+  const track = handle?.parentElement;
+  if (!handle || !track) return;
+
+  let isDragging = false;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isDragging = true;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ew-resize';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const rect = track.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const percent = x / rect.width;
+
+    if (type === 'in') {
+      state[trackId].trimIn = Math.min(percent, state[trackId].trimOut - 0.05);
+      handle.style.left = (state[trackId].trimIn * 100) + '%';
+    } else {
+      state[trackId].trimOut = Math.max(percent, state[trackId].trimIn + 0.05);
+      handle.style.left = (state[trackId].trimOut * 100) + '%';
+    }
+
+    updateBgTrimVisuals(trackId);
+    scheduleSave();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = 'default';
+      pushUndoState();
+    }
+  });
+}
+
+function updateBgTrimVisuals(trackId) {
+  const inHandle = document.getElementById(trackId === 'bgVideo' ? 'bgVideoTrimIn' : 'audioTrimIn');
+  const outHandle = document.getElementById(trackId === 'bgVideo' ? 'bgVideoTrimOut' : 'audioTrimOut');
+  const dimLeft = document.getElementById(trackId === 'bgVideo' ? 'bgVideoTrimDimLeft' : 'audioTrimDimLeft');
+  const dimRight = document.getElementById(trackId === 'bgVideo' ? 'bgVideoTrimDimRight' : 'audioTrimDimRight');
+
+  if (inHandle) inHandle.style.left = (state[trackId].trimIn * 100) + '%';
+  if (outHandle) outHandle.style.left = (state[trackId].trimOut * 100) + '%';
+  
+  if (dimLeft) dimLeft.style.width = (state[trackId].trimIn * 100) + '%';
+  if (dimRight) dimRight.style.left = (state[trackId].trimOut * 100) + '%';
+  if (dimRight) dimRight.style.width = (100 - (state[trackId].trimOut * 100)) + '%';
+}
+
+// Wire up trim handles
+makeBgTrimDraggable('bgVideoTrimIn', 'bgVideo', 'in');
+makeBgTrimDraggable('bgVideoTrimOut', 'bgVideo', 'out');
+makeBgTrimDraggable('audioTrimIn', 'bgAudio', 'in');
+makeBgTrimDraggable('audioTrimOut', 'bgAudio', 'out');
+
+// ============================================================
 // BACKGROUND VIDEO ACTIONS
 // ============================================================
 const BG_VIDEO_ACTIONS = {
@@ -557,10 +625,17 @@ function syncBgVideoWithMain() {
   const bgVideo = document.getElementById('bgVideo');
   if (!bgVideo || !hasVideo) return;
 
-  // Sync currentTime
+  const duration = bgVideo.duration;
+  if (!duration || isNaN(duration)) return;
+
+  // Map main timeline time to background video trimmed region
   const mainTime = vtTime;
-  if (bgVideo.duration > 0) {
-    bgVideo.currentTime = mainTime % bgVideo.duration;
+  const trimInTime = state.bgVideo.trimIn * duration;
+  const trimOutTime = state.bgVideo.trimOut * duration;
+  const trimmedDuration = trimOutTime - trimInTime;
+
+  if (trimmedDuration > 0) {
+    bgVideo.currentTime = trimInTime + (mainTime % trimmedDuration);
   }
 
   // Sync play/pause state
@@ -718,7 +793,7 @@ function updateEnhancedTimelineDisplays() {
 // ============================================================
 
 function checkLoops() {
-  // Main video loop
+  // Main video loop (uses existing logic)
   if (state.loops?.main?.enabled && hasVideo) {
     const loop = state.loops.main;
     const duration = vtGetTotalDuration();
@@ -726,41 +801,43 @@ function checkLoops() {
     const loopEnd = loop.end * duration;
 
     if (vtTime >= loopEnd) {
-      seekTo(loopStart);
+      vtSeek(loopStart);
     }
   }
 
-  // Background video loop
-  if (state.loops?.bgVideo?.enabled && state.bgVideo.enabled) {
+  // Background video loop (respects trim points)
+  if (state.bgVideo.enabled) {
     const bgVideo = document.getElementById('bgVideo');
     if (!bgVideo) return;
 
-    const loop = state.loops.bgVideo;
     const duration = bgVideo.duration;
     if (!duration || isNaN(duration)) return;
 
-    const loopStart = loop.start * duration;
-    const loopEnd = loop.end * duration;
+    const trimInTime = state.bgVideo.trimIn * duration;
+    const trimOutTime = state.bgVideo.trimOut * duration;
 
-    if (bgVideo.currentTime >= loopEnd) {
-      bgVideo.currentTime = loopStart;
+    if (bgVideo.currentTime >= trimOutTime) {
+      bgVideo.currentTime = trimInTime;
+    } else if (bgVideo.currentTime < trimInTime) {
+      bgVideo.currentTime = trimInTime;
     }
   }
 
-  // Background audio loop
-  if (state.loops?.bgAudio?.enabled && state.bgAudio.enabled) {
+  // Background audio loop (respects trim points)
+  if (state.bgAudio.enabled) {
     const bgAudio = document.getElementById('bgAudio');
     if (!bgAudio) return;
 
-    const loop = state.loops.bgAudio;
     const duration = bgAudio.duration;
     if (!duration || isNaN(duration)) return;
 
-    const loopStart = loop.start * duration;
-    const loopEnd = loop.end * duration;
+    const trimInTime = state.bgAudio.trimIn * duration;
+    const trimOutTime = state.bgAudio.trimOut * duration;
 
-    if (bgAudio.currentTime >= loopEnd) {
-      bgAudio.currentTime = loopStart;
+    if (bgAudio.currentTime >= trimOutTime) {
+      bgAudio.currentTime = trimInTime;
+    } else if (bgAudio.currentTime < trimInTime) {
+      bgAudio.currentTime = trimInTime;
     }
   }
 }
@@ -896,6 +973,7 @@ document.getElementById('bgAudioInput')?.addEventListener('change', (e) => {
 
     // Show audio track in timeline
     updateTimelineVisibility();
+    updateBgTrimVisuals('bgAudio');
 
     showToast('Background audio loaded', 'success');
   });
@@ -1019,10 +1097,17 @@ function syncAudioWithMain() {
   const bgAudio = document.getElementById('bgAudio');
   if (!bgAudio || !hasVideo) return;
 
-  // Sync currentTime
+  const duration = bgAudio.duration;
+  if (!duration || isNaN(duration)) return;
+
+  // Map main timeline time to background audio trimmed region
   const mainTime = vtTime;
-  if (bgAudio.duration > 0) {
-    bgAudio.currentTime = mainTime % bgAudio.duration;
+  const trimInTime = state.bgAudio.trimIn * duration;
+  const trimOutTime = state.bgAudio.trimOut * duration;
+  const trimmedDuration = trimOutTime - trimInTime;
+
+  if (trimmedDuration > 0) {
+    bgAudio.currentTime = trimInTime + (mainTime % trimmedDuration);
   }
 
   // Sync play/pause state

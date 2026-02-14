@@ -322,6 +322,19 @@
   mix-blend-mode: screen;
 }
 
+/* Background Trim Dims */
+.bg-trim-dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.bg-trim-dim.left { left: 0; }
+.bg-trim-dim.right { right: 0; }
+
 .bg-progress-fill {
   height: 100%;
   background: rgba(245, 158, 11, 0.2); /* Subtle tint for played portion */
@@ -366,6 +379,49 @@
   opacity: 0;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+}
+
+/* Background Trim Handles */
+.bg-trim-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: ew-resize;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.bg-trim-handle::after {
+  content: '';
+  width: 2px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 1px;
+}
+
+.bg-trim-handle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.bg-trim-handle:hover::after {
+  background: #fff;
+}
+
+.bg-trim-handle.left {
+  left: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.bg-trim-handle.right {
+  right: 0;
+  border-radius: 0 6px 6px 0;
 }
 
 .bg-progress-track:hover .bg-progress-handle,

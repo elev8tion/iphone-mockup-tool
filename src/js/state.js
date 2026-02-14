@@ -35,8 +35,8 @@ const state = {
   chromaKey: { enabled: false, color: '#00ff00', tolerance: 80, softness: 10 },
   videoOverlays: [],
   lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '', _presetKey: '' },
-  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover' },
-  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0 },
+  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover', trimIn: 0, trimOut: 1 },
+  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0, trimIn: 0, trimOut: 1 },
   bgType: 'solid',
   audioEffects: {
     main: {

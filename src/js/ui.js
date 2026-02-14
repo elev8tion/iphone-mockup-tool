@@ -937,6 +937,7 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
 
     // Update timeline visibility to show the background video track
     updateTimelineVisibility();
+    if (typeof updateBgTrimVisuals === 'function') updateBgTrimVisuals('bgVideo');
 
     // Enable loop by default
     const bgLoopBtn = document.getElementById('bgLoopBtn');
