@@ -1564,6 +1564,54 @@ body {
   border-radius: 4px;
 }
 
+.track-controls-mini {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.mini-btn {
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.mini-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mini-btn.active.mute-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.mini-btn.active.solo-btn {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+.mini-btn.active.lock-btn {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+}
+
 .track-indicator {
   width: 4px;
   height: 20px;
@@ -1575,6 +1623,19 @@ body {
 .track-indicator.bg-video {
   background: linear-gradient(180deg, #a78bfa, #8b5cf6);
   box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+}
+
+/* Master Timeline Scrubber (shared across all tracks) */
+.timeline-system::after {
+  content: '';
+  position: absolute;
+  top: 44px; /* below headers */
+  bottom: 60px; /* above master controls */
+  left: 140px; /* start of tracks */
+  width: 1px;
+  background: rgba(245, 158, 11, 0.3);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Background Video Track */
@@ -1743,6 +1804,22 @@ body {
     transparent 8px
   );
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.bg-video-track:not(.loaded) .bg-progress-waveform::after {
+  content: 'Drop Video to Load';
+}
+
+.bg-audio-track:not(.loaded) .bg-progress-waveform::after {
+  content: 'Drop Audio to Load';
 }
 
 .bg-progress-handle {
@@ -5192,8 +5269,13 @@ input[type="range"]:hover::-moz-range-thumb {
     <div class="track-header" id="audioTrackHeader">
       <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
       <div class="track-label">
-        <span class="track-label-icon">🎵</span>
-        Background Audio
+        <span class="track-label-icon"><i data-lucide="music"></i></span>
+        Audio
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="audioMuteBtn" data-track="bgAudio" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="audioSoloBtn" data-track="bgAudio" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="audioLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -5365,8 +5447,13 @@ input[type="range"]:hover::-moz-range-thumb {
     <div class="track-header" id="bgVideoTrackHeader">
       <div class="track-indicator bg-video"></div>
       <div class="track-label">
-        <span class="track-label-icon">🎬</span>
-        Background Video
+        <span class="track-label-icon"><i data-lucide="video"></i></span>
+        Background
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="bgVideoMuteBtn" data-track="bgVideo" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="bgVideoSoloBtn" data-track="bgVideo" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="bgVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -5523,8 +5610,13 @@ input[type="range"]:hover::-moz-range-thumb {
     <div class="track-header" id="mainVideoTrackHeader">
       <div class="track-indicator"></div>
       <div class="track-label">
-        <span class="track-label-icon">📱</span>
-        Device Content
+        <span class="track-label-icon"><i data-lucide="smartphone"></i></span>
+        Device
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="mainVideoMuteBtn" data-track="main" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="mainVideoSoloBtn" data-track="main" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="mainVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
@@ -14647,6 +14739,81 @@ let bgAudioLoop = false;
 let bgAudioSynced = true;
 let bgAudioSpeed = 1;
 let bgAudioVolume = 1;
+
+// ============================================================
+// TRACK HEADER CONTROLS (Mute, Solo, Lock)
+// ============================================================
+
+document.querySelectorAll('.track-controls-mini .mini-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const track = btn.dataset.track;
+    const type = btn.classList.contains('mute-btn') ? 'mute' :
+                 btn.classList.contains('solo-btn') ? 'solo' : 'lock';
+    
+    if (type === 'lock') {
+      btn.classList.toggle('active');
+      return;
+    }
+
+    const isActive = btn.classList.toggle('active');
+    
+    if (type === 'mute') {
+      if (track === 'bgAudio') {
+        const audio = document.getElementById('bgAudio');
+        if (audio) audio.muted = isActive;
+      } else if (track === 'bgVideo') {
+        state.bgVideo.hidden = isActive;
+      } else if (track === 'main') {
+        // Find 'Device' group in renderStack
+        const group = state.renderStack.find(g => g.id === 'device');
+        if (group) group.hidden = isActive;
+      }
+    } else if (type === 'solo') {
+      // Logic for soloing a track
+      const allSoloBtns = document.querySelectorAll('.solo-btn');
+      const anySoloActive = Array.from(allSoloBtns).some(b => b.classList.contains('active'));
+      
+      if (anySoloActive) {
+        // If solo is active, only show/play the soloed tracks
+        updateSoloState();
+      } else {
+        // If no solo is active, restore all tracks based on their mute state
+        restoreAllTracks();
+      }
+    }
+    
+    showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} ${isActive ? 'ON' : 'OFF'}`, 'info');
+  });
+});
+
+function updateSoloState() {
+  const soloedTracks = Array.from(document.querySelectorAll('.solo-btn.active')).map(b => b.dataset.track);
+  
+  // Update BG Audio
+  const bgAudio = document.getElementById('bgAudio');
+  if (bgAudio) bgAudio.muted = !soloedTracks.includes('bgAudio');
+  
+  // Update BG Video
+  state.bgVideo.hidden = !soloedTracks.includes('bgVideo');
+  
+  // Update Main Video
+  const mainGroup = state.renderStack.find(g => g.id === 'device');
+  if (mainGroup) mainGroup.hidden = !soloedTracks.includes('main');
+}
+
+function restoreAllTracks() {
+  // Restore based on mute buttons
+  const isAudioMuted = document.getElementById('audioMuteBtn').classList.contains('active');
+  const isBgVideoMuted = document.getElementById('bgVideoMuteBtn').classList.contains('active');
+  const isMainMuted = document.getElementById('mainVideoMuteBtn').classList.contains('active');
+  
+  const bgAudio = document.getElementById('bgAudio');
+  if (bgAudio) bgAudio.muted = isAudioMuted;
+  state.bgVideo.hidden = isBgVideoMuted;
+  const mainGroup = state.renderStack.find(g => g.id === 'device');
+  if (mainGroup) mainGroup.hidden = isMainMuted;
+}
 
 // ============================================================
 // BACKGROUND VIDEO ACTIONS

@@ -25,6 +25,81 @@ let bgAudioSpeed = 1;
 let bgAudioVolume = 1;
 
 // ============================================================
+// TRACK HEADER CONTROLS (Mute, Solo, Lock)
+// ============================================================
+
+document.querySelectorAll('.track-controls-mini .mini-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const track = btn.dataset.track;
+    const type = btn.classList.contains('mute-btn') ? 'mute' :
+                 btn.classList.contains('solo-btn') ? 'solo' : 'lock';
+    
+    if (type === 'lock') {
+      btn.classList.toggle('active');
+      return;
+    }
+
+    const isActive = btn.classList.toggle('active');
+    
+    if (type === 'mute') {
+      if (track === 'bgAudio') {
+        const audio = document.getElementById('bgAudio');
+        if (audio) audio.muted = isActive;
+      } else if (track === 'bgVideo') {
+        state.bgVideo.hidden = isActive;
+      } else if (track === 'main') {
+        // Find 'Device' group in renderStack
+        const group = state.renderStack.find(g => g.id === 'device');
+        if (group) group.hidden = isActive;
+      }
+    } else if (type === 'solo') {
+      // Logic for soloing a track
+      const allSoloBtns = document.querySelectorAll('.solo-btn');
+      const anySoloActive = Array.from(allSoloBtns).some(b => b.classList.contains('active'));
+      
+      if (anySoloActive) {
+        // If solo is active, only show/play the soloed tracks
+        updateSoloState();
+      } else {
+        // If no solo is active, restore all tracks based on their mute state
+        restoreAllTracks();
+      }
+    }
+    
+    showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} ${isActive ? 'ON' : 'OFF'}`, 'info');
+  });
+});
+
+function updateSoloState() {
+  const soloedTracks = Array.from(document.querySelectorAll('.solo-btn.active')).map(b => b.dataset.track);
+  
+  // Update BG Audio
+  const bgAudio = document.getElementById('bgAudio');
+  if (bgAudio) bgAudio.muted = !soloedTracks.includes('bgAudio');
+  
+  // Update BG Video
+  state.bgVideo.hidden = !soloedTracks.includes('bgVideo');
+  
+  // Update Main Video
+  const mainGroup = state.renderStack.find(g => g.id === 'device');
+  if (mainGroup) mainGroup.hidden = !soloedTracks.includes('main');
+}
+
+function restoreAllTracks() {
+  // Restore based on mute buttons
+  const isAudioMuted = document.getElementById('audioMuteBtn').classList.contains('active');
+  const isBgVideoMuted = document.getElementById('bgVideoMuteBtn').classList.contains('active');
+  const isMainMuted = document.getElementById('mainVideoMuteBtn').classList.contains('active');
+  
+  const bgAudio = document.getElementById('bgAudio');
+  if (bgAudio) bgAudio.muted = isAudioMuted;
+  state.bgVideo.hidden = isBgVideoMuted;
+  const mainGroup = state.renderStack.find(g => g.id === 'device');
+  if (mainGroup) mainGroup.hidden = isMainMuted;
+}
+
+// ============================================================
 // BACKGROUND VIDEO ACTIONS
 // ============================================================
 const BG_VIDEO_ACTIONS = {

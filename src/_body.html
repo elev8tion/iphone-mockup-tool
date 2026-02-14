@@ -719,8 +719,13 @@
     <div class="track-header" id="audioTrackHeader">
       <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
       <div class="track-label">
-        <span class="track-label-icon">🎵</span>
-        Background Audio
+        <span class="track-label-icon"><i data-lucide="music"></i></span>
+        Audio
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="audioMuteBtn" data-track="bgAudio" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="audioSoloBtn" data-track="bgAudio" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="audioLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -892,8 +897,13 @@
     <div class="track-header" id="bgVideoTrackHeader">
       <div class="track-indicator bg-video"></div>
       <div class="track-label">
-        <span class="track-label-icon">🎬</span>
-        Background Video
+        <span class="track-label-icon"><i data-lucide="video"></i></span>
+        Background
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="bgVideoMuteBtn" data-track="bgVideo" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="bgVideoSoloBtn" data-track="bgVideo" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="bgVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -1050,8 +1060,13 @@
     <div class="track-header" id="mainVideoTrackHeader">
       <div class="track-indicator"></div>
       <div class="track-label">
-        <span class="track-label-icon">📱</span>
-        Device Content
+        <span class="track-label-icon"><i data-lucide="smartphone"></i></span>
+        Device
+      </div>
+      <div class="track-controls-mini">
+        <button class="mini-btn mute-btn" id="mainVideoMuteBtn" data-track="main" title="Mute Track">M</button>
+        <button class="mini-btn solo-btn" id="mainVideoSoloBtn" data-track="main" title="Solo Track">S</button>
+        <button class="mini-btn lock-btn" id="mainVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
