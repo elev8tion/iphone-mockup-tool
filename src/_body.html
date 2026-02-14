@@ -77,6 +77,24 @@
   </label>
   <label>Dur <input type="range" id="entranceDur" min="500" max="3000" value="1000" style="width:60px;accent-color:#60a5fa"> <span id="entranceDurVal">1.0s</span></label>
 
+  <!-- Quick panel/tool shortcuts -->
+  <div class="sep"></div>
+  <button class="btn" id="addDeviceBtn" title="Device panel">
+    <i data-lucide="smartphone"></i><span>Device</span>
+  </button>
+  <button class="btn" id="addAnnotationBtn" title="Annotations panel">
+    <i data-lucide="pencil"></i><span>Annotate</span>
+  </button>
+  <button class="btn" id="showEffectsBtn" title="Effects panel">
+    <i data-lucide="sliders"></i><span>Effects</span>
+  </button>
+  <button class="btn" id="showLayersBtn" title="Layers panel">
+    <i data-lucide="layers"></i><span>Layers</span>
+  </button>
+  <button class="btn" id="showTimelineBtn" title="Timeline">
+    <i data-lucide="clock"></i><span>Timeline</span>
+  </button>
+
   <div class="spacer"></div>
 
   <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled><i data-lucide="rotate-ccw"></i></button>
@@ -1211,4 +1229,3 @@
 <video id="srcVideo2" style="display:none" playsinline loop></video>
 <video id="bgVideo" style="display:none" playsinline loop muted></video>
 <audio id="bgAudio" style="display:none"></audio>
-
