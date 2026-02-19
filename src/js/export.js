@@ -130,6 +130,24 @@ document.getElementById('edStart').addEventListener('click', () => {
   startExport();
 });
 
+function downloadBlob(blob, filename) {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    return true;
+  } catch (e) {
+    console.error('Download failed:', e);
+    showToast('Download failed: ' + e.message, 'error');
+    return false;
+  }
+}
+
 function startExport() {
   if (edFormat.value === 'mp4') { startMp4Export(); return; }
   isExporting = true;
@@ -223,10 +241,7 @@ function startExport() {
 
   recorder.onstop = () => {
     const blob = new Blob(chunks, { type: 'video/webm' });
-    const a = document.createElement('a');
-    a.download = 'mockup-' + Date.now() + '.webm';
-    a.href = URL.createObjectURL(blob);
-    a.click();
+    downloadBlob(blob, 'mockup-' + Date.now() + '.webm');
     isExporting = false;
     exportBtn.textContent = 'Export';
     exportBtn.classList.remove('recording');
@@ -282,7 +297,9 @@ function stopExport() {
 
 async function startMp4Export() {
   if (typeof VideoEncoder === 'undefined') {
-    showToast('MP4 export requires WebCodecs API (Chrome 94+)', 'error');
+    showToast('MP4 requires WebCodecs (Chrome 94+) — falling back to WebM', 'info');
+    edFormat.value = 'webm';
+    startExport();
     return;
   }
 
@@ -515,10 +532,7 @@ async function startMp4Export() {
 
       const buffer = muxer.target.buffer;
       const blob = new Blob([buffer], { type: 'video/mp4' });
-      const a = document.createElement('a');
-      a.download = 'mockup-' + Date.now() + '.mp4';
-      a.href = URL.createObjectURL(blob);
-      a.click();
+      downloadBlob(blob, 'mockup-' + Date.now() + '.mp4');
       showToast('Export complete \u2014 MP4 downloaded', 'success');
 
       // Show success animation
