@@ -184,8 +184,10 @@ function getUndoSnapshot() {
 
 function applyUndoSnapshot(snap) {
   // Device
-  state.device.type = snap.device.type;
-  state.device.color = snap.device.color;
+  const undoDevice = DEVICES[snap.device.type] ? snap.device.type : 'iphone16';
+  const undoPalette = DEVICES[undoDevice]?.colors || {};
+  state.device.type = undoDevice;
+  state.device.color = undoPalette[snap.device.color] ? snap.device.color : DEVICES[undoDevice].defaultColor;
   state.device.landscape = snap.device.landscape;
   state.device.scale = snap.device.scale;
   frameCache = {};
@@ -499,12 +501,14 @@ function scheduleSave() {
 
 function applyStateToUI(s) {
   // Device
-  state.device.type = s.device.type;
-  state.device.color = s.device.color;
+  const loadedDevice = DEVICES[s.device.type] ? s.device.type : 'iphone16';
+  const loadedPalette = DEVICES[loadedDevice]?.colors || {};
+  state.device.type = loadedDevice;
+  state.device.color = loadedPalette[s.device.color] ? s.device.color : DEVICES[loadedDevice].defaultColor;
   state.device.landscape = s.device.landscape || false;
   state.device.scale = s.device.scale;
   deviceGrid.querySelectorAll('.dev-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.device === s.device.type);
+    b.classList.toggle('active', b.dataset.device === state.device.type);
   });
   if (s.device.landscape) document.getElementById('landscapeBtn').classList.add('active');
   updateColorSwatches();

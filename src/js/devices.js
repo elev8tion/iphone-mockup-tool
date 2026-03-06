@@ -71,9 +71,14 @@ const DEVICES = {
   function syncSelected() {
     const grid = document.getElementById('deviceGrid');
     if (!grid) return;
-    grid.querySelectorAll('.dev-btn.device-selected').forEach(el => el.classList.remove('device-selected'));
     const active = grid.querySelector('.dev-btn.active');
-    if (active) active.classList.add('device-selected');
+    const selected = grid.querySelector('.dev-btn.device-selected');
+    if (selected && selected !== active) {
+      selected.classList.remove('device-selected');
+    }
+    if (active && !active.classList.contains('device-selected')) {
+      active.classList.add('device-selected');
+    }
   }
 
   function init() {

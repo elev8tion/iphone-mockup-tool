@@ -402,7 +402,9 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
 
   // Device frame
   const frame = getDeviceFrame(state.device.type, state.device.color);
-  ctx.drawImage(frame, 0, 0, frame.width, frame.height, 0, 0, dev.baseW*devScale, dev.baseH*devScale);
+  if (frame) {
+    ctx.drawImage(frame, 0, 0, frame.width, frame.height, 0, 0, dev.baseW*devScale, dev.baseH*devScale);
+  }
 
   // Glass reflection
   if (hasVideo) {
@@ -495,7 +497,9 @@ function renderDevice2Layer(ctx, CW, CH, dc) {
   }
 
   const frame2 = getDeviceFrame(dev2Id, dev2Color);
-  ctx.drawImage(frame2, 0, 0, frame2.width, frame2.height, 0, 0, dev2.baseW*d2Scale, dev2.baseH*d2Scale);
+  if (frame2) {
+    ctx.drawImage(frame2, 0, 0, frame2.width, frame2.height, 0, 0, dev2.baseW*d2Scale, dev2.baseH*d2Scale);
+  }
   ctx.restore();
 }
 
