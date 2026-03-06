@@ -1627,7 +1627,12 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
 });
 
 // Load saved state on startup (must be after all DOM refs are initialized)
-loadState();
+// Keep startup deterministic: do not auto-restore prior session UI/effect state.
+// Projects are restored explicitly via "Load Project".
+const AUTO_RESTORE_SESSION_STATE = false;
+if (AUTO_RESTORE_SESSION_STATE) {
+  loadState();
+}
 updateHandOverlayUI();
 
 // ============================================================

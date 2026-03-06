@@ -79,7 +79,8 @@
 .panel-body {
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 240px; /* Ensure content rises above timeline */
+  /* Keep lower panel controls reachable above the fixed timeline stack. */
+  padding-bottom: clamp(320px, 40vh, 460px);
 }
 
 .panel-filter {

@@ -483,7 +483,8 @@ body {
 .panel-body {
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 240px; /* Ensure content rises above timeline */
+  /* Keep lower panel controls reachable above the fixed timeline stack. */
+  padding-bottom: clamp(320px, 40vh, 460px);
 }
 
 .panel-filter {
@@ -5563,7 +5564,7 @@ input[type="range"]:hover::-moz-range-thumb {
 <div class="timeline-system" id="timelineSystem">
 
   <!-- Background Audio Track -->
-  <div class="bg-audio-track" id="bgAudioTrack">
+  <div class="bg-audio-track collapsed" id="bgAudioTrack">
     <div class="track-header" id="audioTrackHeader">
       <div class="track-indicator" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
       <div class="track-label">
@@ -5604,7 +5605,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="track-sync-btn" id="audioSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
-      <button class="track-collapse-btn" id="audioCollapseBtn" title="Collapse/Expand track">▼</button>
+      <button class="track-collapse-btn collapsed" id="audioCollapseBtn" title="Collapse/Expand track">▶</button>
     </div>
 
     <div class="bg-track-content">
@@ -5746,7 +5747,7 @@ input[type="range"]:hover::-moz-range-thumb {
   </div>
 
   <!-- Background Video Track -->
-  <div class="bg-video-track" id="bgVideoTrack">
+  <div class="bg-video-track collapsed" id="bgVideoTrack">
     <div class="track-header" id="bgVideoTrackHeader">
       <div class="track-indicator bg-video"></div>
       <div class="track-label">
@@ -5787,7 +5788,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="track-sync-btn" id="bgSyncBtn" title="Sync with main video">
         <span class="sync-icon">⚡</span> Sync
       </button>
-      <button class="track-collapse-btn" id="bgVideoCollapseBtn" title="Collapse/Expand track">▼</button>
+      <button class="track-collapse-btn collapsed" id="bgVideoCollapseBtn" title="Collapse/Expand track">▶</button>
     </div>
 
     <div class="bg-track-content">
@@ -6326,9 +6327,14 @@ const DEVICES = {
   function syncSelected() {
     const grid = document.getElementById('deviceGrid');
     if (!grid) return;
-    grid.querySelectorAll('.dev-btn.device-selected').forEach(el => el.classList.remove('device-selected'));
     const active = grid.querySelector('.dev-btn.active');
-    if (active) active.classList.add('device-selected');
+    const selected = grid.querySelector('.dev-btn.device-selected');
+    if (selected && selected !== active) {
+      selected.classList.remove('device-selected');
+    }
+    if (active && !active.classList.contains('device-selected')) {
+      active.classList.add('device-selected');
+    }
   }
 
   function init() {
@@ -6550,8 +6556,10 @@ function getUndoSnapshot() {
 
 function applyUndoSnapshot(snap) {
   // Device
-  state.device.type = snap.device.type;
-  state.device.color = snap.device.color;
+  const undoDevice = DEVICES[snap.device.type] ? snap.device.type : 'iphone16';
+  const undoPalette = DEVICES[undoDevice]?.colors || {};
+  state.device.type = undoDevice;
+  state.device.color = undoPalette[snap.device.color] ? snap.device.color : DEVICES[undoDevice].defaultColor;
   state.device.landscape = snap.device.landscape;
   state.device.scale = snap.device.scale;
   frameCache = {};
@@ -6865,12 +6873,14 @@ function scheduleSave() {
 
 function applyStateToUI(s) {
   // Device
-  state.device.type = s.device.type;
-  state.device.color = s.device.color;
+  const loadedDevice = DEVICES[s.device.type] ? s.device.type : 'iphone16';
+  const loadedPalette = DEVICES[loadedDevice]?.colors || {};
+  state.device.type = loadedDevice;
+  state.device.color = loadedPalette[s.device.color] ? s.device.color : DEVICES[loadedDevice].defaultColor;
   state.device.landscape = s.device.landscape || false;
   state.device.scale = s.device.scale;
   deviceGrid.querySelectorAll('.dev-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.device === s.device.type);
+    b.classList.toggle('active', b.dataset.device === state.device.type);
   });
   if (s.device.landscape) document.getElementById('landscapeBtn').classList.add('active');
   updateColorSwatches();
@@ -8020,7 +8030,9 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
 
   // Device frame
   const frame = getDeviceFrame(state.device.type, state.device.color);
-  ctx.drawImage(frame, 0, 0, frame.width, frame.height, 0, 0, dev.baseW*devScale, dev.baseH*devScale);
+  if (frame) {
+    ctx.drawImage(frame, 0, 0, frame.width, frame.height, 0, 0, dev.baseW*devScale, dev.baseH*devScale);
+  }
 
   // Glass reflection
   if (hasVideo) {
@@ -8113,7 +8125,9 @@ function renderDevice2Layer(ctx, CW, CH, dc) {
   }
 
   const frame2 = getDeviceFrame(dev2Id, dev2Color);
-  ctx.drawImage(frame2, 0, 0, frame2.width, frame2.height, 0, 0, dev2.baseW*d2Scale, dev2.baseH*d2Scale);
+  if (frame2) {
+    ctx.drawImage(frame2, 0, 0, frame2.width, frame2.height, 0, 0, dev2.baseW*d2Scale, dev2.baseH*d2Scale);
+  }
   ctx.restore();
 }
 
@@ -15100,7 +15114,12 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
 });
 
 // Load saved state on startup (must be after all DOM refs are initialized)
-loadState();
+// Keep startup deterministic: do not auto-restore prior session UI/effect state.
+// Projects are restored explicitly via "Load Project".
+const AUTO_RESTORE_SESSION_STATE = false;
+if (AUTO_RESTORE_SESSION_STATE) {
+  loadState();
+}
 updateHandOverlayUI();
 
 // ============================================================
