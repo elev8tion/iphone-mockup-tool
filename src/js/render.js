@@ -88,13 +88,23 @@ function renderBackground(ctx, CW, CH) {
   }
 }
 
+function getStandstillAnimationTime() {
+  if (!hasVideo) return 0;
+  const mode = state.standstill?.mode || 'none';
+  if (mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') {
+    const freezeTime = Number(state.standstill?.freezeTime || 0);
+    return Number.isFinite(freezeTime) ? Math.max(0, freezeTime) : 0;
+  }
+  return vtTime;
+}
+
 function calcDevicePosition(CW, CH) {
   const dev = DEVICES[state.device.type];
   let devW = dev.baseW, devH = dev.baseH;
   if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
 
   // Get keyframe values if animating
-  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+  const kf = hasVideo ? getDeviceKeyframeValues(getStandstillAnimationTime()) : null;
 
   // Use keyframe values if available, otherwise use state values
   const deviceX = kf ? kf.x : state.device.x;
@@ -129,7 +139,7 @@ function calcDevicePosition(CW, CH) {
 }
 
 function calcSceneTransform() {
-  const t = hasVideo ? vtTime : 0;
+  const t = getStandstillAnimationTime();
   const elapsed = t * 1000;
   const ent = getEntranceTransform(elapsed);
   const kf = getKeyframeValues(t);
@@ -153,10 +163,56 @@ function applySceneTransform(ctx, CW, CH, t) {
   ctx.translate(-CW/2, -CH/2);
 }
 
+function buildCanvasVideoFilter(effects) {
+  if (!effects) return 'none';
+  const filters = [];
+
+  if (effects.brightness) filters.push(`brightness(${(100 + effects.brightness) / 100})`);
+  if (effects.contrast) filters.push(`contrast(${(100 + effects.contrast) / 100})`);
+  if (effects.saturation) filters.push(`saturate(${(100 + effects.saturation) / 100})`);
+  if (effects.hue) filters.push(`hue-rotate(${effects.hue}deg)`);
+
+  if (effects.temperature) {
+    const warmth = effects.temperature / 100;
+    if (warmth > 0) {
+      filters.push(`sepia(${Math.min(1, warmth * 0.35)})`);
+      filters.push(`hue-rotate(${warmth * -8}deg)`);
+    } else {
+      filters.push(`hue-rotate(${warmth * 12}deg)`);
+    }
+  }
+
+  if (Array.isArray(effects.filters)) {
+    for (const filter of effects.filters) {
+      if (filter.type === 'blur') {
+        filters.push(`blur(${filter.amount || 5}px)`);
+      } else if (filter.type === 'grayscale') {
+        filters.push('grayscale(100%)');
+      } else if (filter.type === 'sepia') {
+        filters.push(`sepia(${(filter.amount || 100) / 100})`);
+      }
+    }
+  }
+
+  return filters.length ? filters.join(' ') : 'none';
+}
+
+function drawVideoWithEffects(ctx, src, dx, dy, dw, dh, effects) {
+  ctx.save();
+  const filterStr = buildCanvasVideoFilter(effects);
+  if (filterStr !== 'none') ctx.filter = filterStr;
+  if (effects?.blendMode && effects.blendMode !== 'normal') {
+    ctx.globalCompositeOperation = effects.blendMode;
+  }
+  safeDrawImage(ctx, src, dx, dy, dw, dh);
+  ctx.restore();
+}
+
 function renderBgVideoLayer(ctx, CW, CH) {
   if (!state.bgVideo.enabled) return;
   const bgVid = document.getElementById('bgVideo');
   if (!bgVid || bgVid.readyState < 2) return;
+  const bgEffects = state.videoEffects?.bgVideo || null;
   ctx.save();
   ctx.globalAlpha = state.bgVideo.opacity;
   const vw = bgVid.videoWidth, vh = bgVid.videoHeight;
@@ -170,7 +226,7 @@ function renderBgVideoLayer(ctx, CW, CH) {
     if (vRatio > cRatio) { dw = CW; dh = CW / vRatio; dy = (CH - dh) / 2; }
     else { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; }
   }
-  safeDrawImage(ctx, bgVid, dx, dy, dw, dh);
+  drawVideoWithEffects(ctx, bgVid, dx, dy, dw, dh, bgEffects);
   ctx.restore();
 }
 
@@ -180,6 +236,7 @@ function renderParticlesLayer(ctx, CW, CH) {
 
 function renderDeviceLayer(ctx, CW, CH, dc) {
   const _activeVid = vtGetActiveVideo();
+  const mainVideoEffects = state.videoEffects?.main || null;
   // No-device mode: render video full-bleed
   if (state.device.type === 'none') {
     if (hasVideo && _activeVid.readyState >= 2) {
@@ -198,7 +255,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
         if (vRatio > cRatio) { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; dy = 0; }
         else { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
       }
-      safeDrawImage(ctx, vidSrc, dx, dy, dw, dh);
+      drawVideoWithEffects(ctx, vidSrc, dx, dy, dw, dh, mainVideoEffects);
       // Transition overlay for no-device mode
       const _transNd = vtGetTransition();
       if (_transNd && _transNd.inClip.video.readyState >= 2) {
@@ -206,10 +263,10 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
         const tSrc2 = getChromaKeyFrame(tVid) || tVid;
         if (_transNd.type === 'crossfade') {
           ctx.globalAlpha = _transNd.progress;
-          safeDrawImage(ctx, tSrc2, dx, dy, dw, dh);
+          drawVideoWithEffects(ctx, tSrc2, dx, dy, dw, dh, mainVideoEffects);
           ctx.globalAlpha = 1;
         } else if (_transNd.type === 'slide') {
-          safeDrawImage(ctx, tSrc2, dx + CW * (1 - _transNd.progress), dy, dw, dh);
+          drawVideoWithEffects(ctx, tSrc2, dx + CW * (1 - _transNd.progress), dy, dw, dh, mainVideoEffects);
         }
       }
     }
@@ -278,10 +335,10 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       if (state.standstill.contentLoop?.enabled) {
         const loop = state.standstill.contentLoop;
         const duration = _activeVid.duration;
-        const loopStart = loop.start * duration;
-        const loopEnd = loop.end * duration;
+        const loopStart = Math.max(0, Math.min(1, loop.start || 0)) * duration;
+        const loopEnd = Math.max(loopStart + 0.01, Math.min(1, loop.end || 1)) * duration;
 
-        if (_activeVid.currentTime >= loopEnd) {
+        if (_activeVid.currentTime >= loopEnd || _activeVid.currentTime < loopStart) {
           _activeVid.currentTime = loopStart;
         }
       }
@@ -306,7 +363,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       if (vRatio > sRatio) { dh = sh; dw = sh*vRatio; dx = dev.screenX*devScale+(sw-dw)/2; dy = dev.screenY*devScale; }
       else { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
     }
-    safeDrawImage(ctx, vidSrc, dx, dy, dw, dh);
+    drawVideoWithEffects(ctx, vidSrc, dx, dy, dw, dh, mainVideoEffects);
 
     // Transition overlay (incoming clip)
     const _trans = vtGetTransition();
@@ -328,11 +385,11 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       }
       if (_trans.type === 'crossfade') {
         ctx.globalAlpha = _trans.progress;
-        safeDrawImage(ctx, tSrc, tdx, tdy, tdw, tdh);
+        drawVideoWithEffects(ctx, tSrc, tdx, tdy, tdw, tdh, mainVideoEffects);
         ctx.globalAlpha = 1;
       } else if (_trans.type === 'slide') {
         const slideOffset = sw * (1 - _trans.progress);
-        safeDrawImage(ctx, tSrc, tdx + slideOffset, tdy, tdw, tdh);
+        drawVideoWithEffects(ctx, tSrc, tdx + slideOffset, tdy, tdw, tdh, mainVideoEffects);
       }
     }
     ctx.restore();

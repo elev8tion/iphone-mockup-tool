@@ -62,6 +62,13 @@ updateColorSwatches();
 // ============================================================
 
 let activePanel = null;
+const leftPanelTitle = document.querySelector('#leftPanel .panel-title');
+const rightPanelTitle = document.querySelector('#rightPanel .panel-title');
+
+function setPanelTitles(leftTitle, rightTitle) {
+  if (leftPanelTitle && leftTitle) leftPanelTitle.textContent = leftTitle;
+  if (rightPanelTitle && rightTitle) rightPanelTitle.textContent = rightTitle;
+}
 
 function setActivePanel(panelId) {
   const panelButtons = [
@@ -116,20 +123,159 @@ function openPanelAndScroll(side, targetId) {
   }
 }
 
+function initPanelFilters() {
+  const configs = [
+    { inputId: 'leftPanelSearchInput', panelId: 'leftPanel' },
+    { inputId: 'rightPanelSearchInput', panelId: 'rightPanel' }
+  ];
+
+  configs.forEach(({ inputId, panelId }) => {
+    const input = document.getElementById(inputId);
+    const panel = document.getElementById(panelId);
+    if (!input || !panel) return;
+    const filterWrap = input.closest('.panel-filter');
+    const sections = () => Array.from(panel.querySelectorAll('.panel-body .panel-section'));
+
+    const applyFilter = () => {
+      const q = input.value.trim().toLowerCase();
+      sections().forEach(section => {
+        if (!q) {
+          section.style.display = '';
+          return;
+        }
+        const heading = section.querySelector('h3')?.textContent?.toLowerCase() || '';
+        const content = section.textContent.toLowerCase();
+        section.style.display = (heading.includes(q) || content.includes(q)) ? '' : 'none';
+      });
+    };
+
+    input.addEventListener('input', applyFilter);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        applyFilter();
+      }
+    });
+
+    if (filterWrap && !filterWrap.querySelector('.panel-quick-nav')) {
+      const nav = document.createElement('div');
+      nav.className = 'panel-quick-nav';
+      const preferred = panelId === 'leftPanel'
+        ? ['Device Frame', 'Layers', 'Studio Templates', 'Scene Templates']
+        : ['Background', 'Effects', 'Device Transform', 'Annotations'];
+      preferred.forEach(label => {
+        const section = sections().find(s => {
+          const h = s.querySelector('h3')?.textContent?.trim().toLowerCase() || '';
+          return h === label.toLowerCase();
+        });
+        if (!section) return;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'panel-quick-chip';
+        chip.textContent = label.replace(' Templates', '');
+        chip.addEventListener('click', () => {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        nav.appendChild(chip);
+      });
+      if (nav.childElementCount) filterWrap.appendChild(nav);
+    }
+  });
+}
+
+function updateVideoDependentControls() {
+  const enabled = hasVideo;
+  const controls = [
+    'loopBtn',
+    'thumbBtn',
+    'exportBtn',
+    'masterPlayBtn',
+    'speedSelect',
+    'addClipBtn',
+    'transitionSelect'
+  ];
+  controls.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (!enabled) {
+      el.setAttribute('aria-disabled', 'true');
+      if (!el.dataset.defaultTitle) {
+        el.dataset.defaultTitle = el.getAttribute('title') || '';
+      }
+      el.setAttribute('title', 'Load a main video first');
+    } else {
+      el.removeAttribute('aria-disabled');
+      if (el.dataset.defaultTitle !== undefined) {
+        el.setAttribute('title', el.dataset.defaultTitle);
+      }
+    }
+  });
+  syncTopBarMoreMenuState();
+}
+
+function initTopBarMoreMenu() {
+  const btn = document.getElementById('topBarMoreBtn');
+  const menu = document.getElementById('topBarMoreMenu');
+  const wrap = document.getElementById('topBarMoreWrap');
+  if (!btn || !menu || !wrap) return;
+
+  const close = () => {
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  });
+
+  menu.querySelectorAll('button[data-target]').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = document.getElementById(item.dataset.target);
+      if (target && !target.disabled) target.click();
+      close();
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+  });
+}
+
+function syncTopBarMoreMenuState() {
+  const menu = document.getElementById('topBarMoreMenu');
+  if (!menu) return;
+  menu.querySelectorAll('button[data-target]').forEach(item => {
+    const target = document.getElementById(item.dataset.target);
+    item.disabled = !!(target && target.disabled);
+  });
+}
+
 document.getElementById('addDeviceBtn')?.addEventListener('click', () => {
   setActivePanel('addDeviceBtn');
+  setPanelTitles('Templates + Device', null);
   openPanelAndScroll('left', 'deviceSection');
 });
 document.getElementById('addAnnotationBtn')?.addEventListener('click', () => {
   setActivePanel('addAnnotationBtn');
+  setPanelTitles(null, 'Annotations');
   openPanelAndScroll('right', 'annoToolbar');
 });
 document.getElementById('showEffectsBtn')?.addEventListener('click', () => {
   setActivePanel('showEffectsBtn');
-  openPanelAndScroll('right', 'rightPanel');
+  setPanelTitles(null, 'Effects');
+  openPanelAndScroll('right', 'bgType');
 });
 document.getElementById('showLayersBtn')?.addEventListener('click', () => {
   setActivePanel('showLayersBtn');
+  setPanelTitles('Layers', null);
   openPanelAndScroll('left', 'unifiedLayers');
 });
 document.getElementById('showTimelineBtn')?.addEventListener('click', () => {
@@ -206,6 +352,7 @@ function loadVideo(file) {
   video.muted = true;
   video.load();
   hasVideo = true;
+  updateVideoDependentControls();
   promptEl.classList.remove('visible');
   playbackBar.classList.add('visible');
   timelineBar.classList.add('visible');
@@ -213,6 +360,11 @@ function loadVideo(file) {
   const fnEl = document.getElementById('videoFileName');
   fnEl.textContent = file.name.length > 30 ? file.name.slice(0, 27) + '...' : file.name;
   fnEl.title = file.name;
+  const mainFnEl = document.getElementById('mainVideoFileName');
+  if (mainFnEl) {
+    mainFnEl.textContent = fnEl.textContent;
+    mainFnEl.title = file.name;
+  }
   state.timeline.trimIn = 0;
   state.timeline.trimOut = 1;
   // Reset virtual timeline
@@ -333,11 +485,20 @@ document.addEventListener('mouseup', () => {
 
 loopBtn.addEventListener('click', function() {
   isLooping = !isLooping;
-  this.classList.toggle('active', isLooping);
-  this.textContent = isLooping ? 'Loop' : 'No Loop';
+  updateLoopButtonUI(isLooping);
   showToast('Loop: ' + (isLooping ? 'ON' : 'OFF'), 'info');
 });
-loopBtn.classList.add('active');
+
+function updateLoopButtonUI(enabled) {
+  loopBtn.classList.toggle('active', !!enabled);
+  loopBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  loopBtn.setAttribute('title', enabled ? 'Disable looping' : 'Enable looping');
+  const label = loopBtn.querySelector('span');
+  if (label) label.textContent = 'Loop';
+}
+
+window.updateLoopButtonUI = updateLoopButtonUI;
+updateLoopButtonUI(isLooping);
 
 // Speed control
 speedSelect.addEventListener('change', e => {
@@ -399,11 +560,12 @@ document.getElementById('kbClose').addEventListener('click', () => kbOverlay.cla
 kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) kbOverlay.classList.remove('open'); });
 
 document.addEventListener('keydown', e => {
+  if (e.defaultPrevented) return;
   // Undo/redo works everywhere (including inputs)
   if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
   if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Z') { e.preventDefault(); redo(); return; }
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
   if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
   if (e.key === 'Escape' && document.getElementById('exportDialog').classList.contains('open')) { document.getElementById('exportDialog').classList.remove('open'); return; }
   if (e.key === '?') { toggleKbHelp(); return; }
@@ -550,6 +712,56 @@ function loadPanelState() {
   } catch (e) { /* ignore */ }
 }
 
+function initPanelSectionCollapsers() {
+  const sections = document.querySelectorAll('#leftPanel .panel-section, #rightPanel .panel-section');
+  sections.forEach((section, idx) => {
+    const header = section.querySelector(':scope > .section-header');
+    if (!header) return;
+    if (header.querySelector('.collapse-toggle')) return; // already custom-managed
+    if (header.querySelector('.section-mini-toggle')) return; // already initialized
+
+    const content = document.createElement('div');
+    content.className = 'section-content';
+    while (header.nextSibling) {
+      content.appendChild(header.nextSibling);
+    }
+    section.appendChild(content);
+
+    const toggle = document.createElement('button');
+    toggle.className = 'section-mini-toggle';
+    toggle.type = 'button';
+    toggle.title = 'Collapse section';
+    header.appendChild(toggle);
+
+    const sectionKey = section.id || `section-${idx}`;
+    const storageKey = `mockupStudioSectionCollapsed:${sectionKey}`;
+    const heading = (section.querySelector('h3')?.textContent || '').trim().toLowerCase();
+    const panelId = section.closest('.panel')?.id || '';
+    const leftDefaultOpen = new Set(['studio templates', 'device frame', 'layers']);
+    const rightDefaultOpen = new Set(['background', 'effects', 'device transform', 'annotations']);
+    const shouldDefaultCollapse = panelId === 'leftPanel'
+      ? !leftDefaultOpen.has(heading)
+      : !rightDefaultOpen.has(heading);
+    const setCollapsed = collapsed => {
+      section.classList.toggle('collapsed', collapsed);
+      toggle.textContent = collapsed ? '▶' : '▼';
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    };
+
+    const saved = localStorage.getItem(storageKey);
+    if (saved === null) setCollapsed(shouldDefaultCollapse);
+    else setCollapsed(saved === '1');
+
+    toggle.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const collapsed = !section.classList.contains('collapsed');
+      setCollapsed(collapsed);
+      localStorage.setItem(storageKey, collapsed ? '1' : '0');
+    });
+  });
+}
+
 // Desktop toggle buttons
 if (leftPanelToggle) leftPanelToggle.addEventListener('click', () => togglePanel('left'));
 if (rightPanelToggle) rightPanelToggle.addEventListener('click', () => togglePanel('right'));
@@ -598,6 +810,10 @@ function handleSwipe() {
 }
 
 loadPanelState();
+initPanelSectionCollapsers();
+initPanelFilters();
+initTopBarMoreMenu();
+updateVideoDependentControls();
 
 // ============================================================
 // HAND OVERLAY
@@ -930,6 +1146,9 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
   bgVid.addEventListener('loadedmetadata', function onMeta() {
     bgVid.removeEventListener('loadedmetadata', onMeta);
     state.bgVideo.enabled = true;
+    state.bgVideo.loop = state.bgVideo.loop !== false;
+    state.bgVideo.speed = Number(state.bgVideo.speed || 1);
+    state.bgVideo.synced = state.bgVideo.synced !== false;
     document.getElementById('bgVideoStatus').textContent = file.name + ' (' + bgVid.videoWidth + 'x' + bgVid.videoHeight + ')';
     document.getElementById('bgVideoControls').style.display = 'block';
     document.getElementById('removeBgVideoBtn').style.display = '';
@@ -939,21 +1158,29 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
     updateTimelineVisibility();
     if (typeof updateBgTrimVisuals === 'function') updateBgTrimVisuals('bgVideo');
 
-    // Enable loop by default
+    // Apply track controls from state
     const bgLoopBtn = document.getElementById('bgLoopBtn');
     if (bgLoopBtn) {
-      bgLoopBtn.classList.add('active');
+      bgLoopBtn.classList.toggle('active', !!state.bgVideo.loop);
     }
+    bgVid.loop = !!state.bgVideo.loop;
+    bgVid.playbackRate = Number(state.bgVideo.speed || 1);
+    const speedSelectEl = document.getElementById('bgSpeedSelect');
+    if (speedSelectEl) speedSelectEl.value = String(state.bgVideo.speed || 1);
+    document.getElementById('bgSyncBtn')?.classList.toggle('synced', state.bgVideo.synced !== false);
 
     // Auto-play synced with main video
     if (hasVideo && vtPlaying) bgVid.play();
     else bgVid.play(); // play anyway for preview
+
+    scheduleSave();
   });
   e.target.value = '';
 });
 
 document.getElementById('removeBgVideoBtn').addEventListener('click', () => {
   state.bgVideo.enabled = false;
+  state.bgVideo.synced = false;
   const bgVid = document.getElementById('bgVideo');
   bgVid.pause();
   if (bgVid.src) URL.revokeObjectURL(bgVid.src);
@@ -965,6 +1192,7 @@ document.getElementById('removeBgVideoBtn').addEventListener('click', () => {
 
   // Update timeline visibility to hide the background video track
   updateTimelineVisibility();
+  scheduleSave();
 });
 
 document.getElementById('bgVideoOpacity').addEventListener('input', e => {
@@ -1782,21 +2010,42 @@ if (standstillModeSelect) {
     if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
 
     pushUndoState();
-    state.standstill.mode = e.target.value;
+    const mode = e.target.value;
+    state.standstill.mode = mode;
 
     // Show/hide controls based on mode
     const freezeControl = document.getElementById('freezeTimeControl');
     const contentLoopControl = document.getElementById('contentLoopControl');
 
     if (freezeControl) {
-      freezeControl.style.display = (e.target.value === 'freezeDevice' || e.target.value === 'freezeBoth') ? 'block' : 'none';
+      freezeControl.style.display = (mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') ? 'block' : 'none';
     }
     if (contentLoopControl) {
-      contentLoopControl.style.display = (e.target.value === 'freezeDevice') ? 'block' : 'none';
+      contentLoopControl.style.display = (mode === 'freezeDevice') ? 'block' : 'none';
+    }
+
+    if (mode === 'freezeDevice') {
+      state.standstill.contentLoop.enabled = true;
+    } else {
+      state.standstill.contentLoop.enabled = false;
+    }
+    if ((mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') && hasVideo) {
+      const currentFreeze = Number(state.standstill.freezeTime || 0);
+      if (!Number.isFinite(currentFreeze) || currentFreeze <= 0) {
+        state.standstill.freezeTime = vtTime;
+      }
+      const freezeInput = document.getElementById('freezeTimeInput');
+      if (freezeInput) freezeInput.value = Number(state.standstill.freezeTime || 0).toFixed(2);
     }
 
     scheduleSave();
-    showToast(`Standstill mode: ${e.target.value}`, 'info');
+    const modeLabel = {
+      none: 'None',
+      freezeDevice: 'Freeze Device',
+      freezeBoth: 'Freeze Device + Content',
+      pauseAnimation: 'Pause Animation'
+    };
+    showToast(`Standstill mode: ${modeLabel[mode] || mode}`, 'info');
   });
 }
 
@@ -1816,20 +2065,35 @@ if (setFreezeTimeBtn) {
 // Freeze time input manual control
 document.getElementById('freezeTimeInput')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.freezeTime = parseFloat(e.target.value);
+  const value = parseFloat(e.target.value);
+  state.standstill.freezeTime = Number.isFinite(value) ? Math.max(0, value) : 0;
   scheduleSave();
 });
 
 // Content loop controls for standstill mode
 document.getElementById('contentLoopStart')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.contentLoop.start = parseFloat(e.target.value);
+  const startVal = Math.max(0, Math.min(1, parseFloat(e.target.value) || 0));
+  const endVal = Math.max(startVal + 0.01, Math.min(1, parseFloat(document.getElementById('contentLoopEnd')?.value || state.standstill.contentLoop.end || 1)));
+  state.standstill.contentLoop.enabled = state.standstill.mode === 'freezeDevice';
+  state.standstill.contentLoop.start = startVal;
+  state.standstill.contentLoop.end = endVal;
+  e.target.value = startVal.toFixed(2);
+  const endInput = document.getElementById('contentLoopEnd');
+  if (endInput) endInput.value = endVal.toFixed(2);
   scheduleSave();
 });
 
 document.getElementById('contentLoopEnd')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.contentLoop.end = parseFloat(e.target.value);
+  const startVal = Math.max(0, Math.min(0.99, parseFloat(document.getElementById('contentLoopStart')?.value || state.standstill.contentLoop.start || 0)));
+  const endVal = Math.max(startVal + 0.01, Math.min(1, parseFloat(e.target.value) || 1));
+  state.standstill.contentLoop.enabled = state.standstill.mode === 'freezeDevice';
+  state.standstill.contentLoop.start = startVal;
+  state.standstill.contentLoop.end = endVal;
+  const startInput = document.getElementById('contentLoopStart');
+  if (startInput) startInput.value = startVal.toFixed(2);
+  e.target.value = endVal.toFixed(2);
   scheduleSave();
 });
 

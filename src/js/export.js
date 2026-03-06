@@ -12,7 +12,10 @@ ssBtn.addEventListener('click', () => {
 // THUMBNAIL
 // ============================================================
 thumbBtn.addEventListener('click', () => {
-  if (!hasVideo) return;
+  if (!hasVideo) {
+    showToast('Load a video first to generate a thumbnail', 'info');
+    return;
+  }
   vtPause();
   // Render at preset size
   const sz = getCanvasSize();
@@ -120,7 +123,10 @@ document.getElementById('edCancel').addEventListener('click', closeExportDialog)
 exportDialog.addEventListener('click', e => { if (e.target === exportDialog) closeExportDialog(); });
 
 exportBtn.addEventListener('click', () => {
-  if (!hasVideo) return;
+  if (!hasVideo) {
+    showToast('Load a video first to export', 'info');
+    return;
+  }
   if (isExporting) { stopExport(); return; }
   openExportDialog();
 });
@@ -302,6 +308,12 @@ async function startMp4Export() {
     startExport();
     return;
   }
+  if (typeof Mp4Muxer === 'undefined') {
+    showToast('MP4 muxer unavailable — falling back to WebM', 'error');
+    edFormat.value = 'webm';
+    startExport();
+    return;
+  }
 
   isExporting = true;
   exportBtn.textContent = 'Stop';
@@ -343,11 +355,6 @@ async function startMp4Export() {
   exportCanvas.width = expW;
   exportCanvas.height = expH;
   const eCtx = exportCanvas.getContext('2d');
-
-  if (typeof Mp4Muxer === 'undefined') {
-    console.error('Mp4Muxer is not defined. MP4 export is unavailable. Please check your internet connection.');
-    return;
-  }
 
   // Configure mp4-muxer (uses shared AudioContext singleton)
   var mp4AudioCtx = null;

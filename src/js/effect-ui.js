@@ -460,9 +460,18 @@ function applyVideoEffectsToElement(trackName) {
   processor.applyCSSFilters(videoEl, effects);
 }
 
+function getVideoTrackPrefix(trackName) {
+  return trackName === 'bgVideo' ? 'bgVideo' : 'mainVideo';
+}
+
 // Add video effect to stack
 function addVideoEffect(trackName, effectType) {
   const effects = state.videoEffects[trackName];
+  const unsupported = new Set(['sharpen', 'pixelate', 'edgedetect', 'posterize']);
+  if (unsupported.has(effectType)) {
+    showToast(`${effectType} is coming soon`, 'info');
+    return;
+  }
 
   const newEffect = { type: effectType, id: Date.now() };
 
@@ -497,7 +506,7 @@ function removeVideoEffect(trackName, effectId) {
 
 // Update video effect stack UI
 function updateVideoEffectStack(trackName) {
-  const stackEl = document.getElementById(`${trackName}VideoEffectStack`);
+  const stackEl = document.getElementById(`${getVideoTrackPrefix(trackName)}EffectStack`);
   if (!stackEl) return;
 
   const effects = state.videoEffects[trackName].filters;

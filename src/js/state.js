@@ -35,8 +35,8 @@ const state = {
   chromaKey: { enabled: false, color: '#00ff00', tolerance: 80, softness: 10 },
   videoOverlays: [],
   lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '', _presetKey: '' },
-  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover', trimIn: 0, trimOut: 1 },
-  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0, trimIn: 0, trimOut: 1 },
+  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover', loop: true, speed: 1.0, synced: true, trimIn: 0, trimOut: 1 },
+  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0, synced: true, trimIn: 0, trimOut: 1 },
   bgType: 'solid',
   audioEffects: {
     main: {
@@ -414,6 +414,15 @@ function getSerializableState() {
     animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm, autoBPM: state.animPreset.autoBPM },
     scene: state.scene,
     chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
+    standstill: {
+      mode: state.standstill?.mode || 'none',
+      freezeTime: Number(state.standstill?.freezeTime || 0),
+      contentLoop: {
+        enabled: !!state.standstill?.contentLoop?.enabled,
+        start: Number(state.standstill?.contentLoop?.start || 0),
+        end: Number(state.standstill?.contentLoop?.end || 1)
+      }
+    },
     lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, presetKey: state.lut._presetKey || '' },
     waveform: { enabled: state.waveform.enabled, color: state.waveform.color, height: state.waveform.height, position: state.waveform.position, style: state.waveform.style },
     progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
@@ -444,6 +453,20 @@ function getSerializableState() {
       enabled: state.bgVideo.enabled,
       opacity: state.bgVideo.opacity,
       fit: state.bgVideo.fit,
+      trimIn: state.bgVideo.trimIn,
+      trimOut: state.bgVideo.trimOut,
+      loop: !!state.bgVideo.loop,
+      speed: Number(state.bgVideo.speed || 1),
+      synced: state.bgVideo.synced !== false,
+    },
+    bgAudio: {
+      enabled: state.bgAudio.enabled,
+      volume: Number(state.bgAudio.volume ?? 1),
+      loop: !!state.bgAudio.loop,
+      speed: Number(state.bgAudio.speed || 1),
+      synced: state.bgAudio.synced !== false,
+      trimIn: state.bgAudio.trimIn,
+      trimOut: state.bgAudio.trimOut,
     },
     comparison: {
       enabled: state.comparison.enabled,
@@ -615,39 +638,42 @@ function applyStateToUI(s) {
   if (s.hand) {
     state.hand.enabled = s.hand.enabled;
     state.hand.style = s.hand.style;
+    document.getElementById('handStyle').value = s.hand.style;
+  }
 
   // Facecam
-  state.facecam.enabled = s.facecam.enabled;
-  state.facecam.size = s.facecam.size;
-  state.facecam.corner = s.facecam.corner;
-  state.facecam.shape = s.facecam.shape;
-  state.facecam.borderColor = s.facecam.borderColor;
-  state.facecam.borderWidth = s.facecam.borderWidth;
-  state.facecam.shadow = s.facecam.shadow;
-  state.facecam.x = s.facecam.x;
-  state.facecam.y = s.facecam.y;
+  if (s.facecam) {
+    state.facecam.enabled = s.facecam.enabled;
+    state.facecam.size = s.facecam.size;
+    state.facecam.corner = s.facecam.corner;
+    state.facecam.shape = s.facecam.shape;
+    state.facecam.borderColor = s.facecam.borderColor;
+    state.facecam.borderWidth = s.facecam.borderWidth;
+    state.facecam.shadow = s.facecam.shadow;
+    state.facecam.x = s.facecam.x;
+    state.facecam.y = s.facecam.y;
 
-  // Update UI elements for facecam
-  document.getElementById('facecamSize').value = Math.round(s.facecam.size * 100);
-  document.getElementById('facecamCorner').value = s.facecam.corner;
-  document.getElementById('facecamShape').value = s.facecam.shape;
-  document.getElementById('facecamBorderColor').value = s.facecam.borderColor;
-  document.getElementById('facecamBorderWidth').value = s.facecam.borderWidth;
-  document.getElementById('facecamShadow').value = String(s.facecam.shadow);
+    // Update UI elements for facecam
+    document.getElementById('facecamSize').value = Math.round(s.facecam.size * 100);
+    document.getElementById('facecamCorner').value = s.facecam.corner;
+    document.getElementById('facecamShape').value = s.facecam.shape;
+    document.getElementById('facecamBorderColor').value = s.facecam.borderColor;
+    document.getElementById('facecamBorderWidth').value = s.facecam.borderWidth;
+    document.getElementById('facecamShadow').value = String(s.facecam.shadow);
+  }
 
   // Layers
-  state.layers = s.layers.map(l => {
-    const copy = { ...l };
-    if (l.type === 'annotation') copy.points = [...l.points];
-    if (l.type === 'image' && l.imgSrc) {
-      const img = new Image();
-      img.src = l.imgSrc;
-      copy.img = img;
-    }
-    return copy;
-  });
-
-    document.getElementById('handStyle').value = s.hand.style;
+  if (Array.isArray(s.layers)) {
+    state.layers = s.layers.map(l => {
+      const copy = { ...l };
+      if (l.type === 'annotation') copy.points = [...l.points];
+      if (l.type === 'image' && l.imgSrc) {
+        const img = new Image();
+        img.src = l.imgSrc;
+        copy.img = img;
+      }
+      return copy;
+    });
   }
 
   // Builtin overlays
@@ -666,9 +692,11 @@ function applyStateToUI(s) {
   // Loop & speed
   if (typeof s.isLooping !== 'undefined') {
     isLooping = s.isLooping;
-  
-    loopBtn.classList.toggle('active', isLooping);
-    loopBtn.textContent = isLooping ? 'Loop' : 'No Loop';
+    if (typeof updateLoopButtonUI === 'function') {
+      updateLoopButtonUI(isLooping);
+    } else {
+      loopBtn.classList.toggle('active', isLooping);
+    }
   }
   if (s.speed) {
     state.timeline.speed = s.speed;
@@ -678,10 +706,52 @@ function applyStateToUI(s) {
 
   // Background Video
   if (s.bgVideo) {
-    state.bgVideo.enabled = s.bgVideo.enabled;
-    state.bgVideo.opacity = s.bgVideo.opacity;
-    state.bgVideo.fit = s.bgVideo.fit;
-    // Potentially update UI elements for bgVideo here
+    state.bgVideo.enabled = !!s.bgVideo.enabled;
+    state.bgVideo.opacity = typeof s.bgVideo.opacity === 'number' ? s.bgVideo.opacity : 1;
+    state.bgVideo.fit = s.bgVideo.fit || 'cover';
+    state.bgVideo.trimIn = typeof s.bgVideo.trimIn === 'number' ? s.bgVideo.trimIn : 0;
+    state.bgVideo.trimOut = typeof s.bgVideo.trimOut === 'number' ? s.bgVideo.trimOut : 1;
+    state.bgVideo.loop = !!s.bgVideo.loop;
+    state.bgVideo.speed = Number(s.bgVideo.speed || 1);
+    state.bgVideo.synced = s.bgVideo.synced !== false;
+  }
+
+  // Background Audio
+  if (s.bgAudio) {
+    state.bgAudio.enabled = !!s.bgAudio.enabled;
+    state.bgAudio.volume = typeof s.bgAudio.volume === 'number' ? s.bgAudio.volume : 1;
+    state.bgAudio.loop = !!s.bgAudio.loop;
+    state.bgAudio.speed = Number(s.bgAudio.speed || 1);
+    state.bgAudio.synced = s.bgAudio.synced !== false;
+    state.bgAudio.trimIn = typeof s.bgAudio.trimIn === 'number' ? s.bgAudio.trimIn : 0;
+    state.bgAudio.trimOut = typeof s.bgAudio.trimOut === 'number' ? s.bgAudio.trimOut : 1;
+  }
+
+  // Standstill mode
+  if (s.standstill) {
+    state.standstill.mode = s.standstill.mode || 'none';
+    state.standstill.freezeTime = Number(s.standstill.freezeTime || 0);
+    state.standstill.contentLoop.enabled = !!s.standstill.contentLoop?.enabled;
+    state.standstill.contentLoop.start = Number(s.standstill.contentLoop?.start || 0);
+    state.standstill.contentLoop.end = Number(s.standstill.contentLoop?.end || 1);
+
+    const standstillModeSelectEl = document.getElementById('standstillModeSelect');
+    if (standstillModeSelectEl) standstillModeSelectEl.value = state.standstill.mode;
+    const freezeInput = document.getElementById('freezeTimeInput');
+    if (freezeInput) freezeInput.value = Number(state.standstill.freezeTime || 0).toFixed(2);
+    const loopStartInput = document.getElementById('contentLoopStart');
+    if (loopStartInput) loopStartInput.value = Number(state.standstill.contentLoop.start || 0).toFixed(2);
+    const loopEndInput = document.getElementById('contentLoopEnd');
+    if (loopEndInput) loopEndInput.value = Number(state.standstill.contentLoop.end || 1).toFixed(2);
+
+    const freezeControl = document.getElementById('freezeTimeControl');
+    if (freezeControl) {
+      freezeControl.style.display = (state.standstill.mode === 'freezeDevice' || state.standstill.mode === 'freezeBoth' || state.standstill.mode === 'pauseAnimation') ? 'block' : 'none';
+    }
+    const contentLoopControl = document.getElementById('contentLoopControl');
+    if (contentLoopControl) {
+      contentLoopControl.style.display = state.standstill.mode === 'freezeDevice' ? 'block' : 'none';
+    }
   }
 
   // Comparison

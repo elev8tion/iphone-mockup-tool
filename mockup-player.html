@@ -123,9 +123,13 @@ body {
   gap: 12px;
   z-index: var(--z-app-chrome);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-height: 52px;
 }
+
+.top-bar::-webkit-scrollbar { display: none; }
 
 .top-bar .logo {
   font-size: 15px;
@@ -201,6 +205,14 @@ body {
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
+.btn:disabled,
+.undo-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .undo-btn {
   background: none; border: none; color: var(--text-tertiary); font-size: 14px;
   cursor: pointer; padding: 2px 5px; border-radius: 4px;
@@ -239,6 +251,79 @@ body {
 .mobile-menu-toggle:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+.topbar-more-wrap {
+  position: relative;
+  display: none;
+}
+
+.topbar-more-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: rgba(18, 18, 22, 0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.45);
+  padding: 6px;
+  display: none;
+  z-index: calc(var(--z-app-chrome) + 5);
+}
+
+.topbar-more-menu.open { display: block; }
+
+.topbar-more-menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  border-radius: 7px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.topbar-more-menu button:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+}
+
+.topbar-more-menu button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1440px) {
+  #assetBrowserBtn,
+  #themeToggleBtn,
+  #loopBtn,
+  #ssBtn,
+  #thumbBtn,
+  #kbHelpBtn {
+    display: none;
+  }
+
+  .topbar-more-wrap {
+    display: inline-flex;
+  }
+}
+
+:root[data-theme="light"] .topbar-more-menu {
+  background: rgba(255,255,255,0.98);
+  border-color: rgba(0,0,0,0.12);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.15);
+}
+
+:root[data-theme="light"] .topbar-more-menu button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .topbar-more-menu button:hover {
+  background: rgba(0,0,0,0.08);
 }
 
 /* ============================================================ */
@@ -316,7 +401,6 @@ body {
 :root[data-theme="light"] .mobile-menu-toggle:hover {
   background: rgba(0, 0, 0, 0.1);
 }
-
 
 /* ---- Main Layout ---- */
 .main-layout {
@@ -400,6 +484,76 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: 240px; /* Ensure content rises above timeline */
+}
+
+.panel-filter {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 10px 12px;
+  background: rgba(12, 12, 14, 0.92);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+}
+
+.panel-filter input {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.panel-filter input:focus {
+  outline: none;
+  border-color: rgba(96,165,250,0.45);
+  box-shadow: 0 0 0 2px rgba(96,165,250,0.16);
+}
+
+.panel-quick-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.panel-quick-chip {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.panel-quick-chip:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .panel-filter {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+:root[data-theme="light"] .panel-filter input {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.14);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .panel-quick-chip {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.12);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .panel-quick-chip:hover {
+  background: rgba(0,0,0,0.1);
 }
 
 /* Collapsed State */
@@ -811,10 +965,33 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
 .section-header h3 { margin-bottom: 0; }
 .section-header .btn { padding: 1px 6px; font-size: 9px; }
+
+.section-content { display: block; }
+
+.section-mini-toggle {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.section-mini-toggle:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.panel-section.collapsed .section-content { display: none; }
 
 .comparison-controls { display: none; }
 .comparison-controls.visible { display: block; }
@@ -1592,6 +1769,12 @@ body {
   color: rgba(255, 255, 255, 0.8);
 }
 
+.mini-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .mini-btn.active.mute-btn {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
@@ -1684,6 +1867,18 @@ body {
   pointer-events: auto;
 }
 
+/* Locked tracks keep header controls available, but disable editing content */
+.track-locked .bg-track-content,
+.track-locked .main-track-content {
+  pointer-events: none !important;
+  opacity: 0.45 !important;
+  filter: saturate(0.6);
+}
+
+.track-locked .track-header {
+  background: rgba(96, 165, 250, 0.06);
+}
+
 .bg-video-track.collapsed .bg-track-content,
 .bg-audio-track.collapsed .bg-track-content {
   display: none;
@@ -1729,6 +1924,19 @@ body {
 
 .track-play-btn:active {
   transform: scale(0.95);
+}
+
+.track-play-btn:disabled,
+.track-loop-btn:disabled,
+.track-speed-select:disabled,
+.track-sync-btn:disabled,
+.track-action-btn:disabled,
+.track-loop-btn.is-disabled,
+.track-action-btn.is-disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.45);
 }
 
 .track-play-btn svg {
@@ -2069,6 +2277,11 @@ body {
   color: rgba(255,255,255,0.9);
 }
 
+.zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .bg-track-content,
@@ -2349,6 +2562,12 @@ body {
 
 .track-actions-dropdown button:hover {
   background: rgba(255,255,255,0.1);
+}
+
+.track-actions-dropdown button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Light theme */
@@ -4704,6 +4923,20 @@ input[type="range"]:hover::-moz-range-thumb {
     <i data-lucide="clock"></i><span>Timeline</span>
   </button>
 
+  <div class="topbar-more-wrap" id="topBarMoreWrap">
+    <button class="btn" id="topBarMoreBtn" title="More actions" aria-haspopup="true" aria-expanded="false">
+      <i data-lucide="ellipsis"></i><span>More</span>
+    </button>
+    <div class="topbar-more-menu" id="topBarMoreMenu" role="menu" aria-label="More actions">
+      <button type="button" data-target="assetBrowserBtn" role="menuitem">Assets</button>
+      <button type="button" data-target="themeToggleBtn" role="menuitem">Theme</button>
+      <button type="button" data-target="loopBtn" role="menuitem">Loop</button>
+      <button type="button" data-target="ssBtn" role="menuitem">Screenshot</button>
+      <button type="button" data-target="thumbBtn" role="menuitem">Thumbnail</button>
+      <button type="button" data-target="kbHelpBtn" role="menuitem">Shortcuts</button>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled><i data-lucide="rotate-ccw"></i></button>
@@ -4790,6 +5023,9 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="panel-toggle" id="leftPanelToggle" title="Toggle left panel [">«</button>
     </div>
     <div class="panel-body">
+    <div class="panel-filter">
+      <input type="text" id="leftPanelSearchInput" placeholder="Filter left panel..." aria-label="Filter left panel sections">
+    </div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Studio Templates</h3>
@@ -5004,6 +5240,9 @@ input[type="range"]:hover::-moz-range-thumb {
       <button class="panel-toggle" id="rightPanelToggle" title="Toggle right panel ]">»</button>
     </div>
     <div class="panel-body">
+    <div class="panel-filter">
+      <input type="text" id="rightPanelSearchInput" placeholder="Filter right panel..." aria-label="Filter right panel sections">
+    </div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Background</h3>
@@ -5334,7 +5573,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="audioMuteBtn" data-track="bgAudio" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="audioSoloBtn" data-track="bgAudio" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="audioLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="audioLockBtn" data-track="bgAudio" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -5517,7 +5756,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="bgVideoMuteBtn" data-track="bgVideo" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="bgVideoSoloBtn" data-track="bgVideo" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="bgVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="bgVideoLockBtn" data-track="bgVideo" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -5630,10 +5869,10 @@ input[type="range"]:hover::-moz-range-thumb {
             <select id="bgVideoAddEffect">
               <option value="">+ Add Effect</option>
               <option value="blur">Blur</option>
-              <option value="sharpen">Sharpen</option>
-              <option value="pixelate">Pixelate</option>
-              <option value="edgedetect">Edge Detect</option>
-              <option value="posterize">Posterize</option>
+              <option value="sharpen" disabled>Sharpen (coming soon)</option>
+              <option value="pixelate" disabled>Pixelate (coming soon)</option>
+              <option value="edgedetect" disabled>Edge Detect (coming soon)</option>
+              <option value="posterize" disabled>Posterize (coming soon)</option>
               <option value="grayscale">Grayscale</option>
               <option value="sepia">Sepia</option>
             </select>
@@ -5684,7 +5923,7 @@ input[type="range"]:hover::-moz-range-thumb {
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="mainVideoMuteBtn" data-track="main" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="mainVideoSoloBtn" data-track="main" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="mainVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="mainVideoLockBtn" data-track="main" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
@@ -5692,7 +5931,7 @@ input[type="range"]:hover::-moz-range-thumb {
 
     <div class="main-track-content">
       <div style="min-width: 140px">
-        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No main video loaded</span>
       </div>
 
       <!-- Timeline Track (existing multi-clip timeline) -->
@@ -5754,10 +5993,10 @@ input[type="range"]:hover::-moz-range-thumb {
             <select id="mainVideoAddEffect">
               <option value="">+ Add Effect</option>
               <option value="blur">Blur</option>
-              <option value="sharpen">Sharpen</option>
-              <option value="pixelate">Pixelate</option>
-              <option value="edgedetect">Edge Detect</option>
-              <option value="posterize">Posterize</option>
+              <option value="sharpen" disabled>Sharpen (coming soon)</option>
+              <option value="pixelate" disabled>Pixelate (coming soon)</option>
+              <option value="edgedetect" disabled>Edge Detect (coming soon)</option>
+              <option value="posterize" disabled>Posterize (coming soon)</option>
               <option value="grayscale">Grayscale</option>
               <option value="sepia">Sepia</option>
             </select>
@@ -6162,8 +6401,8 @@ const state = {
   chromaKey: { enabled: false, color: '#00ff00', tolerance: 80, softness: 10 },
   videoOverlays: [],
   lut: { enabled: false, data: null, size: 0, intensity: 1.0, name: '', _presetKey: '' },
-  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover', trimIn: 0, trimOut: 1 },
-  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0, trimIn: 0, trimOut: 1 },
+  bgVideo: { enabled: false, opacity: 1.0, fit: 'cover', loop: true, speed: 1.0, synced: true, trimIn: 0, trimOut: 1 },
+  bgAudio: { enabled: false, volume: 1.0, loop: false, speed: 1.0, synced: true, trimIn: 0, trimOut: 1 },
   bgType: 'solid',
   audioEffects: {
     main: {
@@ -6541,6 +6780,15 @@ function getSerializableState() {
     animPreset: { type: state.animPreset.type, intensity: state.animPreset.intensity, bpm: state.animPreset.bpm, autoBPM: state.animPreset.autoBPM },
     scene: state.scene,
     chromaKey: { enabled: state.chromaKey.enabled, color: state.chromaKey.color, tolerance: state.chromaKey.tolerance, softness: state.chromaKey.softness },
+    standstill: {
+      mode: state.standstill?.mode || 'none',
+      freezeTime: Number(state.standstill?.freezeTime || 0),
+      contentLoop: {
+        enabled: !!state.standstill?.contentLoop?.enabled,
+        start: Number(state.standstill?.contentLoop?.start || 0),
+        end: Number(state.standstill?.contentLoop?.end || 1)
+      }
+    },
     lut: { enabled: state.lut.enabled, intensity: state.lut.intensity, name: state.lut.name, presetKey: state.lut._presetKey || '' },
     waveform: { enabled: state.waveform.enabled, color: state.waveform.color, height: state.waveform.height, position: state.waveform.position, style: state.waveform.style },
     progressBar: { enabled: state.progressBar.enabled, color: state.progressBar.color, height: state.progressBar.height, position: state.progressBar.position },
@@ -6571,6 +6819,20 @@ function getSerializableState() {
       enabled: state.bgVideo.enabled,
       opacity: state.bgVideo.opacity,
       fit: state.bgVideo.fit,
+      trimIn: state.bgVideo.trimIn,
+      trimOut: state.bgVideo.trimOut,
+      loop: !!state.bgVideo.loop,
+      speed: Number(state.bgVideo.speed || 1),
+      synced: state.bgVideo.synced !== false,
+    },
+    bgAudio: {
+      enabled: state.bgAudio.enabled,
+      volume: Number(state.bgAudio.volume ?? 1),
+      loop: !!state.bgAudio.loop,
+      speed: Number(state.bgAudio.speed || 1),
+      synced: state.bgAudio.synced !== false,
+      trimIn: state.bgAudio.trimIn,
+      trimOut: state.bgAudio.trimOut,
     },
     comparison: {
       enabled: state.comparison.enabled,
@@ -6742,39 +7004,42 @@ function applyStateToUI(s) {
   if (s.hand) {
     state.hand.enabled = s.hand.enabled;
     state.hand.style = s.hand.style;
+    document.getElementById('handStyle').value = s.hand.style;
+  }
 
   // Facecam
-  state.facecam.enabled = s.facecam.enabled;
-  state.facecam.size = s.facecam.size;
-  state.facecam.corner = s.facecam.corner;
-  state.facecam.shape = s.facecam.shape;
-  state.facecam.borderColor = s.facecam.borderColor;
-  state.facecam.borderWidth = s.facecam.borderWidth;
-  state.facecam.shadow = s.facecam.shadow;
-  state.facecam.x = s.facecam.x;
-  state.facecam.y = s.facecam.y;
+  if (s.facecam) {
+    state.facecam.enabled = s.facecam.enabled;
+    state.facecam.size = s.facecam.size;
+    state.facecam.corner = s.facecam.corner;
+    state.facecam.shape = s.facecam.shape;
+    state.facecam.borderColor = s.facecam.borderColor;
+    state.facecam.borderWidth = s.facecam.borderWidth;
+    state.facecam.shadow = s.facecam.shadow;
+    state.facecam.x = s.facecam.x;
+    state.facecam.y = s.facecam.y;
 
-  // Update UI elements for facecam
-  document.getElementById('facecamSize').value = Math.round(s.facecam.size * 100);
-  document.getElementById('facecamCorner').value = s.facecam.corner;
-  document.getElementById('facecamShape').value = s.facecam.shape;
-  document.getElementById('facecamBorderColor').value = s.facecam.borderColor;
-  document.getElementById('facecamBorderWidth').value = s.facecam.borderWidth;
-  document.getElementById('facecamShadow').value = String(s.facecam.shadow);
+    // Update UI elements for facecam
+    document.getElementById('facecamSize').value = Math.round(s.facecam.size * 100);
+    document.getElementById('facecamCorner').value = s.facecam.corner;
+    document.getElementById('facecamShape').value = s.facecam.shape;
+    document.getElementById('facecamBorderColor').value = s.facecam.borderColor;
+    document.getElementById('facecamBorderWidth').value = s.facecam.borderWidth;
+    document.getElementById('facecamShadow').value = String(s.facecam.shadow);
+  }
 
   // Layers
-  state.layers = s.layers.map(l => {
-    const copy = { ...l };
-    if (l.type === 'annotation') copy.points = [...l.points];
-    if (l.type === 'image' && l.imgSrc) {
-      const img = new Image();
-      img.src = l.imgSrc;
-      copy.img = img;
-    }
-    return copy;
-  });
-
-    document.getElementById('handStyle').value = s.hand.style;
+  if (Array.isArray(s.layers)) {
+    state.layers = s.layers.map(l => {
+      const copy = { ...l };
+      if (l.type === 'annotation') copy.points = [...l.points];
+      if (l.type === 'image' && l.imgSrc) {
+        const img = new Image();
+        img.src = l.imgSrc;
+        copy.img = img;
+      }
+      return copy;
+    });
   }
 
   // Builtin overlays
@@ -6793,9 +7058,11 @@ function applyStateToUI(s) {
   // Loop & speed
   if (typeof s.isLooping !== 'undefined') {
     isLooping = s.isLooping;
-  
-    loopBtn.classList.toggle('active', isLooping);
-    loopBtn.textContent = isLooping ? 'Loop' : 'No Loop';
+    if (typeof updateLoopButtonUI === 'function') {
+      updateLoopButtonUI(isLooping);
+    } else {
+      loopBtn.classList.toggle('active', isLooping);
+    }
   }
   if (s.speed) {
     state.timeline.speed = s.speed;
@@ -6805,10 +7072,52 @@ function applyStateToUI(s) {
 
   // Background Video
   if (s.bgVideo) {
-    state.bgVideo.enabled = s.bgVideo.enabled;
-    state.bgVideo.opacity = s.bgVideo.opacity;
-    state.bgVideo.fit = s.bgVideo.fit;
-    // Potentially update UI elements for bgVideo here
+    state.bgVideo.enabled = !!s.bgVideo.enabled;
+    state.bgVideo.opacity = typeof s.bgVideo.opacity === 'number' ? s.bgVideo.opacity : 1;
+    state.bgVideo.fit = s.bgVideo.fit || 'cover';
+    state.bgVideo.trimIn = typeof s.bgVideo.trimIn === 'number' ? s.bgVideo.trimIn : 0;
+    state.bgVideo.trimOut = typeof s.bgVideo.trimOut === 'number' ? s.bgVideo.trimOut : 1;
+    state.bgVideo.loop = !!s.bgVideo.loop;
+    state.bgVideo.speed = Number(s.bgVideo.speed || 1);
+    state.bgVideo.synced = s.bgVideo.synced !== false;
+  }
+
+  // Background Audio
+  if (s.bgAudio) {
+    state.bgAudio.enabled = !!s.bgAudio.enabled;
+    state.bgAudio.volume = typeof s.bgAudio.volume === 'number' ? s.bgAudio.volume : 1;
+    state.bgAudio.loop = !!s.bgAudio.loop;
+    state.bgAudio.speed = Number(s.bgAudio.speed || 1);
+    state.bgAudio.synced = s.bgAudio.synced !== false;
+    state.bgAudio.trimIn = typeof s.bgAudio.trimIn === 'number' ? s.bgAudio.trimIn : 0;
+    state.bgAudio.trimOut = typeof s.bgAudio.trimOut === 'number' ? s.bgAudio.trimOut : 1;
+  }
+
+  // Standstill mode
+  if (s.standstill) {
+    state.standstill.mode = s.standstill.mode || 'none';
+    state.standstill.freezeTime = Number(s.standstill.freezeTime || 0);
+    state.standstill.contentLoop.enabled = !!s.standstill.contentLoop?.enabled;
+    state.standstill.contentLoop.start = Number(s.standstill.contentLoop?.start || 0);
+    state.standstill.contentLoop.end = Number(s.standstill.contentLoop?.end || 1);
+
+    const standstillModeSelectEl = document.getElementById('standstillModeSelect');
+    if (standstillModeSelectEl) standstillModeSelectEl.value = state.standstill.mode;
+    const freezeInput = document.getElementById('freezeTimeInput');
+    if (freezeInput) freezeInput.value = Number(state.standstill.freezeTime || 0).toFixed(2);
+    const loopStartInput = document.getElementById('contentLoopStart');
+    if (loopStartInput) loopStartInput.value = Number(state.standstill.contentLoop.start || 0).toFixed(2);
+    const loopEndInput = document.getElementById('contentLoopEnd');
+    if (loopEndInput) loopEndInput.value = Number(state.standstill.contentLoop.end || 1).toFixed(2);
+
+    const freezeControl = document.getElementById('freezeTimeControl');
+    if (freezeControl) {
+      freezeControl.style.display = (state.standstill.mode === 'freezeDevice' || state.standstill.mode === 'freezeBoth' || state.standstill.mode === 'pauseAnimation') ? 'block' : 'none';
+    }
+    const contentLoopControl = document.getElementById('contentLoopControl');
+    if (contentLoopControl) {
+      contentLoopControl.style.display = state.standstill.mode === 'freezeDevice' ? 'block' : 'none';
+    }
   }
 
   // Comparison
@@ -7052,7 +7361,8 @@ function vtTick() {
 // TIMELINE
 // ============================================================
 function rebuildTimeline() {
-  const track = timelineTrack;
+  const track = document.getElementById('timelineTrack');
+  if (!track) return;
   track.querySelectorAll('.clip-block, .trim-handle, .keyframe-diamond, .clip-trans-indicator, .anno-marker').forEach(el => el.remove());
 
   const totalDuration = vtGetTotalDuration() || 1;
@@ -7165,79 +7475,76 @@ function rebuildTimeline() {
 }
 
 function makeClipTrimDraggable(handle, clipIdx, side) {
-  let dragging = false;
-  handle.addEventListener('mousedown', e => { e.stopPropagation(); e.preventDefault(); dragging = true; });
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    const clip = state.timeline.clips[clipIdx];
-    if (!clip) return;
-    const block = handle.parentElement;
-    const rect = block.getBoundingClientRect();
-    let pct = (e.clientX - rect.left) / rect.width;
-    
-    // Calculate potential new trim values
-    let newTrimIn = clip.trimIn || 0;
-    let newTrimOut = clip.trimOut || 1;
-    
-    if (side === 'left') {
-      newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
-    } else {
-      newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
-    }
+  handle.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    pushUndoState();
 
-    // Snap to Playhead
-    // Calculate where this clip starts and ends in the timeline
-    let clipStartGlobal = 0;
-    for(let i=0; i<clipIdx; i++) {
+    let dragging = true;
+
+    const onMove = evt => {
+      if (!dragging) return;
+      const clip = state.timeline.clips[clipIdx];
+      if (!clip) return;
+
+      const track = document.getElementById('timelineTrack');
+      if (!track) return;
+      const block = track.querySelector(`.clip-block[data-clip-idx="${clipIdx}"]`);
+      if (!block) return;
+      const rect = block.getBoundingClientRect();
+      let pct = (evt.clientX - rect.left) / rect.width;
+      pct = Math.max(0, Math.min(1, pct));
+
+      let newTrimIn = clip.trimIn || 0;
+      let newTrimOut = clip.trimOut || 1;
+
+      if (side === 'left') {
+        newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
+      } else {
+        newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
+      }
+
+      // Snap right trim to playhead if close.
+      let clipStartGlobal = 0;
+      for (let i = 0; i < clipIdx; i++) {
         const c = state.timeline.clips[i];
-        clipStartGlobal += c.duration * ((c.trimOut||1) - (c.trimIn||0));
-    }
-    
-    // Current proposed duration
-    const currentDur = clip.duration * (newTrimOut - newTrimIn);
-    const proposedGlobalEnd = clipStartGlobal + currentDur;
-    const proposedGlobalStart = clipStartGlobal; // Start doesn't move with trim, only duration changes relative to offset? 
-    // Wait, trimming left handle shifts the visual start time if we keep offset constant?
-    // In this model, trimming left just changes what part of video plays, effectively shifting "start" point visually if block size changes?
-    // Actually, css width changes. 
-    
-    // Let's simplify: Snap the Handle's screen X to Playhead's screen X
-    // Playhead X pct = vtTime / totalDur
-    // Handle X pct = ... complicated because block width changes.
-    
-    // Alternative: Snap the resulting *Time* to vtTime.
-    const totalDur = vtGetTotalDuration();
-    if (totalDur > 0) {
-        const snapThresh = 0.1; // seconds
-        
-        if (side === 'right') {
-            const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn||0));
-            if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
-                // Snap! Adjust newTrimOut
-                // vtTime = clipStartGlobal + clip.duration * (newTrimOut - trimIn)
-                // newTrimOut = (vtTime - clipStartGlobal) / clip.duration + trimIn
-                newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn||0);
-            }
+        clipStartGlobal += c.duration * ((c.trimOut || 1) - (c.trimIn || 0));
+      }
+      const totalDur = vtGetTotalDuration();
+      if (totalDur > 0 && side === 'right') {
+        const snapThresh = 0.1;
+        const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn || 0));
+        if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
+          newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn || 0);
         }
-        // Left trim logic is tricky because it shifts the timeline. Skip for now to be safe.
-    }
+      }
 
-    if (side === 'left') {
+      if (side === 'left') {
         clip.trimIn = Math.min(Math.max(0, newTrimIn), (clip.trimOut || 1) - 0.02);
-    } else {
+      } else {
         clip.trimOut = Math.max(Math.min(1, newTrimOut), (clip.trimIn || 0) + 0.02);
-    }
-    
-    rebuildTimeline();
-  });
-  document.addEventListener('mouseup', () => {
-    if (dragging) { dragging = false; }
+      }
+
+      rebuildTimeline();
+    };
+
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   });
 }
 
 function updateTimelineScrubber() {
+  const scrubber = document.getElementById('timelineScrubber');
+  const track = document.getElementById('timelineTrack');
   // Add null check for scrubber element
-  if (!timelineScrubber) {
+  if (!scrubber) {
     console.warn('Timeline scrubber element not found');
     return;
   }
@@ -7253,16 +7560,16 @@ function updateTimelineScrubber() {
       // Validate percentage before applying
       if (typeof pct === 'number' && !isNaN(pct)) {
         const clampedPct = Math.max(0, Math.min(100, pct));
-        timelineScrubber.style.transform = `translateX(${clampedPct}%)`;
-        timelineScrubber.style.left = '0';
+        scrubber.style.transform = `translateX(${clampedPct}%)`;
+        scrubber.style.left = '0';
       }
 
       // Update active clip highlight with null check
-      if (!timelineTrack) return;
+      if (!track) return;
 
       const info = vtGetClipAt(vtTime);
       if (info) {
-        const clipBlocks = timelineTrack.querySelectorAll('.clip-block');
+        const clipBlocks = track.querySelectorAll('.clip-block');
         clipBlocks.forEach((b, i) => {
           b.classList.toggle('active', i === info.index);
         });
@@ -7272,6 +7579,40 @@ function updateTimelineScrubber() {
     }
   });
 }
+
+// Timeline zoom controls
+let timelineZoom = 1;
+const TIMELINE_ZOOM_MIN = 1;
+const TIMELINE_ZOOM_MAX = 3;
+const TIMELINE_ZOOM_STEP = 0.25;
+
+function applyTimelineZoom() {
+  const track = document.getElementById('timelineTrack');
+  if (!track) return;
+  track.style.transformOrigin = 'left center';
+  track.style.transform = `scaleX(${timelineZoom})`;
+}
+
+function setTimelineZoom(nextZoom) {
+  const clamped = Math.max(TIMELINE_ZOOM_MIN, Math.min(TIMELINE_ZOOM_MAX, nextZoom));
+  timelineZoom = Math.round(clamped * 100) / 100;
+  applyTimelineZoom();
+
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  if (zoomOutBtn) zoomOutBtn.disabled = timelineZoom <= TIMELINE_ZOOM_MIN;
+  if (zoomInBtn) zoomInBtn.disabled = timelineZoom >= TIMELINE_ZOOM_MAX;
+}
+
+document.getElementById('zoomInBtn')?.addEventListener('click', () => {
+  setTimelineZoom(timelineZoom + TIMELINE_ZOOM_STEP);
+});
+
+document.getElementById('zoomOutBtn')?.addEventListener('click', () => {
+  setTimelineZoom(timelineZoom - TIMELINE_ZOOM_STEP);
+});
+
+setTimelineZoom(1);
 
 // ============================================================
 
@@ -7365,13 +7706,23 @@ function renderBackground(ctx, CW, CH) {
   }
 }
 
+function getStandstillAnimationTime() {
+  if (!hasVideo) return 0;
+  const mode = state.standstill?.mode || 'none';
+  if (mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') {
+    const freezeTime = Number(state.standstill?.freezeTime || 0);
+    return Number.isFinite(freezeTime) ? Math.max(0, freezeTime) : 0;
+  }
+  return vtTime;
+}
+
 function calcDevicePosition(CW, CH) {
   const dev = DEVICES[state.device.type];
   let devW = dev.baseW, devH = dev.baseH;
   if (state.device.landscape) { let t = devW; devW = devH; devH = t; }
 
   // Get keyframe values if animating
-  const kf = hasVideo ? getDeviceKeyframeValues(vtTime) : null;
+  const kf = hasVideo ? getDeviceKeyframeValues(getStandstillAnimationTime()) : null;
 
   // Use keyframe values if available, otherwise use state values
   const deviceX = kf ? kf.x : state.device.x;
@@ -7406,7 +7757,7 @@ function calcDevicePosition(CW, CH) {
 }
 
 function calcSceneTransform() {
-  const t = hasVideo ? vtTime : 0;
+  const t = getStandstillAnimationTime();
   const elapsed = t * 1000;
   const ent = getEntranceTransform(elapsed);
   const kf = getKeyframeValues(t);
@@ -7430,10 +7781,56 @@ function applySceneTransform(ctx, CW, CH, t) {
   ctx.translate(-CW/2, -CH/2);
 }
 
+function buildCanvasVideoFilter(effects) {
+  if (!effects) return 'none';
+  const filters = [];
+
+  if (effects.brightness) filters.push(`brightness(${(100 + effects.brightness) / 100})`);
+  if (effects.contrast) filters.push(`contrast(${(100 + effects.contrast) / 100})`);
+  if (effects.saturation) filters.push(`saturate(${(100 + effects.saturation) / 100})`);
+  if (effects.hue) filters.push(`hue-rotate(${effects.hue}deg)`);
+
+  if (effects.temperature) {
+    const warmth = effects.temperature / 100;
+    if (warmth > 0) {
+      filters.push(`sepia(${Math.min(1, warmth * 0.35)})`);
+      filters.push(`hue-rotate(${warmth * -8}deg)`);
+    } else {
+      filters.push(`hue-rotate(${warmth * 12}deg)`);
+    }
+  }
+
+  if (Array.isArray(effects.filters)) {
+    for (const filter of effects.filters) {
+      if (filter.type === 'blur') {
+        filters.push(`blur(${filter.amount || 5}px)`);
+      } else if (filter.type === 'grayscale') {
+        filters.push('grayscale(100%)');
+      } else if (filter.type === 'sepia') {
+        filters.push(`sepia(${(filter.amount || 100) / 100})`);
+      }
+    }
+  }
+
+  return filters.length ? filters.join(' ') : 'none';
+}
+
+function drawVideoWithEffects(ctx, src, dx, dy, dw, dh, effects) {
+  ctx.save();
+  const filterStr = buildCanvasVideoFilter(effects);
+  if (filterStr !== 'none') ctx.filter = filterStr;
+  if (effects?.blendMode && effects.blendMode !== 'normal') {
+    ctx.globalCompositeOperation = effects.blendMode;
+  }
+  safeDrawImage(ctx, src, dx, dy, dw, dh);
+  ctx.restore();
+}
+
 function renderBgVideoLayer(ctx, CW, CH) {
   if (!state.bgVideo.enabled) return;
   const bgVid = document.getElementById('bgVideo');
   if (!bgVid || bgVid.readyState < 2) return;
+  const bgEffects = state.videoEffects?.bgVideo || null;
   ctx.save();
   ctx.globalAlpha = state.bgVideo.opacity;
   const vw = bgVid.videoWidth, vh = bgVid.videoHeight;
@@ -7447,7 +7844,7 @@ function renderBgVideoLayer(ctx, CW, CH) {
     if (vRatio > cRatio) { dw = CW; dh = CW / vRatio; dy = (CH - dh) / 2; }
     else { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; }
   }
-  safeDrawImage(ctx, bgVid, dx, dy, dw, dh);
+  drawVideoWithEffects(ctx, bgVid, dx, dy, dw, dh, bgEffects);
   ctx.restore();
 }
 
@@ -7457,6 +7854,7 @@ function renderParticlesLayer(ctx, CW, CH) {
 
 function renderDeviceLayer(ctx, CW, CH, dc) {
   const _activeVid = vtGetActiveVideo();
+  const mainVideoEffects = state.videoEffects?.main || null;
   // No-device mode: render video full-bleed
   if (state.device.type === 'none') {
     if (hasVideo && _activeVid.readyState >= 2) {
@@ -7475,7 +7873,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
         if (vRatio > cRatio) { dh = CH; dw = CH * vRatio; dx = (CW - dw) / 2; dy = 0; }
         else { dw = CW; dh = CW / vRatio; dx = 0; dy = (CH - dh) / 2; }
       }
-      safeDrawImage(ctx, vidSrc, dx, dy, dw, dh);
+      drawVideoWithEffects(ctx, vidSrc, dx, dy, dw, dh, mainVideoEffects);
       // Transition overlay for no-device mode
       const _transNd = vtGetTransition();
       if (_transNd && _transNd.inClip.video.readyState >= 2) {
@@ -7483,10 +7881,10 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
         const tSrc2 = getChromaKeyFrame(tVid) || tVid;
         if (_transNd.type === 'crossfade') {
           ctx.globalAlpha = _transNd.progress;
-          safeDrawImage(ctx, tSrc2, dx, dy, dw, dh);
+          drawVideoWithEffects(ctx, tSrc2, dx, dy, dw, dh, mainVideoEffects);
           ctx.globalAlpha = 1;
         } else if (_transNd.type === 'slide') {
-          safeDrawImage(ctx, tSrc2, dx + CW * (1 - _transNd.progress), dy, dw, dh);
+          drawVideoWithEffects(ctx, tSrc2, dx + CW * (1 - _transNd.progress), dy, dw, dh, mainVideoEffects);
         }
       }
     }
@@ -7555,10 +7953,10 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       if (state.standstill.contentLoop?.enabled) {
         const loop = state.standstill.contentLoop;
         const duration = _activeVid.duration;
-        const loopStart = loop.start * duration;
-        const loopEnd = loop.end * duration;
+        const loopStart = Math.max(0, Math.min(1, loop.start || 0)) * duration;
+        const loopEnd = Math.max(loopStart + 0.01, Math.min(1, loop.end || 1)) * duration;
 
-        if (_activeVid.currentTime >= loopEnd) {
+        if (_activeVid.currentTime >= loopEnd || _activeVid.currentTime < loopStart) {
           _activeVid.currentTime = loopStart;
         }
       }
@@ -7583,7 +7981,7 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       if (vRatio > sRatio) { dh = sh; dw = sh*vRatio; dx = dev.screenX*devScale+(sw-dw)/2; dy = dev.screenY*devScale; }
       else { dw = sw; dh = sw/vRatio; dx = dev.screenX*devScale; dy = dev.screenY*devScale+(sh-dh)/2; }
     }
-    safeDrawImage(ctx, vidSrc, dx, dy, dw, dh);
+    drawVideoWithEffects(ctx, vidSrc, dx, dy, dw, dh, mainVideoEffects);
 
     // Transition overlay (incoming clip)
     const _trans = vtGetTransition();
@@ -7605,11 +8003,11 @@ function renderDeviceLayer(ctx, CW, CH, dc) {
       }
       if (_trans.type === 'crossfade') {
         ctx.globalAlpha = _trans.progress;
-        safeDrawImage(ctx, tSrc, tdx, tdy, tdw, tdh);
+        drawVideoWithEffects(ctx, tSrc, tdx, tdy, tdw, tdh, mainVideoEffects);
         ctx.globalAlpha = 1;
       } else if (_trans.type === 'slide') {
         const slideOffset = sw * (1 - _trans.progress);
-        safeDrawImage(ctx, tSrc, tdx + slideOffset, tdy, tdw, tdh);
+        drawVideoWithEffects(ctx, tSrc, tdx + slideOffset, tdy, tdw, tdh, mainVideoEffects);
       }
     }
     ctx.restore();
@@ -12036,7 +12434,10 @@ ssBtn.addEventListener('click', () => {
 // THUMBNAIL
 // ============================================================
 thumbBtn.addEventListener('click', () => {
-  if (!hasVideo) return;
+  if (!hasVideo) {
+    showToast('Load a video first to generate a thumbnail', 'info');
+    return;
+  }
   vtPause();
   // Render at preset size
   const sz = getCanvasSize();
@@ -12144,7 +12545,10 @@ document.getElementById('edCancel').addEventListener('click', closeExportDialog)
 exportDialog.addEventListener('click', e => { if (e.target === exportDialog) closeExportDialog(); });
 
 exportBtn.addEventListener('click', () => {
-  if (!hasVideo) return;
+  if (!hasVideo) {
+    showToast('Load a video first to export', 'info');
+    return;
+  }
   if (isExporting) { stopExport(); return; }
   openExportDialog();
 });
@@ -12326,6 +12730,12 @@ async function startMp4Export() {
     startExport();
     return;
   }
+  if (typeof Mp4Muxer === 'undefined') {
+    showToast('MP4 muxer unavailable — falling back to WebM', 'error');
+    edFormat.value = 'webm';
+    startExport();
+    return;
+  }
 
   isExporting = true;
   exportBtn.textContent = 'Stop';
@@ -12367,11 +12777,6 @@ async function startMp4Export() {
   exportCanvas.width = expW;
   exportCanvas.height = expH;
   const eCtx = exportCanvas.getContext('2d');
-
-  if (typeof Mp4Muxer === 'undefined') {
-    console.error('Mp4Muxer is not defined. MP4 export is unavailable. Please check your internet connection.');
-    return;
-  }
 
   // Configure mp4-muxer (uses shared AudioContext singleton)
   var mp4AudioCtx = null;
@@ -13130,6 +13535,13 @@ updateColorSwatches();
 // ============================================================
 
 let activePanel = null;
+const leftPanelTitle = document.querySelector('#leftPanel .panel-title');
+const rightPanelTitle = document.querySelector('#rightPanel .panel-title');
+
+function setPanelTitles(leftTitle, rightTitle) {
+  if (leftPanelTitle && leftTitle) leftPanelTitle.textContent = leftTitle;
+  if (rightPanelTitle && rightTitle) rightPanelTitle.textContent = rightTitle;
+}
 
 function setActivePanel(panelId) {
   const panelButtons = [
@@ -13184,20 +13596,159 @@ function openPanelAndScroll(side, targetId) {
   }
 }
 
+function initPanelFilters() {
+  const configs = [
+    { inputId: 'leftPanelSearchInput', panelId: 'leftPanel' },
+    { inputId: 'rightPanelSearchInput', panelId: 'rightPanel' }
+  ];
+
+  configs.forEach(({ inputId, panelId }) => {
+    const input = document.getElementById(inputId);
+    const panel = document.getElementById(panelId);
+    if (!input || !panel) return;
+    const filterWrap = input.closest('.panel-filter');
+    const sections = () => Array.from(panel.querySelectorAll('.panel-body .panel-section'));
+
+    const applyFilter = () => {
+      const q = input.value.trim().toLowerCase();
+      sections().forEach(section => {
+        if (!q) {
+          section.style.display = '';
+          return;
+        }
+        const heading = section.querySelector('h3')?.textContent?.toLowerCase() || '';
+        const content = section.textContent.toLowerCase();
+        section.style.display = (heading.includes(q) || content.includes(q)) ? '' : 'none';
+      });
+    };
+
+    input.addEventListener('input', applyFilter);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        applyFilter();
+      }
+    });
+
+    if (filterWrap && !filterWrap.querySelector('.panel-quick-nav')) {
+      const nav = document.createElement('div');
+      nav.className = 'panel-quick-nav';
+      const preferred = panelId === 'leftPanel'
+        ? ['Device Frame', 'Layers', 'Studio Templates', 'Scene Templates']
+        : ['Background', 'Effects', 'Device Transform', 'Annotations'];
+      preferred.forEach(label => {
+        const section = sections().find(s => {
+          const h = s.querySelector('h3')?.textContent?.trim().toLowerCase() || '';
+          return h === label.toLowerCase();
+        });
+        if (!section) return;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'panel-quick-chip';
+        chip.textContent = label.replace(' Templates', '');
+        chip.addEventListener('click', () => {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        nav.appendChild(chip);
+      });
+      if (nav.childElementCount) filterWrap.appendChild(nav);
+    }
+  });
+}
+
+function updateVideoDependentControls() {
+  const enabled = hasVideo;
+  const controls = [
+    'loopBtn',
+    'thumbBtn',
+    'exportBtn',
+    'masterPlayBtn',
+    'speedSelect',
+    'addClipBtn',
+    'transitionSelect'
+  ];
+  controls.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (!enabled) {
+      el.setAttribute('aria-disabled', 'true');
+      if (!el.dataset.defaultTitle) {
+        el.dataset.defaultTitle = el.getAttribute('title') || '';
+      }
+      el.setAttribute('title', 'Load a main video first');
+    } else {
+      el.removeAttribute('aria-disabled');
+      if (el.dataset.defaultTitle !== undefined) {
+        el.setAttribute('title', el.dataset.defaultTitle);
+      }
+    }
+  });
+  syncTopBarMoreMenuState();
+}
+
+function initTopBarMoreMenu() {
+  const btn = document.getElementById('topBarMoreBtn');
+  const menu = document.getElementById('topBarMoreMenu');
+  const wrap = document.getElementById('topBarMoreWrap');
+  if (!btn || !menu || !wrap) return;
+
+  const close = () => {
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  });
+
+  menu.querySelectorAll('button[data-target]').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = document.getElementById(item.dataset.target);
+      if (target && !target.disabled) target.click();
+      close();
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+  });
+}
+
+function syncTopBarMoreMenuState() {
+  const menu = document.getElementById('topBarMoreMenu');
+  if (!menu) return;
+  menu.querySelectorAll('button[data-target]').forEach(item => {
+    const target = document.getElementById(item.dataset.target);
+    item.disabled = !!(target && target.disabled);
+  });
+}
+
 document.getElementById('addDeviceBtn')?.addEventListener('click', () => {
   setActivePanel('addDeviceBtn');
+  setPanelTitles('Templates + Device', null);
   openPanelAndScroll('left', 'deviceSection');
 });
 document.getElementById('addAnnotationBtn')?.addEventListener('click', () => {
   setActivePanel('addAnnotationBtn');
+  setPanelTitles(null, 'Annotations');
   openPanelAndScroll('right', 'annoToolbar');
 });
 document.getElementById('showEffectsBtn')?.addEventListener('click', () => {
   setActivePanel('showEffectsBtn');
-  openPanelAndScroll('right', 'rightPanel');
+  setPanelTitles(null, 'Effects');
+  openPanelAndScroll('right', 'bgType');
 });
 document.getElementById('showLayersBtn')?.addEventListener('click', () => {
   setActivePanel('showLayersBtn');
+  setPanelTitles('Layers', null);
   openPanelAndScroll('left', 'unifiedLayers');
 });
 document.getElementById('showTimelineBtn')?.addEventListener('click', () => {
@@ -13274,6 +13825,7 @@ function loadVideo(file) {
   video.muted = true;
   video.load();
   hasVideo = true;
+  updateVideoDependentControls();
   promptEl.classList.remove('visible');
   playbackBar.classList.add('visible');
   timelineBar.classList.add('visible');
@@ -13281,6 +13833,11 @@ function loadVideo(file) {
   const fnEl = document.getElementById('videoFileName');
   fnEl.textContent = file.name.length > 30 ? file.name.slice(0, 27) + '...' : file.name;
   fnEl.title = file.name;
+  const mainFnEl = document.getElementById('mainVideoFileName');
+  if (mainFnEl) {
+    mainFnEl.textContent = fnEl.textContent;
+    mainFnEl.title = file.name;
+  }
   state.timeline.trimIn = 0;
   state.timeline.trimOut = 1;
   // Reset virtual timeline
@@ -13401,11 +13958,20 @@ document.addEventListener('mouseup', () => {
 
 loopBtn.addEventListener('click', function() {
   isLooping = !isLooping;
-  this.classList.toggle('active', isLooping);
-  this.textContent = isLooping ? 'Loop' : 'No Loop';
+  updateLoopButtonUI(isLooping);
   showToast('Loop: ' + (isLooping ? 'ON' : 'OFF'), 'info');
 });
-loopBtn.classList.add('active');
+
+function updateLoopButtonUI(enabled) {
+  loopBtn.classList.toggle('active', !!enabled);
+  loopBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  loopBtn.setAttribute('title', enabled ? 'Disable looping' : 'Enable looping');
+  const label = loopBtn.querySelector('span');
+  if (label) label.textContent = 'Loop';
+}
+
+window.updateLoopButtonUI = updateLoopButtonUI;
+updateLoopButtonUI(isLooping);
 
 // Speed control
 speedSelect.addEventListener('change', e => {
@@ -13467,11 +14033,12 @@ document.getElementById('kbClose').addEventListener('click', () => kbOverlay.cla
 kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) kbOverlay.classList.remove('open'); });
 
 document.addEventListener('keydown', e => {
+  if (e.defaultPrevented) return;
   // Undo/redo works everywhere (including inputs)
   if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
   if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Z') { e.preventDefault(); redo(); return; }
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
   if (e.key === 'Escape' && kbOverlay.classList.contains('open')) { kbOverlay.classList.remove('open'); return; }
   if (e.key === 'Escape' && document.getElementById('exportDialog').classList.contains('open')) { document.getElementById('exportDialog').classList.remove('open'); return; }
   if (e.key === '?') { toggleKbHelp(); return; }
@@ -13618,6 +14185,56 @@ function loadPanelState() {
   } catch (e) { /* ignore */ }
 }
 
+function initPanelSectionCollapsers() {
+  const sections = document.querySelectorAll('#leftPanel .panel-section, #rightPanel .panel-section');
+  sections.forEach((section, idx) => {
+    const header = section.querySelector(':scope > .section-header');
+    if (!header) return;
+    if (header.querySelector('.collapse-toggle')) return; // already custom-managed
+    if (header.querySelector('.section-mini-toggle')) return; // already initialized
+
+    const content = document.createElement('div');
+    content.className = 'section-content';
+    while (header.nextSibling) {
+      content.appendChild(header.nextSibling);
+    }
+    section.appendChild(content);
+
+    const toggle = document.createElement('button');
+    toggle.className = 'section-mini-toggle';
+    toggle.type = 'button';
+    toggle.title = 'Collapse section';
+    header.appendChild(toggle);
+
+    const sectionKey = section.id || `section-${idx}`;
+    const storageKey = `mockupStudioSectionCollapsed:${sectionKey}`;
+    const heading = (section.querySelector('h3')?.textContent || '').trim().toLowerCase();
+    const panelId = section.closest('.panel')?.id || '';
+    const leftDefaultOpen = new Set(['studio templates', 'device frame', 'layers']);
+    const rightDefaultOpen = new Set(['background', 'effects', 'device transform', 'annotations']);
+    const shouldDefaultCollapse = panelId === 'leftPanel'
+      ? !leftDefaultOpen.has(heading)
+      : !rightDefaultOpen.has(heading);
+    const setCollapsed = collapsed => {
+      section.classList.toggle('collapsed', collapsed);
+      toggle.textContent = collapsed ? '▶' : '▼';
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    };
+
+    const saved = localStorage.getItem(storageKey);
+    if (saved === null) setCollapsed(shouldDefaultCollapse);
+    else setCollapsed(saved === '1');
+
+    toggle.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const collapsed = !section.classList.contains('collapsed');
+      setCollapsed(collapsed);
+      localStorage.setItem(storageKey, collapsed ? '1' : '0');
+    });
+  });
+}
+
 // Desktop toggle buttons
 if (leftPanelToggle) leftPanelToggle.addEventListener('click', () => togglePanel('left'));
 if (rightPanelToggle) rightPanelToggle.addEventListener('click', () => togglePanel('right'));
@@ -13666,6 +14283,10 @@ function handleSwipe() {
 }
 
 loadPanelState();
+initPanelSectionCollapsers();
+initPanelFilters();
+initTopBarMoreMenu();
+updateVideoDependentControls();
 
 // ============================================================
 // HAND OVERLAY
@@ -13998,6 +14619,9 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
   bgVid.addEventListener('loadedmetadata', function onMeta() {
     bgVid.removeEventListener('loadedmetadata', onMeta);
     state.bgVideo.enabled = true;
+    state.bgVideo.loop = state.bgVideo.loop !== false;
+    state.bgVideo.speed = Number(state.bgVideo.speed || 1);
+    state.bgVideo.synced = state.bgVideo.synced !== false;
     document.getElementById('bgVideoStatus').textContent = file.name + ' (' + bgVid.videoWidth + 'x' + bgVid.videoHeight + ')';
     document.getElementById('bgVideoControls').style.display = 'block';
     document.getElementById('removeBgVideoBtn').style.display = '';
@@ -14007,21 +14631,29 @@ document.getElementById('bgVideoInput').addEventListener('change', e => {
     updateTimelineVisibility();
     if (typeof updateBgTrimVisuals === 'function') updateBgTrimVisuals('bgVideo');
 
-    // Enable loop by default
+    // Apply track controls from state
     const bgLoopBtn = document.getElementById('bgLoopBtn');
     if (bgLoopBtn) {
-      bgLoopBtn.classList.add('active');
+      bgLoopBtn.classList.toggle('active', !!state.bgVideo.loop);
     }
+    bgVid.loop = !!state.bgVideo.loop;
+    bgVid.playbackRate = Number(state.bgVideo.speed || 1);
+    const speedSelectEl = document.getElementById('bgSpeedSelect');
+    if (speedSelectEl) speedSelectEl.value = String(state.bgVideo.speed || 1);
+    document.getElementById('bgSyncBtn')?.classList.toggle('synced', state.bgVideo.synced !== false);
 
     // Auto-play synced with main video
     if (hasVideo && vtPlaying) bgVid.play();
     else bgVid.play(); // play anyway for preview
+
+    scheduleSave();
   });
   e.target.value = '';
 });
 
 document.getElementById('removeBgVideoBtn').addEventListener('click', () => {
   state.bgVideo.enabled = false;
+  state.bgVideo.synced = false;
   const bgVid = document.getElementById('bgVideo');
   bgVid.pause();
   if (bgVid.src) URL.revokeObjectURL(bgVid.src);
@@ -14033,6 +14665,7 @@ document.getElementById('removeBgVideoBtn').addEventListener('click', () => {
 
   // Update timeline visibility to hide the background video track
   updateTimelineVisibility();
+  scheduleSave();
 });
 
 document.getElementById('bgVideoOpacity').addEventListener('input', e => {
@@ -14850,21 +15483,42 @@ if (standstillModeSelect) {
     if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
 
     pushUndoState();
-    state.standstill.mode = e.target.value;
+    const mode = e.target.value;
+    state.standstill.mode = mode;
 
     // Show/hide controls based on mode
     const freezeControl = document.getElementById('freezeTimeControl');
     const contentLoopControl = document.getElementById('contentLoopControl');
 
     if (freezeControl) {
-      freezeControl.style.display = (e.target.value === 'freezeDevice' || e.target.value === 'freezeBoth') ? 'block' : 'none';
+      freezeControl.style.display = (mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') ? 'block' : 'none';
     }
     if (contentLoopControl) {
-      contentLoopControl.style.display = (e.target.value === 'freezeDevice') ? 'block' : 'none';
+      contentLoopControl.style.display = (mode === 'freezeDevice') ? 'block' : 'none';
+    }
+
+    if (mode === 'freezeDevice') {
+      state.standstill.contentLoop.enabled = true;
+    } else {
+      state.standstill.contentLoop.enabled = false;
+    }
+    if ((mode === 'freezeDevice' || mode === 'freezeBoth' || mode === 'pauseAnimation') && hasVideo) {
+      const currentFreeze = Number(state.standstill.freezeTime || 0);
+      if (!Number.isFinite(currentFreeze) || currentFreeze <= 0) {
+        state.standstill.freezeTime = vtTime;
+      }
+      const freezeInput = document.getElementById('freezeTimeInput');
+      if (freezeInput) freezeInput.value = Number(state.standstill.freezeTime || 0).toFixed(2);
     }
 
     scheduleSave();
-    showToast(`Standstill mode: ${e.target.value}`, 'info');
+    const modeLabel = {
+      none: 'None',
+      freezeDevice: 'Freeze Device',
+      freezeBoth: 'Freeze Device + Content',
+      pauseAnimation: 'Pause Animation'
+    };
+    showToast(`Standstill mode: ${modeLabel[mode] || mode}`, 'info');
   });
 }
 
@@ -14884,20 +15538,35 @@ if (setFreezeTimeBtn) {
 // Freeze time input manual control
 document.getElementById('freezeTimeInput')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.freezeTime = parseFloat(e.target.value);
+  const value = parseFloat(e.target.value);
+  state.standstill.freezeTime = Number.isFinite(value) ? Math.max(0, value) : 0;
   scheduleSave();
 });
 
 // Content loop controls for standstill mode
 document.getElementById('contentLoopStart')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.contentLoop.start = parseFloat(e.target.value);
+  const startVal = Math.max(0, Math.min(1, parseFloat(e.target.value) || 0));
+  const endVal = Math.max(startVal + 0.01, Math.min(1, parseFloat(document.getElementById('contentLoopEnd')?.value || state.standstill.contentLoop.end || 1)));
+  state.standstill.contentLoop.enabled = state.standstill.mode === 'freezeDevice';
+  state.standstill.contentLoop.start = startVal;
+  state.standstill.contentLoop.end = endVal;
+  e.target.value = startVal.toFixed(2);
+  const endInput = document.getElementById('contentLoopEnd');
+  if (endInput) endInput.value = endVal.toFixed(2);
   scheduleSave();
 });
 
 document.getElementById('contentLoopEnd')?.addEventListener('input', (e) => {
   if (!state.standstill) state.standstill = { mode: 'none', freezeTime: 0, contentLoop: { enabled: false, start: 0, end: 1 } };
-  state.standstill.contentLoop.end = parseFloat(e.target.value);
+  const startVal = Math.max(0, Math.min(0.99, parseFloat(document.getElementById('contentLoopStart')?.value || state.standstill.contentLoop.start || 0)));
+  const endVal = Math.max(startVal + 0.01, Math.min(1, parseFloat(e.target.value) || 1));
+  state.standstill.contentLoop.enabled = state.standstill.mode === 'freezeDevice';
+  state.standstill.contentLoop.start = startVal;
+  state.standstill.contentLoop.end = endVal;
+  const startInput = document.getElementById('contentLoopStart');
+  if (startInput) startInput.value = startVal.toFixed(2);
+  e.target.value = endVal.toFixed(2);
   scheduleSave();
 });
 
@@ -14939,15 +15608,148 @@ let bgAudioVolume = 1;
 // TRACK HEADER CONTROLS (Mute, Solo, Lock)
 // ============================================================
 
+function setRenderGroupHidden(groupId, hidden) {
+  const group = state.renderStack.find(g => g.id === groupId);
+  if (group) group.hidden = hidden;
+}
+
+const TRACK_CONTROL_IDS = {
+  bgAudio: { mute: 'audioMuteBtn', solo: 'audioSoloBtn', lock: 'audioLockBtn', row: 'bgAudioTrack' },
+  bgVideo: { mute: 'bgVideoMuteBtn', solo: 'bgVideoSoloBtn', lock: 'bgVideoLockBtn', row: 'bgVideoTrack' },
+  main: { mute: 'mainVideoMuteBtn', solo: 'mainVideoSoloBtn', lock: 'mainVideoLockBtn', row: 'mainVideoTrack' }
+};
+
+const BG_VIDEO_CONTROL_IDS = [
+  'bgTrackPlayBtn', 'bgLoopBtn', 'bgSpeedSelect', 'bgSyncBtn',
+  'bgVideoActionsBtn', 'bgVideoMuteBtn', 'bgVideoSoloBtn', 'bgVideoLockBtn', 'videoLoopMarkerBtn'
+];
+const BG_AUDIO_CONTROL_IDS = [
+  'audioTrackPlayBtn', 'audioLoopBtn', 'audioSpeedSelect', 'audioVolumeSlider',
+  'audioSyncBtn', 'bgAudioActionsBtn', 'audioMuteBtn', 'audioSoloBtn', 'audioLockBtn', 'audioLoopMarkerBtn'
+];
+const MAIN_CONTROL_IDS = [
+  'mainVideoMuteBtn', 'mainVideoSoloBtn', 'mainVideoLockBtn'
+];
+
+function setElementDisabledState(el, disabled, title) {
+  if (!el) return;
+  const isFormControl = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName);
+  if (isFormControl) {
+    el.disabled = !!disabled;
+  } else {
+    el.classList.toggle('is-disabled', !!disabled);
+    el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+  if (disabled) {
+    if (!el.dataset.defaultTitle) el.dataset.defaultTitle = el.getAttribute('title') || '';
+    if (title) el.setAttribute('title', title);
+  } else if (el.dataset.defaultTitle !== undefined) {
+    el.setAttribute('title', el.dataset.defaultTitle);
+  }
+}
+
+function hydrateBgTrackRuntimeFromState() {
+  const bgVideo = document.getElementById('bgVideo');
+  const bgAudio = document.getElementById('bgAudio');
+
+  bgVideoLoop = state.bgVideo.loop !== false;
+  bgVideoSpeed = Number(state.bgVideo.speed || 1);
+  bgVideoSynced = state.bgVideo.synced !== false;
+  if (bgVideo) {
+    bgVideo.loop = bgVideoLoop;
+    bgVideo.playbackRate = bgVideoSpeed;
+  }
+  document.getElementById('bgLoopBtn')?.classList.toggle('active', bgVideoLoop);
+  const bgSpeedEl = document.getElementById('bgSpeedSelect');
+  if (bgSpeedEl) bgSpeedEl.value = String(bgVideoSpeed);
+  document.getElementById('bgSyncBtn')?.classList.toggle('synced', bgVideoSynced);
+
+  bgAudioLoop = !!state.bgAudio.loop;
+  bgAudioSpeed = Number(state.bgAudio.speed || 1);
+  bgAudioSynced = state.bgAudio.synced !== false;
+  bgAudioVolume = Number(state.bgAudio.volume ?? 1);
+  if (bgAudio) {
+    bgAudio.loop = bgAudioLoop;
+    bgAudio.playbackRate = bgAudioSpeed;
+    bgAudio.volume = Math.max(0, Math.min(1, bgAudioVolume));
+  }
+  document.getElementById('audioLoopBtn')?.classList.toggle('active', bgAudioLoop);
+  const audioSpeedEl = document.getElementById('audioSpeedSelect');
+  if (audioSpeedEl) audioSpeedEl.value = String(bgAudioSpeed);
+  const audioVolumeEl = document.getElementById('audioVolumeSlider');
+  if (audioVolumeEl) audioVolumeEl.value = String(Math.round(Math.max(0, Math.min(1, bgAudioVolume)) * 100));
+  document.getElementById('audioSyncBtn')?.classList.toggle('synced', bgAudioSynced);
+}
+
+function syncTrackMediaActionStates() {
+  const bgVideo = document.getElementById('bgVideo');
+  const bgAudio = document.getElementById('bgAudio');
+  const hasBgVideoMedia = !!(state.bgVideo.enabled && bgVideo?.src);
+  const hasBgAudioMedia = !!(state.bgAudio.enabled && bgAudio?.src);
+  const hasMainVideoMedia = !!hasVideo;
+
+  BG_VIDEO_CONTROL_IDS.forEach(id => {
+    setElementDisabledState(
+      document.getElementById(id),
+      !hasBgVideoMedia,
+      'Load a background video first'
+    );
+  });
+  BG_AUDIO_CONTROL_IDS.forEach(id => {
+    setElementDisabledState(
+      document.getElementById(id),
+      !hasBgAudioMedia,
+      'Load background audio first'
+    );
+  });
+  MAIN_CONTROL_IDS.forEach(id => {
+    setElementDisabledState(
+      document.getElementById(id),
+      !hasMainVideoMedia,
+      'Load a main video first'
+    );
+  });
+}
+
+function syncTrackButtonMirrors(track) {
+  const cfg = TRACK_CONTROL_IDS[track];
+  if (!cfg) return;
+  const muteActive = document.getElementById(cfg.mute)?.classList.contains('active') || false;
+  const soloActive = document.getElementById(cfg.solo)?.classList.contains('active') || false;
+  document.querySelectorAll(`.effects-panel .mute-btn[data-track="${track}"]`).forEach(btn => {
+    btn.classList.toggle('active', muteActive);
+  });
+  document.querySelectorAll(`.effects-panel .solo-btn[data-track="${track}"]`).forEach(btn => {
+    btn.classList.toggle('active', soloActive);
+  });
+}
+
+function setTrackLocked(track, locked) {
+  const cfg = TRACK_CONTROL_IDS[track];
+  if (!cfg) return;
+  const row = document.getElementById(cfg.row);
+  if (row) row.classList.toggle('track-locked', locked);
+}
+
+function syncAllTrackButtonMirrors() {
+  syncTrackButtonMirrors('bgAudio');
+  syncTrackButtonMirrors('bgVideo');
+  syncTrackButtonMirrors('main');
+}
+
 document.querySelectorAll('.track-controls-mini .mini-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
+    if (btn.disabled) return;
     e.stopPropagation();
     const track = btn.dataset.track;
     const type = btn.classList.contains('mute-btn') ? 'mute' :
                  btn.classList.contains('solo-btn') ? 'solo' : 'lock';
     
     if (type === 'lock') {
-      btn.classList.toggle('active');
+      const isLocked = btn.classList.toggle('active');
+      setTrackLocked(track, isLocked);
+      scheduleSave();
+      showToast(`Track ${isLocked ? 'locked' : 'unlocked'}`, 'info');
       return;
     }
 
@@ -14958,15 +15760,14 @@ document.querySelectorAll('.track-controls-mini .mini-btn').forEach(btn => {
         const audio = document.getElementById('bgAudio');
         if (audio) audio.muted = isActive;
       } else if (track === 'bgVideo') {
+        setRenderGroupHidden('bgVideo', isActive);
         state.bgVideo.hidden = isActive;
       } else if (track === 'main') {
-        // Find 'Device' group in renderStack
-        const group = state.renderStack.find(g => g.id === 'device');
-        if (group) group.hidden = isActive;
+        setRenderGroupHidden('device', isActive);
       }
     } else if (type === 'solo') {
       // Logic for soloing a track
-      const allSoloBtns = document.querySelectorAll('.solo-btn');
+      const allSoloBtns = document.querySelectorAll('.track-controls-mini .solo-btn');
       const anySoloActive = Array.from(allSoloBtns).some(b => b.classList.contains('active'));
       
       if (anySoloActive) {
@@ -14977,38 +15778,57 @@ document.querySelectorAll('.track-controls-mini .mini-btn').forEach(btn => {
         restoreAllTracks();
       }
     }
-    
+
+    syncTrackButtonMirrors(track);
+    scheduleSave();
     showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} ${isActive ? 'ON' : 'OFF'}`, 'info');
   });
 });
 
+// Effect-panel mute/solo buttons mirror the header mini controls.
+document.querySelectorAll('.effects-panel .mute-btn, .effects-panel .solo-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const track = btn.dataset.track;
+    const mode = btn.classList.contains('solo-btn') ? 'solo' : 'mute';
+    const cfg = TRACK_CONTROL_IDS[track];
+    if (!cfg) return;
+    const sourceBtn = document.getElementById(cfg[mode]);
+    sourceBtn?.click();
+  });
+});
+
 function updateSoloState() {
-  const soloedTracks = Array.from(document.querySelectorAll('.solo-btn.active')).map(b => b.dataset.track);
+  const soloedTracks = Array.from(document.querySelectorAll('.track-controls-mini .solo-btn.active')).map(b => b.dataset.track);
   
   // Update BG Audio
   const bgAudio = document.getElementById('bgAudio');
   if (bgAudio) bgAudio.muted = !soloedTracks.includes('bgAudio');
   
   // Update BG Video
+  setRenderGroupHidden('bgVideo', !soloedTracks.includes('bgVideo'));
   state.bgVideo.hidden = !soloedTracks.includes('bgVideo');
   
   // Update Main Video
-  const mainGroup = state.renderStack.find(g => g.id === 'device');
-  if (mainGroup) mainGroup.hidden = !soloedTracks.includes('main');
+  setRenderGroupHidden('device', !soloedTracks.includes('main'));
+  syncAllTrackButtonMirrors();
 }
 
 function restoreAllTracks() {
   // Restore based on mute buttons
-  const isAudioMuted = document.getElementById('audioMuteBtn').classList.contains('active');
-  const isBgVideoMuted = document.getElementById('bgVideoMuteBtn').classList.contains('active');
-  const isMainMuted = document.getElementById('mainVideoMuteBtn').classList.contains('active');
+  const isAudioMuted = document.getElementById('audioMuteBtn')?.classList.contains('active') || false;
+  const isBgVideoMuted = document.getElementById('bgVideoMuteBtn')?.classList.contains('active') || false;
+  const isMainMuted = document.getElementById('mainVideoMuteBtn')?.classList.contains('active') || false;
   
   const bgAudio = document.getElementById('bgAudio');
   if (bgAudio) bgAudio.muted = isAudioMuted;
+  setRenderGroupHidden('bgVideo', isBgVideoMuted);
   state.bgVideo.hidden = isBgVideoMuted;
-  const mainGroup = state.renderStack.find(g => g.id === 'device');
-  if (mainGroup) mainGroup.hidden = isMainMuted;
+  setRenderGroupHidden('device', isMainMuted);
+  syncAllTrackButtonMirrors();
 }
+
+syncAllTrackButtonMirrors();
 
 // ============================================================
 // BG TRACK TRIMMING LOGIC
@@ -15195,10 +16015,11 @@ const BG_VIDEO_ACTIONS = {
     name: 'Blur Background',
     apply: () => {
       pushUndoState();
-      const bgVideo = document.getElementById('bgVideo');
-      if (bgVideo) {
-        bgVideo.style.filter = 'blur(10px)';
-      }
+      const effects = state.videoEffects.bgVideo;
+      effects.filters = (effects.filters || []).filter(f => f.type !== 'blur');
+      effects.filters.push({ id: Date.now(), type: 'blur', amount: 10 });
+      if (typeof updateVideoEffectUI === 'function') updateVideoEffectUI('bgVideo');
+      scheduleSave();
       showToast('Background blurred', 'info');
     }
   },
@@ -15206,10 +16027,12 @@ const BG_VIDEO_ACTIONS = {
     name: 'Black & White',
     apply: () => {
       pushUndoState();
-      const bgVideo = document.getElementById('bgVideo');
-      if (bgVideo) {
-        bgVideo.style.filter = 'grayscale(100%)';
-      }
+      const effects = state.videoEffects.bgVideo;
+      effects.saturation = -100;
+      effects.filters = (effects.filters || []).filter(f => f.type !== 'grayscale');
+      effects.filters.push({ id: Date.now(), type: 'grayscale', amount: 100 });
+      if (typeof updateVideoEffectUI === 'function') updateVideoEffectUI('bgVideo');
+      scheduleSave();
       showToast('Grayscale applied', 'info');
     }
   },
@@ -15226,10 +16049,14 @@ const BG_VIDEO_ACTIONS = {
     name: 'Reset Filters',
     apply: () => {
       pushUndoState();
-      const bgVideo = document.getElementById('bgVideo');
-      if (bgVideo) {
-        bgVideo.style.filter = '';
-      }
+      state.videoEffects.bgVideo.filters = [];
+      state.videoEffects.bgVideo.brightness = 0;
+      state.videoEffects.bgVideo.contrast = 0;
+      state.videoEffects.bgVideo.saturation = 0;
+      state.videoEffects.bgVideo.hue = 0;
+      state.videoEffects.bgVideo.temperature = 0;
+      if (typeof updateVideoEffectUI === 'function') updateVideoEffectUI('bgVideo');
+      scheduleSave();
       showToast('Filters reset', 'info');
     }
   },
@@ -15426,6 +16253,8 @@ function initEnhancedTimeline() {
   if (state.bgVideo.enabled && bgVideo && bgVideo.src) {
     bgVideoTrack.classList.add('loaded');
   }
+
+  syncTrackMediaActionStates();
 }
 
 // ============================================================
@@ -15463,8 +16292,10 @@ document.getElementById('bgLoopBtn')?.addEventListener('click', function() {
 
   bgVideoLoop = !bgVideoLoop;
   bgVideo.loop = bgVideoLoop;
+  state.bgVideo.loop = bgVideoLoop;
   this.classList.toggle('active', bgVideoLoop);
 
+  scheduleSave();
   showToast(bgVideoLoop ? 'Background loop enabled' : 'Background loop disabled', 'info');
 });
 
@@ -15475,6 +16306,8 @@ document.getElementById('bgSpeedSelect')?.addEventListener('change', (e) => {
 
   bgVideoSpeed = parseFloat(e.target.value);
   bgVideo.playbackRate = bgVideoSpeed;
+  state.bgVideo.speed = bgVideoSpeed;
+  scheduleSave();
   showToast(`Background speed: ${bgVideoSpeed}×`, 'info');
 });
 
@@ -15520,6 +16353,7 @@ function updateBgVideoTime(e) {
 // Sync background video with main video
 document.getElementById('bgSyncBtn')?.addEventListener('click', function() {
   bgVideoSynced = !bgVideoSynced;
+  state.bgVideo.synced = bgVideoSynced;
   this.classList.toggle('synced', bgVideoSynced);
 
   if (bgVideoSynced) {
@@ -15528,6 +16362,7 @@ document.getElementById('bgSyncBtn')?.addEventListener('click', function() {
   } else {
     showToast('Background independent playback', 'info');
   }
+  scheduleSave();
 });
 
 function syncBgVideoWithMain() {
@@ -15666,6 +16501,8 @@ function updateTimelineVisibility() {
     bgAudioTrack?.classList.remove('loaded');
   }
 
+  hydrateBgTrackRuntimeFromState();
+  syncTrackMediaActionStates();
   updateStageSpacing();
 }
 
@@ -15853,6 +16690,22 @@ document.getElementById('bgAudioInput')?.addEventListener('change', (e) => {
   bgAudio.addEventListener('loadedmetadata', function onMeta() {
     bgAudio.removeEventListener('loadedmetadata', onMeta);
     state.bgAudio.enabled = true;
+    bgAudioLoop = !!state.bgAudio.loop;
+    bgAudioSpeed = Number(state.bgAudio.speed || 1);
+    bgAudioVolume = Number(state.bgAudio.volume ?? 1);
+    bgAudioSynced = state.bgAudio.synced !== false;
+    bgAudio.loop = bgAudioLoop;
+    bgAudio.playbackRate = bgAudioSpeed;
+    bgAudio.volume = Math.max(0, Math.min(1, bgAudioVolume));
+    document.getElementById('audioLoopBtn')?.classList.toggle('active', bgAudioLoop);
+    const speedEl = document.getElementById('audioSpeedSelect');
+    if (speedEl) speedEl.value = String(bgAudioSpeed);
+    const volumeEl = document.getElementById('audioVolumeSlider');
+    if (volumeEl) volumeEl.value = String(Math.round(bgAudio.volume * 100));
+    document.getElementById('audioSyncBtn')?.classList.toggle('synced', bgAudioSynced);
+    if (typeof initializeAudioEffectsForTrack === 'function') {
+      initializeAudioEffectsForTrack('bgAudio');
+    }
 
     const status = document.getElementById('bgAudioStatus');
     if (status) {
@@ -15885,6 +16738,7 @@ document.getElementById('bgAudioInput')?.addEventListener('change', (e) => {
     // Show audio track in timeline
     updateTimelineVisibility();
     updateBgTrimVisuals('bgAudio');
+    scheduleSave();
 
     showToast('Background audio loaded', 'success');
   });
@@ -15926,6 +16780,7 @@ document.getElementById('audioLoopBtn')?.addEventListener('click', function() {
   state.bgAudio.loop = bgAudioLoop;
   this.classList.toggle('active', bgAudioLoop);
 
+  scheduleSave();
   showToast(bgAudioLoop ? 'Audio loop enabled' : 'Audio loop disabled', 'info');
 });
 
@@ -15937,6 +16792,7 @@ document.getElementById('audioVolumeSlider')?.addEventListener('input', (e) => {
   bgAudioVolume = parseInt(e.target.value) / 100;
   bgAudio.volume = bgAudioVolume;
   state.bgAudio.volume = bgAudioVolume;
+  scheduleSave();
 });
 
 // Audio speed control
@@ -15947,6 +16803,7 @@ document.getElementById('audioSpeedSelect')?.addEventListener('change', (e) => {
   bgAudioSpeed = parseFloat(e.target.value);
   bgAudio.playbackRate = bgAudioSpeed;
   state.bgAudio.speed = bgAudioSpeed;
+  scheduleSave();
   showToast(`Audio speed: ${bgAudioSpeed}×`, 'info');
 });
 
@@ -15992,6 +16849,7 @@ function updateAudioTime(e) {
 // Sync audio with main video
 document.getElementById('audioSyncBtn')?.addEventListener('click', function() {
   bgAudioSynced = !bgAudioSynced;
+  state.bgAudio.synced = bgAudioSynced;
   this.classList.toggle('synced', bgAudioSynced);
 
   if (bgAudioSynced) {
@@ -16000,6 +16858,7 @@ document.getElementById('audioSyncBtn')?.addEventListener('click', function() {
   } else {
     showToast('Audio independent playback', 'info');
   }
+  scheduleSave();
 });
 
 function syncAudioWithMain() {
@@ -16079,12 +16938,14 @@ document.getElementById('removeAudioBtn')?.addEventListener('click', () => {
   bgAudio.removeAttribute('src');
 
   state.bgAudio.enabled = false;
+  state.bgAudio.synced = false;
   bgAudioPlaying = false;
 
   const status = document.getElementById('bgAudioStatus');
   if (status) status.textContent = '';
 
   updateTimelineVisibility();
+  scheduleSave();
   showToast('Background audio removed', 'info');
 });
 
@@ -16093,6 +16954,7 @@ document.getElementById('removeAudioBtn')?.addEventListener('click', () => {
 // ============================================================
 
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return;
   // Space - Play/Pause
   if (e.code === 'Space' && !e.target.matches('input, textarea, select')) {
     e.preventDefault();
@@ -16271,6 +17133,7 @@ function closeAllDropdowns() {
 
 // Toggle background video actions dropdown with CSS classes
 document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
+  if (e.currentTarget.disabled) return;
   e.stopPropagation();
   const btn = e.currentTarget;
   const dropdown = document.getElementById('bgVideoActionsDropdown');
@@ -16297,6 +17160,7 @@ document.getElementById('bgVideoActionsBtn')?.addEventListener('click', (e) => {
 
 // Toggle background audio actions dropdown with CSS classes
 document.getElementById('bgAudioActionsBtn')?.addEventListener('click', (e) => {
+  if (e.currentTarget.disabled) return;
   e.stopPropagation();
   const btn = e.currentTarget;
   const dropdown = document.getElementById('bgAudioActionsDropdown');
@@ -16382,37 +17246,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
-// EFFECTS PANEL TOGGLES
-// ============================================================
-
-// Background audio effects panel toggle
-document.getElementById('bgAudioEffectsToggle')?.addEventListener('click', function() {
-  const section = document.getElementById('bgAudioEffectsSection');
-  if (!section) return;
-
-  section.classList.toggle('collapsed');
-  this.textContent = section.classList.contains('collapsed') ? '🎚️ Audio Effects' : '🎚️ Hide Effects';
-});
-
-// Background video effects panel toggle
-document.getElementById('bgVideoEffectsToggle')?.addEventListener('click', function() {
-  const section = document.getElementById('bgVideoEffectsSection');
-  if (!section) return;
-
-  section.classList.toggle('collapsed');
-  this.textContent = section.classList.contains('collapsed') ? '✨ Video Effects' : '✨ Hide Effects';
-});
-
-// Main video effects panel toggle
-document.getElementById('mainVideoEffectsToggle')?.addEventListener('click', function() {
-  const section = document.getElementById('mainVideoEffectsSection');
-  if (!section) return;
-
-  section.classList.toggle('collapsed');
-  this.textContent = section.classList.contains('collapsed') ? '✨ Video Effects' : '✨ Hide Effects';
-});
-
-// ============================================================
 // LOOP CONTROLS INPUT LISTENERS
 // ============================================================
 
@@ -16443,244 +17276,6 @@ document.getElementById('videoLoopEnd')?.addEventListener('input', (e) => {
   if (!state.loops) state.loops = { main: { enabled: false, start: 0, end: 1 }, bgVideo: { enabled: false, start: 0, end: 1 }, bgAudio: { enabled: false, start: 0, end: 1 } };
   if (!state.loops.bgVideo) state.loops.bgVideo = { enabled: false, start: 0, end: 1 };
   state.loops.bgVideo.end = parseFloat(e.target.value);
-  scheduleSave();
-});
-
-// ============================================================
-// AUDIO EFFECTS CONTROLS
-// ============================================================
-
-// Background Audio EQ Controls
-document.getElementById('bgAudioEQLow')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.eq.low = parseFloat(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + ' dB';
-  scheduleSave();
-});
-
-document.getElementById('bgAudioEQMid')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.eq.mid = parseFloat(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + ' dB';
-  scheduleSave();
-});
-
-document.getElementById('bgAudioEQHigh')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.eq.high = parseFloat(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + ' dB';
-  scheduleSave();
-});
-
-// Background Audio Volume FX
-document.getElementById('bgAudioVolumeFX')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.volume = parseFloat(e.target.value) / 100;
-  e.target.nextElementSibling.textContent = e.target.value + '%';
-  scheduleSave();
-});
-
-// Background Audio Pan
-document.getElementById('bgAudioPan')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.pan = parseFloat(e.target.value);
-  const val = e.target.value;
-  const label = val == 0 ? 'Center' : (val < 0 ? val + ' L' : '+' + val + ' R');
-  e.target.nextElementSibling.textContent = label;
-  scheduleSave();
-});
-
-// Compressor Enable
-document.getElementById('bgAudioCompressorEnable')?.addEventListener('change', (e) => {
-  state.audioEffects.bgAudio.compressor.enabled = e.target.checked;
-  const controls = document.getElementById('bgAudioCompressorControls');
-  if (controls) controls.style.display = e.target.checked ? 'block' : 'none';
-  scheduleSave();
-});
-
-// Compressor Controls
-document.getElementById('bgAudioCompThreshold')?.addEventListener('input', (e) => {
-  state.audioEffects.bgAudio.compressor.threshold = parseFloat(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + ' dB';
-  scheduleSave();
-});
-
-document.getElementById('bgAudioCompRatio')?.addEventListener('change', (e) => {
-  state.audioEffects.bgAudio.compressor.ratio = parseFloat(e.target.value);
-  scheduleSave();
-});
-
-// Reverb Enable
-document.getElementById('bgAudioReverbEnable')?.addEventListener('change', (e) => {
-  state.audioEffects.bgAudio.reverb.enabled = e.target.checked;
-  scheduleSave();
-});
-
-// Echo Enable
-document.getElementById('bgAudioEchoEnable')?.addEventListener('change', (e) => {
-  state.audioEffects.bgAudio.echo.enabled = e.target.checked;
-  scheduleSave();
-});
-
-// Audio Preset Selector
-document.getElementById('bgAudioPreset')?.addEventListener('change', (e) => {
-  const preset = e.target.value;
-  if (!preset) return;
-
-  // Apply preset values
-  const presets = {
-    podcast: { eq: { low: -2, mid: 3, high: 2 }, compressor: { enabled: true, threshold: -18, ratio: 3 } },
-    music: { eq: { low: 2, mid: 0, high: 3 }, compressor: { enabled: false } },
-    bass: { eq: { low: 8, mid: -2, high: 0 }, compressor: { enabled: true, threshold: -12, ratio: 1.5 } },
-    vocal: { eq: { low: -3, mid: 5, high: 4 }, compressor: { enabled: true, threshold: -15, ratio: 3 } },
-    radio: { eq: { low: -5, mid: 4, high: -2 }, compressor: { enabled: true, threshold: -10, ratio: 8 } },
-    spacious: { eq: { low: 0, mid: 0, high: 2 }, reverb: { enabled: true } }
-  };
-
-  if (presets[preset]) {
-    Object.assign(state.audioEffects.bgAudio, presets[preset]);
-    // Update UI
-    document.getElementById('bgAudioEQLow').value = state.audioEffects.bgAudio.eq.low;
-    document.getElementById('bgAudioEQMid').value = state.audioEffects.bgAudio.eq.mid;
-    document.getElementById('bgAudioEQHigh').value = state.audioEffects.bgAudio.eq.high;
-    if (presets[preset].compressor) {
-      document.getElementById('bgAudioCompressorEnable').checked = presets[preset].compressor.enabled;
-    }
-    if (presets[preset].reverb) {
-      document.getElementById('bgAudioReverbEnable').checked = presets[preset].reverb.enabled;
-    }
-    showToast('Preset applied: ' + preset, 'success');
-  }
-
-  e.target.value = ''; // Reset dropdown
-  scheduleSave();
-});
-
-// ============================================================
-// VIDEO EFFECTS CONTROLS
-// ============================================================
-
-// Background Video Color Correction
-document.getElementById('bgVideoBrightness')?.addEventListener('input', (e) => {
-  state.videoEffects.bgVideo.brightness = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('bgVideoContrast')?.addEventListener('input', (e) => {
-  state.videoEffects.bgVideo.contrast = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('bgVideoSaturation')?.addEventListener('input', (e) => {
-  state.videoEffects.bgVideo.saturation = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('bgVideoHue')?.addEventListener('input', (e) => {
-  state.videoEffects.bgVideo.hue = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + '°';
-  scheduleSave();
-});
-
-document.getElementById('bgVideoTemp')?.addEventListener('input', (e) => {
-  state.videoEffects.bgVideo.temperature = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-// Background Video Blend Mode
-document.getElementById('bgVideoBlendMode')?.addEventListener('change', (e) => {
-  state.videoEffects.bgVideo.blendMode = e.target.value;
-  scheduleSave();
-});
-
-// Background Video Preset
-document.getElementById('bgVideoPreset')?.addEventListener('change', (e) => {
-  const preset = e.target.value;
-  if (!preset) return;
-
-  const presets = {
-    cinematic: { brightness: 0, contrast: 15, saturation: -10, hue: 0, temperature: 5 },
-    vibrant: { brightness: 10, contrast: 20, saturation: 30, hue: 0, temperature: 0 },
-    vintage: { brightness: -5, contrast: 10, saturation: -20, hue: 15, temperature: 20 },
-    bwContrast: { brightness: 0, contrast: 40, saturation: -100, hue: 0, temperature: 0 },
-    cool: { brightness: 0, contrast: 5, saturation: 0, hue: 0, temperature: -30 },
-    warm: { brightness: 5, contrast: 5, saturation: 5, hue: 0, temperature: 30 },
-    fade: { brightness: 15, contrast: -15, saturation: -25, hue: 0, temperature: 10 },
-    dramatic: { brightness: -10, contrast: 35, saturation: -5, hue: 0, temperature: -5 }
-  };
-
-  if (presets[preset]) {
-    Object.assign(state.videoEffects.bgVideo, presets[preset]);
-    // Update UI
-    document.getElementById('bgVideoBrightness').value = presets[preset].brightness;
-    document.getElementById('bgVideoContrast').value = presets[preset].contrast;
-    document.getElementById('bgVideoSaturation').value = presets[preset].saturation;
-    document.getElementById('bgVideoHue').value = presets[preset].hue;
-    document.getElementById('bgVideoTemp').value = presets[preset].temperature;
-    showToast('Preset applied: ' + preset, 'success');
-  }
-
-  e.target.value = ''; // Reset dropdown
-  scheduleSave();
-});
-
-// Main Video Color Correction (same as background)
-document.getElementById('mainVideoBrightness')?.addEventListener('input', (e) => {
-  state.videoEffects.main.brightness = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('mainVideoContrast')?.addEventListener('input', (e) => {
-  state.videoEffects.main.contrast = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('mainVideoSaturation')?.addEventListener('input', (e) => {
-  state.videoEffects.main.saturation = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('mainVideoHue')?.addEventListener('input', (e) => {
-  state.videoEffects.main.hue = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value + '°';
-  scheduleSave();
-});
-
-document.getElementById('mainVideoTemp')?.addEventListener('input', (e) => {
-  state.videoEffects.main.temperature = parseInt(e.target.value);
-  e.target.nextElementSibling.textContent = e.target.value;
-  scheduleSave();
-});
-
-document.getElementById('mainVideoPreset')?.addEventListener('change', (e) => {
-  const preset = e.target.value;
-  if (!preset) return;
-
-  const presets = {
-    cinematic: { brightness: 0, contrast: 15, saturation: -10, hue: 0, temperature: 5 },
-    vibrant: { brightness: 10, contrast: 20, saturation: 30, hue: 0, temperature: 0 },
-    vintage: { brightness: -5, contrast: 10, saturation: -20, hue: 15, temperature: 20 },
-    bwContrast: { brightness: 0, contrast: 40, saturation: -100, hue: 0, temperature: 0 },
-    cool: { brightness: 0, contrast: 5, saturation: 0, hue: 0, temperature: -30 },
-    warm: { brightness: 5, contrast: 5, saturation: 5, hue: 0, temperature: 30 },
-    fade: { brightness: 15, contrast: -15, saturation: -25, hue: 0, temperature: 10 },
-    dramatic: { brightness: -10, contrast: 35, saturation: -5, hue: 0, temperature: -5 }
-  };
-
-  if (presets[preset]) {
-    Object.assign(state.videoEffects.main, presets[preset]);
-    // Update UI
-    document.getElementById('mainVideoBrightness').value = presets[preset].brightness;
-    document.getElementById('mainVideoContrast').value = presets[preset].contrast;
-    document.getElementById('mainVideoSaturation').value = presets[preset].saturation;
-    document.getElementById('mainVideoHue').value = presets[preset].hue;
-    document.getElementById('mainVideoTemp').value = presets[preset].temperature;
-    showToast('Preset applied: ' + preset, 'success');
-  }
-
-  e.target.value = ''; // Reset dropdown
   scheduleSave();
 });
 
@@ -16775,6 +17370,15 @@ function cleanupTimelineHandlers() {
 // Initialize delegation (this augments existing handlers, doesn't replace them)
 if (typeof debounce !== 'undefined' && typeof throttle !== 'undefined') {
   initTimelineDelegation();
+}
+
+// Ensure non-loaded track controls start disabled.
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncTrackMediaActionStates);
+  } else {
+    syncTrackMediaActionStates();
+  }
 }
 
 // Export cleanup for potential use
@@ -17242,9 +17846,18 @@ function applyVideoEffectsToElement(trackName) {
   processor.applyCSSFilters(videoEl, effects);
 }
 
+function getVideoTrackPrefix(trackName) {
+  return trackName === 'bgVideo' ? 'bgVideo' : 'mainVideo';
+}
+
 // Add video effect to stack
 function addVideoEffect(trackName, effectType) {
   const effects = state.videoEffects[trackName];
+  const unsupported = new Set(['sharpen', 'pixelate', 'edgedetect', 'posterize']);
+  if (unsupported.has(effectType)) {
+    showToast(`${effectType} is coming soon`, 'info');
+    return;
+  }
 
   const newEffect = { type: effectType, id: Date.now() };
 
@@ -17279,7 +17892,7 @@ function removeVideoEffect(trackName, effectId) {
 
 // Update video effect stack UI
 function updateVideoEffectStack(trackName) {
-  const stackEl = document.getElementById(`${trackName}VideoEffectStack`);
+  const stackEl = document.getElementById(`${getVideoTrackPrefix(trackName)}EffectStack`);
   if (!stackEl) return;
 
   const effects = state.videoEffects[trackName].filters;
