@@ -11,9 +11,13 @@
   gap: 12px;
   z-index: var(--z-app-chrome);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-height: 52px;
 }
+
+.top-bar::-webkit-scrollbar { display: none; }
 
 .top-bar .logo {
   font-size: 15px;
@@ -89,6 +93,14 @@
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
+.btn:disabled,
+.undo-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .undo-btn {
   background: none; border: none; color: var(--text-tertiary); font-size: 14px;
   cursor: pointer; padding: 2px 5px; border-radius: 4px;
@@ -127,6 +139,79 @@
 .mobile-menu-toggle:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+.topbar-more-wrap {
+  position: relative;
+  display: none;
+}
+
+.topbar-more-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: rgba(18, 18, 22, 0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.45);
+  padding: 6px;
+  display: none;
+  z-index: calc(var(--z-app-chrome) + 5);
+}
+
+.topbar-more-menu.open { display: block; }
+
+.topbar-more-menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  border-radius: 7px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.topbar-more-menu button:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+}
+
+.topbar-more-menu button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1440px) {
+  #assetBrowserBtn,
+  #themeToggleBtn,
+  #loopBtn,
+  #ssBtn,
+  #thumbBtn,
+  #kbHelpBtn {
+    display: none;
+  }
+
+  .topbar-more-wrap {
+    display: inline-flex;
+  }
+}
+
+:root[data-theme="light"] .topbar-more-menu {
+  background: rgba(255,255,255,0.98);
+  border-color: rgba(0,0,0,0.12);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.15);
+}
+
+:root[data-theme="light"] .topbar-more-menu button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .topbar-more-menu button:hover {
+  background: rgba(0,0,0,0.08);
 }
 
 /* ============================================================ */
@@ -204,4 +289,3 @@
 :root[data-theme="light"] .mobile-menu-toggle:hover {
   background: rgba(0, 0, 0, 0.1);
 }
-

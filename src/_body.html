@@ -95,6 +95,20 @@
     <i data-lucide="clock"></i><span>Timeline</span>
   </button>
 
+  <div class="topbar-more-wrap" id="topBarMoreWrap">
+    <button class="btn" id="topBarMoreBtn" title="More actions" aria-haspopup="true" aria-expanded="false">
+      <i data-lucide="ellipsis"></i><span>More</span>
+    </button>
+    <div class="topbar-more-menu" id="topBarMoreMenu" role="menu" aria-label="More actions">
+      <button type="button" data-target="assetBrowserBtn" role="menuitem">Assets</button>
+      <button type="button" data-target="themeToggleBtn" role="menuitem">Theme</button>
+      <button type="button" data-target="loopBtn" role="menuitem">Loop</button>
+      <button type="button" data-target="ssBtn" role="menuitem">Screenshot</button>
+      <button type="button" data-target="thumbBtn" role="menuitem">Thumbnail</button>
+      <button type="button" data-target="kbHelpBtn" role="menuitem">Shortcuts</button>
+    </div>
+  </div>
+
   <div class="spacer"></div>
 
   <button class="undo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled><i data-lucide="rotate-ccw"></i></button>
@@ -181,6 +195,9 @@
       <button class="panel-toggle" id="leftPanelToggle" title="Toggle left panel [">«</button>
     </div>
     <div class="panel-body">
+    <div class="panel-filter">
+      <input type="text" id="leftPanelSearchInput" placeholder="Filter left panel..." aria-label="Filter left panel sections">
+    </div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Studio Templates</h3>
@@ -395,6 +412,9 @@
       <button class="panel-toggle" id="rightPanelToggle" title="Toggle right panel ]">»</button>
     </div>
     <div class="panel-body">
+    <div class="panel-filter">
+      <input type="text" id="rightPanelSearchInput" placeholder="Filter right panel..." aria-label="Filter right panel sections">
+    </div>
     <div class="panel-section">
       <div class="section-header">
         <h3>Background</h3>
@@ -725,7 +745,7 @@
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="audioMuteBtn" data-track="bgAudio" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="audioSoloBtn" data-track="bgAudio" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="audioLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="audioLockBtn" data-track="bgAudio" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -908,7 +928,7 @@
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="bgVideoMuteBtn" data-track="bgVideo" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="bgVideoSoloBtn" data-track="bgVideo" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="bgVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="bgVideoLockBtn" data-track="bgVideo" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <div class="track-actions">
@@ -1021,10 +1041,10 @@
             <select id="bgVideoAddEffect">
               <option value="">+ Add Effect</option>
               <option value="blur">Blur</option>
-              <option value="sharpen">Sharpen</option>
-              <option value="pixelate">Pixelate</option>
-              <option value="edgedetect">Edge Detect</option>
-              <option value="posterize">Posterize</option>
+              <option value="sharpen" disabled>Sharpen (coming soon)</option>
+              <option value="pixelate" disabled>Pixelate (coming soon)</option>
+              <option value="edgedetect" disabled>Edge Detect (coming soon)</option>
+              <option value="posterize" disabled>Posterize (coming soon)</option>
               <option value="grayscale">Grayscale</option>
               <option value="sepia">Sepia</option>
             </select>
@@ -1075,7 +1095,7 @@
       <div class="track-controls-mini">
         <button class="mini-btn mute-btn" id="mainVideoMuteBtn" data-track="main" title="Mute Track">M</button>
         <button class="mini-btn solo-btn" id="mainVideoSoloBtn" data-track="main" title="Solo Track">S</button>
-        <button class="mini-btn lock-btn" id="mainVideoLockBtn" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
+        <button class="mini-btn lock-btn" id="mainVideoLockBtn" data-track="main" title="Lock Track"><i data-lucide="lock" style="width:10px;"></i></button>
       </div>
       <div style="flex: 1"></div>
       <button class="track-collapse-btn" id="mainVideoCollapseBtn" title="Collapse/Expand track">▼</button>
@@ -1083,7 +1103,7 @@
 
     <div class="main-track-content">
       <div style="min-width: 140px">
-        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+        <span id="mainVideoFileName" style="font-size: 10px; color: rgba(255,255,255,0.5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No main video loaded</span>
       </div>
 
       <!-- Timeline Track (existing multi-clip timeline) -->
@@ -1145,10 +1165,10 @@
             <select id="mainVideoAddEffect">
               <option value="">+ Add Effect</option>
               <option value="blur">Blur</option>
-              <option value="sharpen">Sharpen</option>
-              <option value="pixelate">Pixelate</option>
-              <option value="edgedetect">Edge Detect</option>
-              <option value="posterize">Posterize</option>
+              <option value="sharpen" disabled>Sharpen (coming soon)</option>
+              <option value="pixelate" disabled>Pixelate (coming soon)</option>
+              <option value="edgedetect" disabled>Edge Detect (coming soon)</option>
+              <option value="posterize" disabled>Posterize (coming soon)</option>
               <option value="grayscale">Grayscale</option>
               <option value="sepia">Sepia</option>
             </select>

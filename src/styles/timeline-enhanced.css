@@ -117,6 +117,12 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.mini-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .mini-btn.active.mute-btn {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
@@ -209,6 +215,18 @@
   pointer-events: auto;
 }
 
+/* Locked tracks keep header controls available, but disable editing content */
+.track-locked .bg-track-content,
+.track-locked .main-track-content {
+  pointer-events: none !important;
+  opacity: 0.45 !important;
+  filter: saturate(0.6);
+}
+
+.track-locked .track-header {
+  background: rgba(96, 165, 250, 0.06);
+}
+
 .bg-video-track.collapsed .bg-track-content,
 .bg-audio-track.collapsed .bg-track-content {
   display: none;
@@ -254,6 +272,19 @@
 
 .track-play-btn:active {
   transform: scale(0.95);
+}
+
+.track-play-btn:disabled,
+.track-loop-btn:disabled,
+.track-speed-select:disabled,
+.track-sync-btn:disabled,
+.track-action-btn:disabled,
+.track-loop-btn.is-disabled,
+.track-action-btn.is-disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.45);
 }
 
 .track-play-btn svg {
@@ -594,6 +625,11 @@
   color: rgba(255,255,255,0.9);
 }
 
+.zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .bg-track-content,
@@ -874,6 +910,12 @@
 
 .track-actions-dropdown button:hover {
   background: rgba(255,255,255,0.1);
+}
+
+.track-actions-dropdown button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Light theme */
