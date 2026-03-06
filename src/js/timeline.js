@@ -186,7 +186,8 @@ function vtTick() {
 // TIMELINE
 // ============================================================
 function rebuildTimeline() {
-  const track = timelineTrack;
+  const track = document.getElementById('timelineTrack');
+  if (!track) return;
   track.querySelectorAll('.clip-block, .trim-handle, .keyframe-diamond, .clip-trans-indicator, .anno-marker').forEach(el => el.remove());
 
   const totalDuration = vtGetTotalDuration() || 1;
@@ -299,79 +300,76 @@ function rebuildTimeline() {
 }
 
 function makeClipTrimDraggable(handle, clipIdx, side) {
-  let dragging = false;
-  handle.addEventListener('mousedown', e => { e.stopPropagation(); e.preventDefault(); dragging = true; });
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    const clip = state.timeline.clips[clipIdx];
-    if (!clip) return;
-    const block = handle.parentElement;
-    const rect = block.getBoundingClientRect();
-    let pct = (e.clientX - rect.left) / rect.width;
-    
-    // Calculate potential new trim values
-    let newTrimIn = clip.trimIn || 0;
-    let newTrimOut = clip.trimOut || 1;
-    
-    if (side === 'left') {
-      newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
-    } else {
-      newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
-    }
+  handle.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    pushUndoState();
 
-    // Snap to Playhead
-    // Calculate where this clip starts and ends in the timeline
-    let clipStartGlobal = 0;
-    for(let i=0; i<clipIdx; i++) {
+    let dragging = true;
+
+    const onMove = evt => {
+      if (!dragging) return;
+      const clip = state.timeline.clips[clipIdx];
+      if (!clip) return;
+
+      const track = document.getElementById('timelineTrack');
+      if (!track) return;
+      const block = track.querySelector(`.clip-block[data-clip-idx="${clipIdx}"]`);
+      if (!block) return;
+      const rect = block.getBoundingClientRect();
+      let pct = (evt.clientX - rect.left) / rect.width;
+      pct = Math.max(0, Math.min(1, pct));
+
+      let newTrimIn = clip.trimIn || 0;
+      let newTrimOut = clip.trimOut || 1;
+
+      if (side === 'left') {
+        newTrimIn = Math.min(pct, (clip.trimOut || 1) - 0.02);
+      } else {
+        newTrimOut = Math.max(pct, (clip.trimIn || 0) + 0.02);
+      }
+
+      // Snap right trim to playhead if close.
+      let clipStartGlobal = 0;
+      for (let i = 0; i < clipIdx; i++) {
         const c = state.timeline.clips[i];
-        clipStartGlobal += c.duration * ((c.trimOut||1) - (c.trimIn||0));
-    }
-    
-    // Current proposed duration
-    const currentDur = clip.duration * (newTrimOut - newTrimIn);
-    const proposedGlobalEnd = clipStartGlobal + currentDur;
-    const proposedGlobalStart = clipStartGlobal; // Start doesn't move with trim, only duration changes relative to offset? 
-    // Wait, trimming left handle shifts the visual start time if we keep offset constant?
-    // In this model, trimming left just changes what part of video plays, effectively shifting "start" point visually if block size changes?
-    // Actually, css width changes. 
-    
-    // Let's simplify: Snap the Handle's screen X to Playhead's screen X
-    // Playhead X pct = vtTime / totalDur
-    // Handle X pct = ... complicated because block width changes.
-    
-    // Alternative: Snap the resulting *Time* to vtTime.
-    const totalDur = vtGetTotalDuration();
-    if (totalDur > 0) {
-        const snapThresh = 0.1; // seconds
-        
-        if (side === 'right') {
-            const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn||0));
-            if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
-                // Snap! Adjust newTrimOut
-                // vtTime = clipStartGlobal + clip.duration * (newTrimOut - trimIn)
-                // newTrimOut = (vtTime - clipStartGlobal) / clip.duration + trimIn
-                newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn||0);
-            }
+        clipStartGlobal += c.duration * ((c.trimOut || 1) - (c.trimIn || 0));
+      }
+      const totalDur = vtGetTotalDuration();
+      if (totalDur > 0 && side === 'right') {
+        const snapThresh = 0.1;
+        const proposedEndTime = clipStartGlobal + clip.duration * (newTrimOut - (clip.trimIn || 0));
+        if (Math.abs(proposedEndTime - vtTime) < snapThresh) {
+          newTrimOut = (vtTime - clipStartGlobal) / clip.duration + (clip.trimIn || 0);
         }
-        // Left trim logic is tricky because it shifts the timeline. Skip for now to be safe.
-    }
+      }
 
-    if (side === 'left') {
+      if (side === 'left') {
         clip.trimIn = Math.min(Math.max(0, newTrimIn), (clip.trimOut || 1) - 0.02);
-    } else {
+      } else {
         clip.trimOut = Math.max(Math.min(1, newTrimOut), (clip.trimIn || 0) + 0.02);
-    }
-    
-    rebuildTimeline();
-  });
-  document.addEventListener('mouseup', () => {
-    if (dragging) { dragging = false; }
+      }
+
+      rebuildTimeline();
+    };
+
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   });
 }
 
 function updateTimelineScrubber() {
+  const scrubber = document.getElementById('timelineScrubber');
+  const track = document.getElementById('timelineTrack');
   // Add null check for scrubber element
-  if (!timelineScrubber) {
+  if (!scrubber) {
     console.warn('Timeline scrubber element not found');
     return;
   }
@@ -387,16 +385,16 @@ function updateTimelineScrubber() {
       // Validate percentage before applying
       if (typeof pct === 'number' && !isNaN(pct)) {
         const clampedPct = Math.max(0, Math.min(100, pct));
-        timelineScrubber.style.transform = `translateX(${clampedPct}%)`;
-        timelineScrubber.style.left = '0';
+        scrubber.style.transform = `translateX(${clampedPct}%)`;
+        scrubber.style.left = '0';
       }
 
       // Update active clip highlight with null check
-      if (!timelineTrack) return;
+      if (!track) return;
 
       const info = vtGetClipAt(vtTime);
       if (info) {
-        const clipBlocks = timelineTrack.querySelectorAll('.clip-block');
+        const clipBlocks = track.querySelectorAll('.clip-block');
         clipBlocks.forEach((b, i) => {
           b.classList.toggle('active', i === info.index);
         });
@@ -406,5 +404,39 @@ function updateTimelineScrubber() {
     }
   });
 }
+
+// Timeline zoom controls
+let timelineZoom = 1;
+const TIMELINE_ZOOM_MIN = 1;
+const TIMELINE_ZOOM_MAX = 3;
+const TIMELINE_ZOOM_STEP = 0.25;
+
+function applyTimelineZoom() {
+  const track = document.getElementById('timelineTrack');
+  if (!track) return;
+  track.style.transformOrigin = 'left center';
+  track.style.transform = `scaleX(${timelineZoom})`;
+}
+
+function setTimelineZoom(nextZoom) {
+  const clamped = Math.max(TIMELINE_ZOOM_MIN, Math.min(TIMELINE_ZOOM_MAX, nextZoom));
+  timelineZoom = Math.round(clamped * 100) / 100;
+  applyTimelineZoom();
+
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  if (zoomOutBtn) zoomOutBtn.disabled = timelineZoom <= TIMELINE_ZOOM_MIN;
+  if (zoomInBtn) zoomInBtn.disabled = timelineZoom >= TIMELINE_ZOOM_MAX;
+}
+
+document.getElementById('zoomInBtn')?.addEventListener('click', () => {
+  setTimelineZoom(timelineZoom + TIMELINE_ZOOM_STEP);
+});
+
+document.getElementById('zoomOutBtn')?.addEventListener('click', () => {
+  setTimelineZoom(timelineZoom - TIMELINE_ZOOM_STEP);
+});
+
+setTimelineZoom(1);
 
 // ============================================================
