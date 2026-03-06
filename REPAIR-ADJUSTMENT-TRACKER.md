@@ -1,6 +1,6 @@
 # Mockup Studio Repair and Adjustment Tracker
 
-Last updated: 2026-03-06 (Release sign-off pass)
+Last updated: 2026-03-06 (Full QA gate pass)
 
 ## Scope
 - Stabilize high-risk runtime issues first.
@@ -71,6 +71,13 @@ Last updated: 2026-03-06 (Release sign-off pass)
 - [x] Fix discovered startup blocker: timeline zoom initialization referencing `timelineTrack` before `render.js` declaration.
 - [x] Rebuild and re-run smoke checks after startup-order fix.
 
+## Final QA Gate (Automation)
+- [x] Run full browser QA gate for startup defaults + functional flows + responsive matrix (`node .qa/full-gate.js`).
+- [x] Fix renderer lock caused by device-selection mutation feedback loop in `src/js/devices.js`.
+- [x] Harden project-load state restore by normalizing invalid device/color combinations in `src/js/state.js`.
+- [x] Guard device frame draw calls against null cache misses in `src/js/render.js`.
+- [x] Re-run build + smoke + full gate with all checks green.
+
 ## Commit Plan
 1. Core behavior fixes + timeline/standstill/state persistence:
    - `src/js/render.js`
@@ -104,3 +111,4 @@ Last updated: 2026-03-06 (Release sign-off pass)
 - 2026-03-06: Completed UX + functionality Wave 7 (hotkey conflict resolution, button-focus hotkey guards, and main-track disabled-state gating with passing smoke/build checks).
 - 2026-03-06: Release sign-off pass completed (build + smoke + control wiring audit re-verified).
 - 2026-03-06: Final manual QA pass completed; fixed startup `timelineTrack` initialization-order blocker in `timeline.js`; smoke checks re-verified.
+- 2026-03-06: Completed final automated QA gate (`.qa/full-gate.js`) with 81/81 passing checks after fixing device-selection observer loop and project-load device/color hardening.

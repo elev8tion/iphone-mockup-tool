@@ -1,0 +1,140 @@
+{
+  "device": {
+    "type": "macbookpro",
+    "color": "black",
+    "landscape": false,
+    "scale": 0.45
+  },
+  "videoFit": "contain",
+  "perspective": {
+    "x": 0,
+    "y": 0
+  },
+  "background": {
+    "color": "#111111"
+  },
+  "shadow": 0.6,
+  "preset": "youtube",
+  "bgType": "solid",
+  "gradient": {
+    "enabled": false,
+    "type": "linear",
+    "color1": "#0f0c29",
+    "color2": "#302b63",
+    "color3": "#24243e",
+    "angle": 135,
+    "animated": false,
+    "speed": 1
+  },
+  "particles": {
+    "enabled": false,
+    "type": "bokeh",
+    "count": 30,
+    "color": "#ffffff",
+    "speed": 0.5
+  },
+  "orbit": {
+    "enabled": false,
+    "speed": 0.3,
+    "axis": "y",
+    "range": 15
+  },
+  "motionBlur": {
+    "enabled": false,
+    "amount": 0.15
+  },
+  "entrance": {
+    "type": "none",
+    "duration": 1000
+  },
+  "animPreset": {
+    "type": "none",
+    "intensity": 1,
+    "bpm": 120,
+    "autoBPM": false
+  },
+  "scene": "custom",
+  "chromaKey": {
+    "enabled": false,
+    "color": "#00ff00",
+    "tolerance": 80,
+    "softness": 10
+  },
+  "standstill": {
+    "mode": "none",
+    "freezeTime": 0,
+    "contentLoop": {
+      "enabled": false,
+      "start": 0,
+      "end": 1
+    }
+  },
+  "lut": {
+    "enabled": false,
+    "intensity": 1,
+    "name": "",
+    "presetKey": ""
+  },
+  "waveform": {
+    "enabled": false,
+    "color": "#60a5fa",
+    "height": 0.06,
+    "position": "bottom",
+    "style": "bars"
+  },
+  "progressBar": {
+    "enabled": false,
+    "color": "#60a5fa",
+    "height": 4,
+    "position": "top"
+  },
+  "glassmorphism": {
+    "enabled": false,
+    "text": "Your CTA Here",
+    "blur": 12,
+    "opacity": 15
+  },
+  "hand": {
+    "enabled": false,
+    "style": "right"
+  },
+  "facecam": {
+    "enabled": false,
+    "size": 0.15,
+    "corner": "bottomRight",
+    "shape": "circle",
+    "borderColor": "#ffffff",
+    "borderWidth": 3,
+    "shadow": true,
+    "x": -1,
+    "y": -1
+  },
+  "layers": [],
+  "builtinOverlays": [],
+  "bgVideo": {
+    "enabled": false,
+    "opacity": 1,
+    "fit": "cover",
+    "trimIn": 0,
+    "trimOut": 1,
+    "loop": true,
+    "speed": 1,
+    "synced": true
+  },
+  "bgAudio": {
+    "enabled": false,
+    "volume": 1,
+    "loop": false,
+    "speed": 1,
+    "synced": true,
+    "trimIn": 0,
+    "trimOut": 1
+  },
+  "comparison": {
+    "enabled": false,
+    "device2": null,
+    "video2": null
+  },
+  "isLooping": true,
+  "speed": 1
+}
